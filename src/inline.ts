@@ -1,0 +1,310 @@
+// Inline markdown to a small tree. Tokenizing is one pass, emphasis uses the CommonMark delimiter stack (linear),
+// and `spec` closes unfinished constructs speculatively so a half-streamed reply never shows raw markers.
+
+export interface N {
+  k: string; // t text, c code, br, e emphasis, l link or image, a autolink, d delimiter, [ bracket, h list head
+  s?: string;
+  tag?: string;
+  kids?: N[];
+  href?: string;
+  img?: boolean;
+  d?: number;
+  ch?: string;
+  n?: number;
+  o?: boolean;
+  c?: boolean;
+  orig?: number;
+  p?: N | null;
+  x?: N | null;
+}
+
+const PUNCT = /[\p{P}\p{S}]/u;
+const WS = /\s/;
+const ESC = /[!-/:-@[-`{-~]/;
+const WORD = /[A-Za-z0-9_]/;
+const BR = /<br\s*\/?>/iy;
+const AUTO = /<([A-Za-z][A-Za-z0-9+.-]*:[^\s<>]*|[\w.+-]+@[\w-]+(?:\.[\w-]+)+)>/y;
+const URLRE = /(?:https?:\/\/|www\.)[^\s<\]]+/iy;
+const DOMAIN = /[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/y;
+const MAXDEST = 1500;
+const MAXDEPTH = 30;
+
+const lastCp = (s: string, i: number) => {
+  const c = s.charCodeAt(i - 1);
+  return i > 1 && c >= 0xdc00 && c <= 0xdfff ? s.slice(i - 2, i) : s[i - 1];
+};
+const firstCp = (s: string, i: number) => String.fromCodePoint(s.codePointAt(i)!);
+
+function merge(t: N[]): N[] {
+  const o: N[] = [];
+  for (const x of t) {
+    const l = o[o.length - 1];
+    if (x.k === 't' && l && l.k === 't') l.s = l.s! + x.s!;
+    else o.push(x);
+  }
+  return o;
+}
+
+function parseDest(s: string, j: number): { end: number; href: string } | 'p' | null {
+  const n = s.length;
+  j++;
+  while (s[j] === ' ' || s[j] === '\t') j++;
+  if (j >= n) return 'p';
+  let dest: string;
+  if (s[j] === '<') {
+    let k = j + 1;
+    while (k < n && s[k] !== '>' && s[k] !== '\n' && s[k] !== '<' && k - j < MAXDEST) k++;
+    if (k >= n) return 'p';
+    if (s[k] !== '>') return null;
+    dest = s.slice(j + 1, k);
+    j = k + 1;
+  } else {
+    let depth = 0;
+    let k = j;
+    while (k < n) {
+      const c = s.charCodeAt(k);
+      if (c <= 32 || c === 127) break;
+      if (c === 92 && k + 1 < n) { k += 2; continue; }
+      if (c === 40) depth++;
+      else if (c === 41 && !depth--) break;
+      if (++k - j > MAXDEST) return null;
+    }
+    if (k >= n) return 'p';
+    dest = s.slice(j, k);
+    j = k;
+  }
+  const skip = () => { while (s[j] === ' ' || s[j] === '\t' || s[j] === '\n') j++; };
+  const href = () => dest.replace(/\\([!-/:-@[-`{-~])/g, '$1');
+  skip();
+  if (j >= n) return 'p';
+  if (s[j] === ')') return { end: j + 1, href: href() };
+  const q = s[j];
+  if (q === '"' || q === "'" || q === '(') {
+    const k = s.indexOf(q === '(' ? ')' : q, j + 1);
+    if (k < 0) return n - j <= 500 ? 'p' : null;
+    if (k - j > 500) return null;
+    j = k + 1;
+    skip();
+    if (j >= n) return 'p';
+    if (s[j] === ')') return { end: j + 1, href: href() };
+  }
+  return null;
+}
+
+function trimUrl(u: string): string {
+  let o = 0, c = 0;
+  for (const ch of u) ch === '(' ? o++ : ch === ')' && c++;
+  for (;;) {
+    const l = u[u.length - 1];
+    if (/[?!.,:;*_~'"]/.test(l)) u = u.slice(0, -1);
+    else if (l === ')' && c > o) { u = u.slice(0, -1); c--; }
+    else return u;
+  }
+}
+
+/** Resolve emphasis among tokens (delimiter stack, linear). Returns final nodes. */
+function resolve(t: N[], spec: boolean): N[] {
+  if (!t.some((x) => x.k === 'd')) return merge(t);
+  const head: N = { k: 'h', x: null };
+  let prev = head;
+  for (const x of t) { prev.x = x; x.p = prev; x.x = null; prev = x; }
+  const stack: N[] = [];
+  const bottom: Record<string, number> = {};
+  const lit = (z: N): N => ({ k: 't', s: z.ch!.repeat(z.n!) });
+  for (let cur = head.x; cur; ) {
+    if (cur.k !== 'd') { cur = cur.x!; continue; }
+    const cl = cur;
+    if (cl.c) {
+      const key = cl.ch! + (cl.o ? 1 : 0) + (cl.orig! % 3);
+      while (cl.n! > 0) {
+        let f = -1;
+        for (let j = stack.length - 1, lo = Math.min(bottom[key] ?? 0, stack.length); j >= lo; j--) {
+          const op = stack[j];
+          if (op.ch !== cl.ch || (cl.ch === '~' && (op.n! < 2 || cl.n! < 2))) continue;
+          if ((op.c || cl.o) && (op.orig! + cl.orig!) % 3 === 0 && !(op.orig! % 3 === 0 && cl.orig! % 3 === 0)) continue;
+          f = j;
+          break;
+        }
+        if (f < 0) { bottom[key] = stack.length; break; }
+        const op = stack[f];
+        const kids: N[] = [];
+        let md = 0;
+        for (let z = op.x!; z !== cl; z = z.x!) { kids.push(z.k === 'd' ? lit(z) : z); md = Math.max(md, z.d ?? 0); }
+        if (md >= MAXDEPTH) { bottom[key] = stack.length; break; }
+        const use = op.n! >= 2 && cl.n! >= 2 ? 2 : 1;
+        const node: N = { k: 'e', tag: use === 2 ? (cl.ch === '~' ? 'del' : 'strong') : 'em', kids, d: md + 1 };
+        stack.length = f + 1;
+        op.n! -= use;
+        cl.n! -= use;
+        node.p = op; node.x = cl; op.x = node; cl.p = node;
+        if (op.n === 0) { op.p!.x = node; node.p = op.p; stack.pop(); }
+        if (cl.n === 0) { node.x = cl.x; if (cl.x) cl.x.p = node; }
+      }
+      if (cl.n! > 0 && cl.o) stack.push(cl);
+    } else stack.push(cl);
+    cur = cl.x!;
+  }
+  if (spec) {
+    let last = head;
+    while (last.x) last = last.x;
+    if (last.k === 'd' && last !== head) last.p!.x = null;
+    for (let j = stack.length - 1; j >= 0; j--) {
+      const op = stack[j];
+      while (op.n! > 0 && op.x && !(op.ch === '~' && op.n! < 2)) {
+        const kids: N[] = [];
+        let md = 0;
+        for (let z = op.x; z; z = z.x!) { kids.push(z.k === 'd' ? lit(z) : z); md = Math.max(md, z.d ?? 0); }
+        if (md >= MAXDEPTH) break;
+        const use = op.n! >= 2 ? 2 : 1;
+        const node: N = { k: 'e', tag: use === 2 ? (op.ch === '~' ? 'del' : 'strong') : 'em', kids, d: md + 1, p: op, x: null };
+        op.x = node;
+        op.n! -= use;
+      }
+    }
+  }
+  const out: N[] = [];
+  for (let z = head.x; z; z = z.x) {
+    if (z.k !== 'd') out.push(z);
+    else if (z.n! > 0) out.push(lit(z));
+  }
+  return merge(out);
+}
+
+export function parseInline(s: string, spec: boolean): N[] {
+  const out: N[] = [];
+  const brk: number[] = [];
+  const n = s.length;
+  let ts = 0;
+  let i = 0;
+  let runs: Map<number, number[]> | undefined;
+  const ptr = new Map<number, number>();
+  const text = (to: number) => { if (to > ts) out.push({ k: 't', s: s.slice(ts, to) }); };
+
+  while (i < n) {
+    const c = s[i];
+    if (c === '\\') {
+      const nx = s[i + 1];
+      if (nx === '\n') { text(i); out.push({ k: 'br' }); i += 2; ts = i; continue; }
+      if (nx && ESC.test(nx)) { text(i); out.push({ k: 't', s: nx }); i += 2; ts = i; continue; }
+      i++;
+    } else if (c === '`') {
+      let e = i;
+      while (s[e] === '`') e++;
+      const len = e - i;
+      if (!runs) {
+        runs = new Map();
+        for (const m of s.matchAll(/`+/g)) {
+          const l = runs.get(m[0].length);
+          l ? l.push(m.index!) : runs.set(m[0].length, [m.index!]);
+        }
+      }
+      const list = runs.get(len) ?? [];
+      let p = ptr.get(len) ?? 0;
+      while (p < list.length && list[p] <= i) p++;
+      ptr.set(len, p);
+      const close = p < list.length ? list[p] : spec ? n : -1;
+      if (close >= 0) {
+        text(i);
+        let code = s.slice(e, close).replace(/\n/g, ' ');
+        if (code.length > 1 && code[0] === ' ' && code[code.length - 1] === ' ' && code.trim()) code = code.slice(1, -1);
+        out.push({ k: 'c', s: code });
+        i = close < n ? close + len : n;
+        ts = i;
+      } else i = e;
+    } else if (c === '*' || c === '_' || c === '~') {
+      let e = i;
+      while (s[e] === c) e++;
+      const len = e - i;
+      if (c === '~' && len < 2) { i = e; continue; }
+      const before = i ? lastCp(s, i) : ' ';
+      const after = e < n ? firstCp(s, e) : ' ';
+      const bw = WS.test(before), aw = WS.test(after), bp = PUNCT.test(before), ap = PUNCT.test(after);
+      const lf = !aw && (!ap || bw || bp);
+      const rf = !bw && (!bp || aw || ap);
+      const o = c === '_' ? lf && (!rf || bp) : lf;
+      const cl = c === '_' ? rf && (!lf || ap) : rf;
+      if (o || cl) { text(i); out.push({ k: 'd', ch: c, n: len, orig: len, o, c: cl }); ts = e; }
+      else if (spec && e === n) { text(i); ts = e; }
+      i = e;
+    } else if (c === '[' || (c === '!' && s[i + 1] === '[')) {
+      text(i);
+      brk.push(out.length);
+      out.push({ k: '[', img: c === '!' });
+      i += c === '!' ? 2 : 1;
+      ts = i;
+    } else if (c === ']') {
+      const bi = brk.pop();
+      if (bi === undefined) { i++; continue; }
+      const open = out[bi];
+      const r = s[i + 1] === '(' ? parseDest(s, i + 1) : null;
+      if (r && r !== 'p') {
+        text(i);
+        const kids = resolve(out.splice(bi + 1), false);
+        out.length = bi;
+        out.push({ k: 'l', href: r.href, img: open.img, kids });
+        i = r.end;
+        ts = i;
+      } else if (spec && (r === 'p' || i + 1 === n)) {
+        text(i);
+        const kids = resolve(out.splice(bi + 1), spec);
+        out.length = bi;
+        out.push(...kids);
+        i = n;
+        ts = n;
+      } else {
+        open.k = 't';
+        open.s = open.img ? '![' : '[';
+        i++;
+      }
+    } else if (c === '<') {
+      BR.lastIndex = i;
+      AUTO.lastIndex = i;
+      let m: RegExpExecArray | null;
+      if (BR.test(s)) { text(i); out.push({ k: 'br' }); i = BR.lastIndex; ts = i; }
+      else if ((m = AUTO.exec(s))) {
+        text(i);
+        const u = m[1];
+        out.push({ k: 'a', s: u, href: !u.includes(':') ? 'mailto:' + u : u });
+        i += m[0].length;
+        ts = i;
+      } else i++;
+    } else if (c === '\n') {
+      if (s[i - 1] === ' ' && s[i - 2] === ' ') {
+        let t = i;
+        while (t > ts && s[t - 1] === ' ') t--;
+        text(t);
+        out.push({ k: 'br' });
+        ts = i + 1;
+      }
+      i++;
+    } else if ((c === 'h' || c === 'H' || c === 'w' || c === 'W') && (i === 0 || !WORD.test(s[i - 1]))) {
+      URLRE.lastIndex = i;
+      const m = URLRE.exec(s);
+      const u = m && trimUrl(m[0]);
+      if (u && u.replace(/^(?:https?:\/\/|www\.)/i, '')) {
+        text(i);
+        out.push({ k: 'a', s: u, href: /^www\./i.test(u) ? 'https://' + u : u });
+        i += u.length;
+        ts = i;
+      } else i++;
+    } else if (c === '@') {
+      const lm = /[A-Za-z0-9._+-]+$/.exec(s.slice(Math.max(ts, i - 64), i));
+      DOMAIN.lastIndex = i + 1;
+      const dm = DOMAIN.exec(s);
+      if (lm && dm) {
+        const dom = dm[0].replace(/[-_.]+$/, '');
+        text(i - lm[0].length);
+        out.push({ k: 'a', s: lm[0] + '@' + dom, href: 'mailto:' + lm[0] + '@' + dom });
+        i += 1 + dom.length;
+        ts = i;
+      } else i++;
+    } else i++;
+  }
+  text(n);
+  const fin: N[] = [];
+  for (const x of out) {
+    if (x.k !== '[') fin.push(x);
+    else if (!spec) fin.push({ k: 't', s: x.img ? '![' : '[' });
+  }
+  return resolve(fin, spec);
+}

@@ -4,8 +4,8 @@ import { REPLY as PROTO_REPLY, XSS as PROTO_XSS } from './proto-data.mjs';
 export const REPLY: string = PROTO_REPLY;
 
 const EXTRA_XSS: [string, string][] = [
-  ['zero-width in js:', '[x](java​script:alert(1))'],
-  ['line separator in js:', '[x](java script:alert(1))'],
+  ['zero-width in js:', '[x](java\u200bscript:alert(1))'],
+  ['line separator in js:', '[x](java\u2028script:alert(1))'],
   ['newline entity js:', '[x](java&NewLine;script:alert(1))'],
   ['uppercase data:', '[x](DATA:text/html;base64,PHNjcmlwdD4=)'],
   ['file: link', '[x](file:///etc/passwd)'],
@@ -38,7 +38,7 @@ export const CORPUS: string[] = [
   '> Quoted *text* that continues\n> on a second line\n\n> - quoted list\n> - second\n\nPlain again.',
   'Line one  \nline two\\\nline three<br>line four\n\n***bold italic*** and ~~gone~~ and **bold *nested* bold** and *a **b** c*.',
   '- [x] done\n- [ ] todo\n  continuation line\n\n* star list\n* second\n\n---\n\n+ plus list',
-  'Unicode: \u{1F600} café 中文 שלום é zero​width. **émotion** and `\u{1F600}`.',
+  'Unicode: \u{1F600} caf\u00e9 \u4e2d\u6587 \u05e9\u05dc\u05d5\u05dd e\u0301 zero\u200bwidth. **\u00e9motion** and `\u{1F600}`.',
   '```python\ndef f(x):\n    return x * 2  # *not* emphasis\n\n    \n```\nText right after the fence\n- list right after',
   '1. Step one:\n   ```js\n   console.log(1);\n   ```\n2. Step two with `code`\n3. Step three\n\n10. Tenth',
 ];

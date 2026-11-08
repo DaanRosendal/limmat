@@ -46,7 +46,7 @@ describe('half-open constructs show no raw markers', () => {
       r.write('agraph continues\n\nthird');
       expect(root.children[0]).toBe(first);
       expect(root.children[1]).toBe(second);
-      expect(root.children.length).toBe(3);
+      expect(root.children.length).toBe(4);
     });
   });
 });

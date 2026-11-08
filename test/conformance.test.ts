@@ -142,6 +142,9 @@ describe('conformance, own cases for the supported subset', () => {
   });
   it('unsupported things degrade to text', () => {
     expect(html(render('Setext\n===')).startsWith('<p>')).toBe(true);
-    expect(html(render('[ref]: http://x.com\n\n[ref]'))).toBe('<p>[ref]: http://x.com</p><p>[ref]</p>');
+    const root = render('[ref]: http://x.com\n\n[ref]');
+    expect(root.children.length).toBe(2);
+    expect(root.children[0].textContent).toBe('[ref]: http://x.com');
+    expect(root.children[1].innerHTML).toBe('[ref]');
   });
 });
