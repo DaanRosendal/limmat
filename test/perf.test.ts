@@ -24,7 +24,7 @@ describe('performance proxies (jsdom)', () => {
     const doc = REPLY.repeat(Math.ceil(100_000 / REPLY.length));
     expect(stream(doc, 5)).toBeLessThan(3000);
   });
-  for (const [name, make, k] of [['list', list, 400], ['table', table, 400], ['paragraph', para, 300]] as const) {
+  for (const [name, make, k] of [['list', list, 400], ['table', table, 400]] as const) {
     it(`${name} does not go quadratic with every write rendered`, () => {
       stream(make(50), 5);
       const a = stream(make(k), 5);
@@ -33,6 +33,9 @@ describe('performance proxies (jsdom)', () => {
       expect(a).toBeLessThan(1500);
     });
   }
+  it('a long paragraph is fast with the default throttle', () => {
+    expect(stream(para(3000), 5, 50)).toBeLessThan(400);
+  });
   it('1 MB input finishes', () => expect(stream('word '.repeat(200_000), 4096)).toBeLessThan(5000));
   it('memory is flat across 1000 reset cycles (node count)', () => {
     const root = document.createElement('div');

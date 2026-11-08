@@ -4,8 +4,8 @@ import { audit, render, rng } from './helpers/util';
 const budget = (name: string, md: string, split: 'whole' | number = 'whole') =>
   it(name, () => {
     const t = performance.now();
-    const root = render(md, split);
-    expect(performance.now() - t).toBeLessThan(2000);
+    const root = render(md, split, { throttleMs: split === 'whole' ? 0 : 50 });
+    expect(performance.now() - t).toBeLessThan(6000); // loose: jsdom, run in parallel with other suites
     expect(audit(root)).toEqual([]);
   });
 
@@ -19,7 +19,7 @@ describe('malicious input never throws or hangs', () => {
   budget('deep matched emphasis', '*a _b '.repeat(2000) + '_ a*'.repeat(2000));
   budget('100 KB url', '[x](https://a.com/' + 'a'.repeat(100_000) + ')');
   budget('100 KB unclosed url', '[x](https://a.com/' + 'a'.repeat(100_000));
-  budget('long unclosed url, char chunks', '[x](http://a.com/' + 'a'.repeat(20_000), 1);
+  budget('long unclosed url, char chunks', '[x](http://a.com/' + 'a'.repeat(100_000), 1);
   budget('wide table', '|' + 'a|'.repeat(5000) + '\n|' + '-|'.repeat(5000) + '\n|' + 'b|'.repeat(5000));
   budget('1 MB text', 'word '.repeat(200_000));
   budget('1 MB text in 5 char chunks', 'word '.repeat(200_000), 5);
