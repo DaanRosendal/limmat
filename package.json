@@ -1,0 +1,47 @@
+{
+  "name": "limmat",
+  "version": "0.1.0-dev.0",
+  "description": "Renders streaming markdown into the DOM as it arrives: about 2.5 kB, safe by default, with no framework.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "author": "Daan Rosendal",
+  "sideEffects": [
+    "*.css"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./highlight": {
+      "types": "./dist/highlight.d.ts",
+      "default": "./dist/highlight.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "peerDependencies": {
+    "@speed-highlight/core": "*"
+  },
+  "peerDependenciesMeta": {
+    "@speed-highlight/core": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "size": "node scripts/size.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
+    "jsdom": "^29.1.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
+  }
+}
