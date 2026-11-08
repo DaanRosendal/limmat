@@ -38,6 +38,7 @@
     "size": "node scripts/size.mjs"
   },
   "devDependencies": {
+    "@speed-highlight/core": "^2.1.0",
     "@types/node": "^26.6.6",
     "esbuild": "^0.28.2",
     "jsdom": "^29.1.1",
