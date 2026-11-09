@@ -75,3 +75,7 @@ While the version is 0.x, minor releases may also break the stable parts, and th
 ## Browser support
 
 The browser suite runs on current Chromium, Firefox, and WebKit. From the APIs used (`replaceChildren`, `matchAll`, `?.`, `??`, Unicode property escapes, sticky regexes) the minimum should be Chrome 86, Firefox 78, and Safari 14. These floors come from compatibility data, not from tests on old browsers. The optional CSS uses `color-mix()` as an upgrade with plain fallbacks. It also uses `:where()` (Chrome 88), `:focus-visible` (Firefox 85, Safari 15.4), and flex `gap` (Safari 14.1): older browsers show their default focus outline and tighter spacing in the code header, and everything still works.
+
+## Content-Security-Policy
+
+limmat works under a strict policy such as `default-src 'none'; script-src 'self'; style-src 'self'`. It never uses inline scripts, `eval`, or a `style` attribute written as a string. Table alignment and the Copy fallback use the CSSOM, which `style-src` does not block. A test guards this.
