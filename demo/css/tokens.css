@@ -1,0 +1,116 @@
+/* Design tokens. The --limmat-* variables make the rendered pane match the page. */
+:root {
+  color-scheme: light dark;
+  --bg: #f5f5f8;
+  --surface: #fff;
+  --surface-2: #f0f0f5;
+  --pill: #fff;
+  --fg: #0c0c11;
+  --muted: #5a5a67;
+  --line: #e4e4ec;
+  --line-strong: #cdcddb;
+  --accent: #4f46e5;
+  --accent-ink: #fff;
+  --accent-soft: rgb(79 70 229 / 0.1);
+  --ok: #166534;
+  --ok-soft: rgb(22 101 52 / 0.1);
+  --bad: #b91c1c;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 2px rgb(15 15 30 / 0.04), 0 10px 30px rgb(15 15 30 / 0.06);
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --fast: 150ms;
+  --med: 240ms;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --limmat-code-bg: var(--surface-2);
+  --limmat-border: var(--line);
+  --limmat-muted: var(--muted);
+  --limmat-link: var(--accent);
+  --limmat-focus: var(--accent);
+  --syn-kwd: #9d174d;
+  --syn-str: #166534;
+  --syn-num: #1d4ed8;
+  --syn-func: #6d28d9;
+  --syn-type: #0e7490;
+  --syn-err: #b91c1c;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #09090c;
+    --surface: #121217;
+    --surface-2: #1b1b23;
+    --pill: #2b2b36;
+    --fg: #f3f3f7;
+    --muted: #a2a2b0;
+    --line: rgb(255 255 255 / 0.09);
+    --line-strong: rgb(255 255 255 / 0.18);
+    --accent: #a8a3ff;
+    --accent-ink: #0b0b12;
+    --accent-soft: rgb(168 163 255 / 0.14);
+    --ok: #4ade80;
+    --ok-soft: rgb(74 222 128 / 0.12);
+    --bad: #f87171;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 14px 40px rgb(0 0 0 / 0.35);
+    --syn-kwd: #f9a8d4;
+    --syn-str: #86efac;
+    --syn-num: #93c5fd;
+    --syn-func: #c4b5fd;
+    --syn-type: #67e8f9;
+    --syn-err: #fca5a5;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #09090c;
+  --surface: #121217;
+  --surface-2: #1b1b23;
+  --pill: #2b2b36;
+  --fg: #f3f3f7;
+  --muted: #a2a2b0;
+  --line: rgb(255 255 255 / 0.09);
+  --line-strong: rgb(255 255 255 / 0.18);
+  --accent: #a8a3ff;
+  --accent-ink: #0b0b12;
+  --accent-soft: rgb(168 163 255 / 0.14);
+  --ok: #4ade80;
+  --ok-soft: rgb(74 222 128 / 0.12);
+  --bad: #f87171;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 14px 40px rgb(0 0 0 / 0.35);
+  --syn-kwd: #f9a8d4;
+  --syn-str: #86efac;
+  --syn-num: #93c5fd;
+  --syn-func: #c4b5fd;
+  --syn-type: #67e8f9;
+  --syn-err: #fca5a5;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+.shj-syn-kwd {
+  color: var(--syn-kwd);
+}
+.shj-syn-str,
+.shj-syn-insert {
+  color: var(--syn-str);
+}
+.shj-syn-num,
+.shj-syn-bool {
+  color: var(--syn-num);
+}
+.shj-syn-func {
+  color: var(--syn-func);
+}
+.shj-syn-type,
+.shj-syn-class {
+  color: var(--syn-type);
+}
+.shj-syn-err,
+.shj-syn-deleted {
+  color: var(--syn-err);
+}
+.shj-syn-cmnt {
+  color: var(--muted);
+  font-style: italic;
+}

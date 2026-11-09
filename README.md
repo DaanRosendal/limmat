@@ -46,6 +46,46 @@ md.end();
 
 With an LLM SDK, call `md.write(delta)` for each text delta and `md.end()` when the stream finishes.
 
+In a framework, give limmat an empty element and call `destroy()` when it goes away. React:
+
+```tsx
+function Answer({ stream }: { stream: AsyncIterable<string> }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const md = createRenderer(ref.current!);
+    let live = true;
+    (async () => {
+      for await (const chunk of stream) if (live) md.write(chunk);
+      if (live) md.end();
+    })();
+    return () => {
+      live = false;
+      md.destroy();
+    };
+  }, [stream]);
+  return <div ref={ref} />;
+}
+```
+
+Svelte, as an action:
+
+```svelte
+<script>
+  import { createRenderer } from 'limmat';
+  export let stream;
+  function render(node, stream) {
+    const md = createRenderer(node);
+    (async () => {
+      for await (const chunk of stream) md.write(chunk);
+      md.end();
+    })();
+    return { destroy: () => md.destroy() };
+  }
+</script>
+
+<div use:render={stream}></div>
+```
+
 Options, methods, code highlighting, styling, and accessibility are in [docs/API.md](docs/API.md).
 
 ## Why limmat

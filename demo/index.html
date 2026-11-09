@@ -5,139 +5,179 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="color-scheme" content="light dark">
-<title>limmat: streaming markdown that never shows a half-finished marker</title>
-<meta name="description" content="A tiny, safe markdown renderer for streaming LLM output. Break it yourself: change the chunking, scrub through a stream, and throw hostile input at it.">
+<title>limmat: streaming markdown, safe by construction</title>
+<meta name="description" content="A tiny, safe markdown renderer for streaming LLM output. Change the chunking, scrub the stream, and throw hostile input at it.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="limmat.css">
-<link rel="stylesheet" href="demo.css">
-<script type="module" src="demo.js"></script>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/panels.css">
+<script type="module" src="js/main.js"></script>
 </head>
 <body>
-<a class="skip" href="#sim">Skip to the demo</a>
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></symbol>
+  <symbol id="i-step" viewBox="0 0 24 24"><path d="M6 5.5v13l9-6.5zM17 5h2.5v14H17z" fill="currentColor"/></symbol>
+  <symbol id="i-end" viewBox="0 0 24 24"><path d="M4 5.5v13l8-6.5zM12 5.5v13l8-6.5z" fill="currentColor"/></symbol>
+  <symbol id="i-restart" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5M4.5 4v4.5H9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><path d="M9 9h10v11H9zM5 15V4h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-paste" viewBox="0 0 24 24"><path d="M8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2M9 3h6v4H9zM8.5 12h7M8.5 16h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+</svg>
+
 <header class="top">
-  <a class="brand" href="#top" id="top">limmat</a>
-  <nav aria-label="Links">
-    <a href="#gallery">Hostile input</a>
-    <a href="#support">Support</a>
-    <a href="https://github.com/DaanRosendal/limmat">GitHub</a>
-    <a href="https://www.npmjs.com/package/limmat">npm</a>
-    <button type="button" id="theme" aria-label="Switch between light and dark theme">Theme</button>
+  <h1 class="brand"><span class="word">limmat</span><span class="caret" aria-hidden="true"></span><span class="tag">Streaming markdown, never half-finished</span></h1>
+  <span class="chip release" id="release" title="Build details load with the page">limmat</span>
+  <nav class="tabs" aria-label="Panels">
+    <button type="button" class="tab" data-panel="check" aria-expanded="false" aria-controls="panel-check">Chunking</button>
+    <button type="button" class="tab" data-panel="attack" aria-expanded="false" aria-controls="panel-attack">Attack</button>
+    <button type="button" class="tab" data-panel="support" aria-expanded="false" aria-controls="panel-support">Support</button>
   </nav>
+  <div class="actions">
+    <button type="button" class="pill" id="copy-install" title="Copy the install command"><code>npm i limmat</code><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg><span class="sr" id="copy-note"></span></button>
+    <a class="ghost" href="https://github.com/DaanRosendal/limmat">GitHub</a>
+    <div class="menu-wrap">
+      <button type="button" class="icon-btn" id="menu-btn" aria-haspopup="true" aria-expanded="false" aria-controls="menu" aria-label="More" title="More"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button>
+      <div class="menu" id="menu" inert>
+        <button type="button" id="paste-open"><svg class="ico" aria-hidden="true"><use href="#i-paste"/></svg>Stream your own markdown</button>
+        <button type="button" id="share"><svg class="ico" aria-hidden="true"><use href="#i-link"/></svg>Copy a link to this run</button>
+      </div>
+    </div>
+    <button type="button" class="icon-btn" id="theme" aria-label="Switch between light and dark theme" title="Theme">
+      <svg class="ico sun" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ico moon" aria-hidden="true"><use href="#i-moon"/></svg>
+    </button>
+  </div>
 </header>
 
-<main>
-  <section class="hero" aria-labelledby="h1">
-    <h1 id="h1">Streaming markdown that never shows a half-finished marker.</h1>
-    <p class="sub">limmat renders LLM replies into the DOM as they arrive. It is <span data-size>about 7 kB</span> gzip, has no dependencies, and shows raw HTML as text. Below, you can break it yourself.</p>
-    <div class="install">
-      <code id="install">npm install limmat</code>
-      <button type="button" id="copy-install">Copy</button>
+<main class="stage" id="stage">
+  <div class="pane">
+    <header class="pane-head"><h2 id="raw-h">Model stream</h2></header>
+    <pre id="raw" class="raw" role="region" aria-labelledby="raw-h" tabindex="0"></pre>
+    <footer class="pane-foot">
+      <span class="chip"><b id="v-chunks">0</b> chunks</span>
+      <span class="chip"><b id="v-bytes">0</b> bytes</span>
+    </footer>
+  </div>
+  <div class="pane">
+    <header class="pane-head"><h2 id="out-h">limmat</h2><span class="chip state" id="open-readout" data-state="idle">Open: none yet</span></header>
+    <div id="out" class="rendered" role="region" aria-labelledby="out-h" tabindex="0"></div>
+    <footer class="pane-foot" role="group" aria-label="Live measurements of this output">
+      <span class="chip" id="chip-scripts" title="Script elements in the output plus alert() calls from payloads. Always zero."><b>0</b> scripts</span>
+      <span class="chip" id="chip-images" title="Image elements in the output plus image requests this page made. Always zero."><b>0</b> images</span>
+      <span class="chip" id="chip-nodes" title="Elements in the output right now."><b>0</b> nodes</span>
+      <span class="chip" id="chip-ms" title="Median synchronous write() time in this tab. Measured live, not a benchmark."><b>-</b> ms/write</span>
+    </footer>
+  </div>
+
+  <section class="panel compact" id="panel-check" aria-labelledby="check-h" inert>
+    <header class="panel-head">
+      <h2 id="check-h">Any chunking, same page</h2>
+      <span class="verdict" id="check-verdict" role="status"></span>
+      <button type="button" class="btn small" id="run-check">Run again</button>
+      <button type="button" class="icon-btn close" data-close aria-label="Close panel"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </header>
+    <div class="panel-body">
+      <table class="grid" id="check-table">
+        <thead><tr><th scope="col">Chunking</th><th scope="col">Writes</th><th scope="col">Nodes</th><th scope="col">Same HTML</th></tr></thead>
+        <tbody></tbody>
+      </table>
     </div>
   </section>
 
-  <section id="sim" aria-labelledby="sim-h">
-    <h2 id="sim-h">Watch a reply stream in</h2>
-    <p class="cap">The left pane is exactly what the model sends, in the chunks you choose. The right pane is limmat's output after every chunk. Only the open block (outlined) is touched, and finished blocks stay still.</p>
-
-    <div class="controls" role="group" aria-label="Stream controls">
-      <button type="button" id="play" class="primary">Pause</button>
-      <button type="button" id="step">Step</button>
-      <button type="button" id="finish">Jump to end</button>
-      <button type="button" id="restart">Restart</button>
-      <label><span>Stream</span>
-        <select id="stream"></select>
-      </label>
-      <label><span>Chunk size <output id="size-out">5</output></span>
-        <input type="range" id="size" min="1" max="50" value="5">
-      </label>
-      <label><span>Cuts</span>
-        <select id="mode"><option value="random">random up to size</option><option value="fixed">fixed size</option></select>
-      </label>
-      <label><span>Seed</span>
-        <input type="number" id="seed" min="0" max="4294967295" value="1">
-      </label>
-      <label><span>Delay <output id="speed-out">60</output> ms</span>
-        <input type="range" id="speed" min="10" max="400" value="60">
-      </label>
-      <label><span>Throttle</span>
-        <select id="throttle"><option value="0">0 ms (render every write)</option><option value="50" selected>50 ms (default)</option><option value="200">200 ms</option></select>
-      </label>
-    </div>
-
-    <div class="custom" id="custom" hidden>
-      <label>Your markdown (up to 200,000 characters; it stays in this page)
-        <textarea id="custom-text" rows="6" spellcheck="false"></textarea>
-      </label>
-      <button type="button" id="custom-go">Stream it</button>
-    </div>
-
-    <div class="scrub">
-      <label><span>Position <output id="pos-out">0 / 0</output></span>
-        <input type="range" id="pos" min="0" max="0" value="0">
-      </label>
-      <span class="open-readout" id="open-readout">Open block: none yet</span>
-    </div>
-
-    <div class="panes">
-      <div class="pane">
-        <h3 id="raw-h">What the model sends</h3>
-        <pre id="raw" class="raw" role="region" aria-labelledby="raw-h" tabindex="0"></pre>
+  <section class="panel" id="panel-attack" aria-labelledby="attack-h" data-view="out" inert>
+    <header class="panel-head">
+      <h2 id="attack-h">Hostile input</h2>
+      <div class="seg n2" role="radiogroup" aria-label="Show">
+        <label><input type="radio" name="view" value="out" checked><span>Rendered</span></label>
+        <label><input type="radio" name="view" value="dom"><span>DOM</span></label>
       </div>
-      <div class="pane">
-        <h3 id="out-h">What limmat shows</h3>
-        <div id="out" class="rendered" role="region" aria-labelledby="out-h" tabindex="0"></div>
-      </div>
-    </div>
-
-    <p class="metrics" id="metrics">Measured in this tab, not a benchmark: nothing yet.</p>
-    <p class="notice" id="notice" role="status"></p>
-    <p class="sr" id="live" role="status"></p>
-    <p class="cap"><button type="button" id="share" class="link">Copy a link to this exact run</button> The link keeps the stream, chunking, seed, and throttle in the address after the #, and never leaves your browser.</p>
+      <button type="button" class="icon-btn close" data-close aria-label="Close panel"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </header>
+    <dl class="proof" id="proof" aria-label="Live measurements of the twelve outputs"></dl>
+    <div class="panel-body"><div class="cards" id="cards"></div></div>
   </section>
 
-  <section id="check" aria-labelledby="check-h">
-    <h2 id="check-h">Any chunking gives the same page</h2>
-    <p class="cap">This streams the stream above four different ways into hidden containers and compares the final HTML. It runs limmat for real each time you press the button.</p>
-    <button type="button" id="run-check">Run the chunking check</button>
-    <table class="check-table" id="check-table" hidden>
-      <thead><tr><th scope="col">Chunking</th><th scope="col">Writes</th><th scope="col">DOM nodes</th><th scope="col">Same as one write</th></tr></thead>
-      <tbody></tbody>
-    </table>
-    <p class="verdict" id="check-verdict" role="status"></p>
-  </section>
-
-  <section id="gallery" aria-labelledby="gallery-h">
-    <h2 id="gallery-h">Throw hostile input at it</h2>
-    <p class="cap">Twelve inputs that try to run script, steal a click, or load a tracker. Each card shows the input, what limmat built, and the actual DOM as text. The links are real: click one, and nothing happens.</p>
-    <dl class="proof" id="proof" aria-label="Live measurements of the gallery output"></dl>
-    <div class="cards" id="cards"></div>
-  </section>
-
-  <section id="support" aria-labelledby="support-h">
-    <h2 id="support-h">What is supported</h2>
-    <p class="cap">The gaps are listed here on purpose. The same table is in the README and is checked in CI. "Spec examples" are CommonMark 0.31.2 examples that pass.</p>
-    <div class="filters" role="group" aria-label="Filter the table">
-      <button type="button" data-filter="all" aria-pressed="true">All</button>
-      <button type="button" data-filter="supported" aria-pressed="false">Supported</button>
-      <button type="button" data-filter="partial" aria-pressed="false">Partial</button>
-      <button type="button" data-filter="not-yet" aria-pressed="false">Not yet</button>
-      <button type="button" data-filter="wont" aria-pressed="false">Will not</button>
-    </div>
-    <div class="table-scroll" tabindex="0" role="region" aria-label="Support table">
-      <table id="support-table" class="support-table"><thead><tr><th scope="col">Feature</th><th scope="col">Status</th><th scope="col">Spec examples</th><th scope="col">Notes</th></tr></thead><tbody></tbody></table>
+  <section class="panel" id="panel-support" aria-labelledby="support-h" inert>
+    <header class="panel-head">
+      <h2 id="support-h">What is supported</h2>
+      <div class="filters" role="group" aria-label="Filter the table" id="filters"></div>
+      <button type="button" class="icon-btn close" data-close aria-label="Close panel"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </header>
+    <div class="panel-body" tabindex="0" role="region" aria-label="Support table">
+      <table class="grid" id="support-table"><thead><tr><th scope="col">Feature</th><th scope="col">Status</th><th scope="col">Spec</th><th scope="col">Notes</th></tr></thead><tbody></tbody></table>
     </div>
   </section>
 
-  <section class="cta" aria-labelledby="cta-h">
-    <h2 id="cta-h">Try it</h2>
-    <div class="install"><code>npm install limmat</code></div>
-    <p><a href="https://github.com/DaanRosendal/limmat">GitHub</a> · <a href="https://www.npmjs.com/package/limmat">npm</a> · MIT · 0.x, one maintainer</p>
+  <section class="panel" id="panel-paste" aria-labelledby="paste-h" inert>
+    <header class="panel-head">
+      <h2 id="paste-h">Your markdown</h2>
+      <span class="hint">Stays in this page. Up to 200,000 characters.</span>
+      <button type="button" class="icon-btn close" data-close aria-label="Close panel"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </header>
+    <div class="panel-body paste">
+      <label class="sr" for="custom-text">Markdown to stream</label>
+      <textarea id="custom-text" spellcheck="false" placeholder="Paste markdown here"></textarea>
+      <button type="button" class="btn primary" id="custom-go"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg><span>Stream it</span></button>
+    </div>
   </section>
 </main>
 
-<footer>
-  <p id="release">limmat, loading build details.</p>
-  <p>This page makes no third-party requests, sets no cookies, and sends nothing you type anywhere. Content-Security-Policy: scripts and styles from this origin only.</p>
+<footer class="dock">
+  <div class="transport" role="group" aria-label="Stream controls">
+    <button type="button" class="icon-btn" id="restart" aria-label="Restart" title="Restart"><svg class="ico" aria-hidden="true"><use href="#i-restart"/></svg></button>
+    <button type="button" class="btn primary" id="play" data-state="playing"><svg class="ico i-play" aria-hidden="true"><use href="#i-play"/></svg><svg class="ico i-pause" aria-hidden="true"><use href="#i-pause"/></svg><span>Pause</span></button>
+    <button type="button" class="icon-btn" id="step" aria-label="Step one chunk" title="Step one chunk"><svg class="ico" aria-hidden="true"><use href="#i-step"/></svg></button>
+    <button type="button" class="icon-btn" id="finish" aria-label="Jump to end" title="Jump to end"><svg class="ico" aria-hidden="true"><use href="#i-end"/></svg></button>
+    <input type="range" id="pos" min="0" max="0" value="0" aria-label="Position in the stream">
+    <output id="pos-out" class="mono">0 / 0</output>
+  </div>
+  <div class="options">
+    <div class="group" role="radiogroup" aria-labelledby="g-stream">
+      <span class="gl" id="g-stream">Stream</span>
+      <div class="seg n7">
+        <label><input type="radio" name="stream" value="reply" checked><span>Reply</span></label>
+        <label><input type="radio" name="stream" value="mid-marker"><span>Marker</span></label>
+        <label><input type="radio" name="stream" value="table"><span>Table</span></label>
+        <label><input type="radio" name="stream" value="fence"><span>Fence</span></label>
+        <label><input type="radio" name="stream" value="link-split"><span>Link</span></label>
+        <label><input type="radio" name="stream" value="list"><span>List</span></label>
+        <label><input type="radio" name="stream" value="custom"><span>Yours</span></label>
+      </div>
+    </div>
+    <div class="group" role="radiogroup" aria-labelledby="g-size">
+      <span class="gl" id="g-size">Chunk size</span>
+      <div class="seg n4">
+        <label><input type="radio" name="size" value="1"><span>1</span></label>
+        <label><input type="radio" name="size" value="5"><span>5</span></label>
+        <label><input type="radio" name="size" value="20"><span>20</span></label>
+        <label><input type="radio" name="size" value="random" checked><span>Random</span></label>
+      </div>
+    </div>
+    <div class="group" role="radiogroup" aria-labelledby="g-throttle">
+      <span class="gl" id="g-throttle">Throttle ms</span>
+      <div class="seg n3">
+        <label><input type="radio" name="throttle" value="0"><span>0</span></label>
+        <label><input type="radio" name="throttle" value="50" checked><span>50</span></label>
+        <label><input type="radio" name="throttle" value="200"><span>200</span></label>
+      </div>
+    </div>
+    <div class="group" role="radiogroup" aria-labelledby="g-speed">
+      <span class="gl" id="g-speed">Speed</span>
+      <div class="seg n3">
+        <label><input type="radio" name="speed" value="slow"><span>Slow</span></label>
+        <label><input type="radio" name="speed" value="normal" checked><span>Normal</span></label>
+        <label><input type="radio" name="speed" value="fast"><span>Fast</span></label>
+      </div>
+    </div>
+  </div>
 </footer>
+<p class="toast" id="notice" role="status"></p>
+<p class="sr" id="live" role="status"></p>
 </body>
 </html>

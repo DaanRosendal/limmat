@@ -9,7 +9,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
 const browser = await chromium.launch();
 for (const scheme of ['light', 'dark']) {
-  const ctx = await browser.newContext({ viewport: { width: 1200, height: 900 }, colorScheme: scheme, reducedMotion: 'reduce' });
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 760 }, colorScheme: scheme, reducedMotion: 'reduce' });
   const page = await ctx.newPage();
   await page.route('https://limmat.test/**', (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -20,7 +20,7 @@ for (const scheme of ['light', 'dark']) {
       return route.fulfill({ status: 404, body: 'not found' });
     }
   });
-  await page.goto('https://limmat.test/#v=1&stream=reply&c=6&r=1&s=3&t=0&d=60');
+  await page.goto('https://limmat.test/#v=1&stream=reply&c=12&r=1&s=3&t=0&d=60');
   await page.waitForFunction(() => window.__demoReady === true);
   const found = await page.evaluate(async () => {
     const pos = document.querySelector('#pos');
@@ -35,8 +35,7 @@ for (const scheme of ['light', 'dark']) {
   });
   if (found < 0) throw new Error('could not find the half-open link moment');
   await page.waitForSelector('#out .shj-syn-kwd');
-  await page.locator('#sim').scrollIntoViewIfNeeded();
-  await page.locator('#sim').screenshot({ path: `docs/demo-${scheme}.png` });
+  await page.screenshot({ path: `docs/demo-${scheme}.png` });
   await ctx.close();
 }
 await browser.close();

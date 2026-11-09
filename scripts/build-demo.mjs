@@ -10,7 +10,8 @@ const out = 'demo/out';
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 
-for (const f of ['index.html', 'demo.css', 'demo.js', '_headers']) copyFileSync(`demo/${f}`, `${out}/${f}`);
+for (const f of ['index.html', '_headers']) copyFileSync(`demo/${f}`, `${out}/${f}`);
+for (const dir of ['css', 'js']) cpSync(`demo/${dir}`, `${out}/${dir}`, { recursive: true });
 cpSync('demo/assets', out, { recursive: true });
 copyFileSync('dist/limmat.min.js', `${out}/limmat.min.js`);
 copyFileSync('dist/style.css', `${out}/limmat.css`);

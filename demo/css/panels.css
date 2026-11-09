@@ -1,0 +1,287 @@
+/* The panels over the panes (chunking check, attack, support, paste) and the header menu. */
+/* ---------------------------------------------------------------- panels */
+.verdict {
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.verdict:empty {
+  display: none;
+}
+.verdict.ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.verdict.bad {
+  background: rgb(185 28 28 / 0.12);
+  color: var(--bad);
+}
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.grid th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 18px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+.grid td {
+  padding: 9px 18px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.grid tbody tr:hover {
+  background: var(--surface-2);
+}
+.grid td:nth-child(n + 2):not(:last-child) {
+  white-space: nowrap;
+}
+#check-table progress {
+  width: 120px;
+  height: 6px;
+  margin-left: 12px;
+  vertical-align: middle;
+  accent-color: var(--accent);
+}
+#check-table td:nth-child(n + 2) {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.grid .yes {
+  color: var(--ok);
+  font-weight: 600;
+}
+.grid .no {
+  color: var(--bad);
+  font-weight: 700;
+}
+#support-table td:last-child {
+  color: var(--muted);
+}
+.tag-status {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tag-status.supported {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.tag-status.partial {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.filters button {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--fast),
+    color var(--fast);
+}
+.filters button:hover {
+  color: var(--fg);
+}
+.filters button[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.filters b {
+  margin-left: 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.paste {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 18px 18px;
+}
+.paste textarea {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface-2);
+  font: 13px / 1.55 var(--mono);
+  resize: none;
+}
+.paste .btn {
+  align-self: flex-start;
+}
+
+/* ---------------------------------------------------------------- the attack panel */
+.proof {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 0;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.proof div {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.proof dt {
+  color: var(--muted);
+  font-size: 12px;
+  order: 2;
+}
+.proof dd {
+  margin: 0;
+  font: 700 15px var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+  padding: 14px 18px 18px;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface-2);
+  transition:
+    border-color var(--fast),
+    transform var(--fast) var(--ease);
+}
+.card:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+.card h3 {
+  font-size: 13px;
+  font-weight: 600;
+}
+.card .ok {
+  align-self: flex-start;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--ok-soft);
+  color: var(--ok);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.card pre {
+  margin: 0;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 12px;
+  overflow: hidden;
+  white-space: pre;
+  text-overflow: ellipsis;
+}
+.card .result,
+.card .dom {
+  height: 3.7em;
+  overflow: hidden;
+  padding: 6px 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.card .dom {
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: pre;
+  border-style: solid;
+}
+.panel[data-view="dom"] .result,
+.panel:not([data-view="dom"]) .dom {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- menu */
+.menu-wrap {
+  position: relative;
+}
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 250px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition:
+    opacity var(--fast) var(--ease),
+    transform var(--fast) var(--ease),
+    visibility 0s var(--fast);
+}
+.menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
+}
+.menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.menu button:hover {
+  background: var(--surface-2);
+}
+.menu .ico {
+  color: var(--muted);
+}
