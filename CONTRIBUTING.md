@@ -50,7 +50,7 @@ A change of more than about 500 lines needs an issue first.
 ## Releasing (maintainer)
 
 1. Enable private vulnerability reporting on the GitHub repository (Settings, Code security), because `SECURITY.md` and the issue chooser link to it.
-2. `npm run check` is green on `main`. Move the `[Unreleased]` entries in `CHANGELOG.md` under the new version and date.
+2. `npm run check` is green on `master`. Move the `[Unreleased]` entries in `CHANGELOG.md` under the new version and date.
 3. Remove `"private": true` and set the version in `package.json`.
 4. `npm publish --access public` from an interactive terminal (npm asks for browser approval and 2FA).
 5. Tag `vX.Y.Z` and publish the GitHub release with the changelog entry. `prepublishOnly` rebuilds `dist/` and runs the package check, because `dist/` is not in git.
