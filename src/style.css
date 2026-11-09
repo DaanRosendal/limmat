@@ -26,6 +26,14 @@
   text-decoration: underline;
   text-underline-offset: 0.15em;
 }
+.limmat-inline-code {
+  padding: 0.12em 0.4em;
+  border-radius: 0.35em;
+  background: var(--limmat-code-bg);
+  font-family: var(--limmat-font-mono);
+  font-size: 0.875em;
+  overflow-wrap: anywhere;
+}
 .limmat-code {
   margin: 0.75em 0;
   border: 1px solid var(--limmat-border);
@@ -130,6 +138,9 @@
   .limmat-table-wrap th,
   .limmat-table-wrap td {
     border-color: CanvasText;
+  }
+  .limmat-inline-code {
+    border: 1px solid CanvasText;
   }
   .limmat-link {
     color: LinkText;

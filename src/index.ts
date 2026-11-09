@@ -114,7 +114,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       }
       const x = f.nodes[f.i++];
       if (x.k === 't') f.el.append(x.s);
-      else if (x.k === 'c') f.el.append(h('code', '', x.s));
+      else if (x.k === 'c') f.el.append(h('code', cls('inline-code'), x.s));
       else if (x.k === 'br') f.el.append(h('br'));
       else if (x.k === 'e') {
         const el = h(x.tag);

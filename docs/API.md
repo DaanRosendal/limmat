@@ -44,6 +44,7 @@ div.limmat-code
   pre[tabindex=0] > code.limmat-lang-ts
 div.limmat-table-wrap[tabindex=0][role=region] > table
 a.limmat-link
+code.limmat-inline-code (inline code)
 ```
 
 ## Accessibility
