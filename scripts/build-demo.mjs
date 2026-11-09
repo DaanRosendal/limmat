@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { copyFileSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { build } from 'esbuild';
+import { rows, specCounts } from './support-data.mjs';
 
 const out = 'demo/out';
 rmSync(out, { recursive: true, force: true });
@@ -31,15 +32,9 @@ await build({
   logLevel: 'error',
 });
 
-const sections = JSON.parse(readFileSync('test/fixtures/commonmark-sections.json', 'utf8'));
-const support = JSON.parse(readFileSync('docs/support.json', 'utf8')).map((r) => {
-  let pass = 0;
-  let total = 0;
-  for (const name of r.cm ?? []) {
-    pass += sections[name].pass;
-    total += sections[name].total;
-  }
-  return { feature: r.feature, status: r.status, note: r.note ?? '', spec: total ? `${pass}/${total}` : '' };
+const support = rows.map((r) => {
+  const spec = specCounts(r);
+  return { feature: r.feature, status: r.status, note: r.note ?? '', spec: spec?.total ? `${spec.pass}/${spec.total}` : '' };
 });
 writeFileSync(`${out}/support.json`, JSON.stringify(support));
 
