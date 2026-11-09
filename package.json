@@ -51,5 +51,25 @@
     "jsdom": "^29.1.1",
     "typescript": "^7.0.2",
     "vitest": "^4.1.12"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DaanRosendal/limmat.git"
+  },
+  "homepage": "https://github.com/DaanRosendal/limmat#readme",
+  "bugs": {
+    "url": "https://github.com/DaanRosendal/limmat/issues"
+  },
+  "keywords": [
+    "markdown",
+    "streaming",
+    "llm",
+    "chat",
+    "dom",
+    "xss",
+    "safe"
+  ],
+  "engines": {
+    "node": ">=20"
   }
 }
