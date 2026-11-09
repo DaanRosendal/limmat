@@ -76,6 +76,7 @@ body {
   padding: 10px 16px;
 }
 .pane-head {
+  min-height: 48px;
   border-bottom: 1px solid var(--line);
 }
 .pane-foot {

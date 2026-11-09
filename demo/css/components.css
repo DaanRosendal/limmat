@@ -370,15 +370,15 @@ input[type="range"] {
   font-size: 13px;
   text-align: right;
 }
-.pane h2,
-.panel h2 {
+.pane-head h2,
+.panel-head h2 {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
 }
-.panel h2 {
+.panel-head h2 {
   font-size: 13px;
   color: var(--fg);
 }
