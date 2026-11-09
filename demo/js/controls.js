@@ -1,7 +1,7 @@
 // The dock: transport buttons, the scrubber, and the segmented option groups.
 import { $$, clamp } from './dom.js';
 import { el } from './els.js';
-import { openPanel } from './panels.js';
+import { closePanel, openName, openPanel } from './panels.js';
 import { finish, pause, play, reset, scrub, step } from './player.js';
 import { writeHash } from './share.js';
 import { SPEEDS, s } from './state.js';
@@ -23,6 +23,8 @@ export function syncControls() {
 export const canPlay = () => s.stream !== 'custom' || !!STREAMS.custom.text;
 
 function apply(name, value) {
+  // The editor belongs to Yours, so choosing anything else in the dock puts it away.
+  if (openName() === 'paste' && !(name === 'stream' && value === 'custom')) closePanel(false);
   if (name === 'stream') {
     s.stream = value;
     if (value === 'custom') openPanel('paste'); // Yours always opens the editor, so the text can be changed

@@ -372,3 +372,13 @@ test('a phone-width screen has no sideways scroll and keeps every control reacha
   await openTab(page, 'attack');
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
 });
+
+test('choosing another stream puts the paste editor away', async ({ page }) => {
+  await open(page);
+  await pick(page, 'stream', 'custom');
+  await expect(page.locator('#panel-paste')).toHaveClass(/open/);
+  await pick(page, 'stream', 'table');
+  await expect(page.locator('#panel-paste')).not.toHaveClass(/open/);
+  await expect(page.locator('input[name="stream"][value="table"]')).toBeChecked();
+  await expect(page.locator('.pane').first()).not.toHaveJSProperty('inert', true);
+});
