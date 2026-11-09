@@ -1,0 +1,132 @@
+{
+  "Tabs": {
+    "pass": 2,
+    "total": 11,
+    "scope": "out"
+  },
+  "Backslash escapes": {
+    "pass": 9,
+    "total": 13,
+    "scope": "in"
+  },
+  "Entity and numeric character references": {
+    "pass": 5,
+    "total": 17,
+    "scope": "out"
+  },
+  "Precedence": {
+    "pass": 1,
+    "total": 1,
+    "scope": "in"
+  },
+  "Thematic breaks": {
+    "pass": 17,
+    "total": 19,
+    "scope": "in"
+  },
+  "ATX headings": {
+    "pass": 17,
+    "total": 18,
+    "scope": "in"
+  },
+  "Setext headings": {
+    "pass": 12,
+    "total": 27,
+    "scope": "out"
+  },
+  "Indented code blocks": {
+    "pass": 1,
+    "total": 12,
+    "scope": "out"
+  },
+  "Fenced code blocks": {
+    "pass": 27,
+    "total": 29,
+    "scope": "in"
+  },
+  "HTML blocks": {
+    "pass": 0,
+    "total": 44,
+    "scope": "out"
+  },
+  "Link reference definitions": {
+    "pass": 5,
+    "total": 27,
+    "scope": "out"
+  },
+  "Paragraphs": {
+    "pass": 7,
+    "total": 8,
+    "scope": "in"
+  },
+  "Blank lines": {
+    "pass": 1,
+    "total": 1,
+    "scope": "in"
+  },
+  "Block quotes": {
+    "pass": 22,
+    "total": 25,
+    "scope": "in"
+  },
+  "List items": {
+    "pass": 22,
+    "total": 48,
+    "scope": "in"
+  },
+  "Lists": {
+    "pass": 10,
+    "total": 26,
+    "scope": "in"
+  },
+  "Inlines": {
+    "pass": 1,
+    "total": 1,
+    "scope": "out"
+  },
+  "Code spans": {
+    "pass": 20,
+    "total": 22,
+    "scope": "in"
+  },
+  "Emphasis and strong emphasis": {
+    "pass": 129,
+    "total": 132,
+    "scope": "in"
+  },
+  "Links": {
+    "pass": 23,
+    "total": 90,
+    "scope": "in"
+  },
+  "Images": {
+    "pass": 1,
+    "total": 22,
+    "scope": "out"
+  },
+  "Autolinks": {
+    "pass": 9,
+    "total": 19,
+    "scope": "in"
+  },
+  "Raw HTML": {
+    "pass": 7,
+    "total": 20,
+    "scope": "out"
+  },
+  "Hard line breaks": {
+    "pass": 13,
+    "total": 15,
+    "scope": "in"
+  },
+  "Soft line breaks": {
+    "pass": 1,
+    "total": 2,
+    "scope": "in"
+  },
+  "Textual content": {
+    "pass": 3,
+    "total": 3,
+    "scope": "in"
+  }
+}
