@@ -1,4 +1,4 @@
-import { type Al, ATX, cells, LI, scan, spaces, type Unit } from './block';
+import { type Al, atx, cells, LI, scan, spaces, type Unit } from './block';
 import { type N, parseInline } from './inline';
 import { safeUrl } from './url';
 
@@ -34,12 +34,12 @@ interface Entry {
   ctx: Ctx;
   code?: HTMLElement;
   open?: boolean;
+  hl?: [HTMLElement, string, string][]; // fences nested in this unit, highlighted once the unit is final
 }
 interface Built {
   n: Element;
   body?: Element;
   code?: HTMLElement;
-  text?: string;
 }
 
 const MAX_DEPTH = 12;
@@ -47,10 +47,25 @@ const MAX_DEPTH = 12;
 export function createRenderer(container: HTMLElement, options: Options = {}): Renderer {
   const o = options;
   const protocols = o.allowedProtocols ?? ['https:', 'http:', 'mailto:'];
-  const internal = o.isInternalPath ?? (() => true);
+  const internal = o.isInternalPath
+    ? (p: string) => {
+        try {
+          return !!o.isInternalPath!(p);
+        } catch {
+          return false;
+        }
+      }
+    : () => true;
   const throttle = o.throttleMs ?? 50;
   const px = o.classPrefix ?? 'limmat';
-  const label = { copy: 'Copy', copied: 'Copied', table: 'Table', done: 'Completed', todo: 'Not completed', ...o.labels };
+  const lb = o.labels ?? {};
+  const label = {
+    copy: lb.copy ?? 'Copy',
+    copied: lb.copied ?? 'Copied',
+    table: lb.table ?? 'Table',
+    done: lb.done ?? 'Completed',
+    todo: lb.todo ?? 'Not completed',
+  };
   const cls = (name: string) => `${px}-${name}`;
   const timers = new Set<ReturnType<typeof setTimeout>>();
 
@@ -58,6 +73,8 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   let froz = 0;
   let fctx: Ctx = null;
   let tail: Entry[] = [];
+  let held = ''; // a trailing CR waits for the next chunk, in case it is the first half of CRLF
+  let nested: Entry['hl'];
   let ended = false;
   let dead = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -138,7 +155,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       }
       case 'h': {
         const el = h('h' + u.lv);
-        inline(el, (ATX.exec(L[u.a])![2] ?? '').replace(/^#+$/, ''), spec);
+        inline(el, atx(L[u.a])![1], spec);
         return { n: el };
       }
       case 'hr':
@@ -165,8 +182,9 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         code.append(document.createTextNode(text));
         pre.append(code);
         wrap.append(head, pre);
-        if (u.closed || final) highlight(code, text, lang);
-        return { n: wrap, code, text };
+        if (depth > 0) nested?.push([code, text, lang]);
+        else if (u.closed || final) highlight(code, text, lang);
+        return { n: wrap, code };
       }
       case 'q': {
         const el = h('blockquote');
@@ -258,10 +276,17 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       return;
     }
     let ctx: Ctx = null;
-    scan(L, null, false, true).forEach((u, i) => {
-      if (unwrap && i === 0 && u.k === 'p') return inline(parent, joinTrim(L.slice(u.a, u.e)), spec);
-      ctx = place(parent, ctx, u, build(u, L, spec, depth, true)).ctx;
+    const U = scan(L, null, false, true);
+    U.forEach((u, i) => {
+      const sp = spec && i === U.length - 1; // only the last block can still be growing
+      if (unwrap && i === 0 && u.k === 'p') return inline(parent, joinTrim(L.slice(u.a, u.e)), sp);
+      ctx = place(parent, ctx, u, build(u, L, sp, depth, true)).ctx;
     });
+  }
+
+  function runNested(e: Entry) {
+    for (const [c, t, l] of e.hl ?? []) highlight(c, t, l);
+    e.hl = undefined;
   }
 
   function flush(final: boolean) {
@@ -297,17 +322,21 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     }
     for (let i = p; i < U.length; i++) {
       const u = U[i];
+      nested = [];
       const b = build(u, L, !final && i === U.length - 1, 0, final);
       const r = place(container, ctx, u, b);
       ctx = r.ctx;
-      tail.push({ key: keys[i], u, node: b.n, made: r.made, ctx, code: b.code, open: u.k === 'f' && !u.closed && !final });
+      tail.push({ key: keys[i], u, node: b.n, made: r.made, ctx, code: b.code, open: u.k === 'f' && !u.closed && !final, hl: nested });
+      nested = undefined;
     }
     if (final)
-      for (const t of tail)
+      for (const t of tail) {
         if (t.open && t.code) {
           t.open = false;
           highlight(t.code, t.code.textContent ?? '', t.u.lang!);
         }
+        runNested(t);
+      }
     let k = Math.max(U.length - 1, 0);
     if (partial && k > 0 && U[k].a === L.length - 1) k--;
     if (!final && k > 0) {
@@ -316,7 +345,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       let off = 0;
       for (let x = 0; x < U[k - 1].b; x++) off += L[x].length + 1;
       froz += off;
-      tail.splice(0, k);
+      for (const t of tail.splice(0, k)) runNested(t);
     }
   }
 
@@ -338,6 +367,8 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   const stop = () => {
     clearTimeout(timer);
     timer = undefined;
+  };
+  const stopCopy = () => {
     timers.forEach(clearTimeout);
     timers.clear();
   };
@@ -351,6 +382,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       const ta = h('textarea') as HTMLTextAreaElement;
       ta.value = text;
       ta.setAttribute('style', 'position:fixed;opacity:0');
+      const prev = document.activeElement as HTMLElement | null;
       document.body.append(ta);
       ta.select();
       let ok = false;
@@ -360,6 +392,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         /* not allowed */
       }
       ta.remove();
+      prev?.focus?.(); // selecting the textarea moved focus
       return ok;
     }
   }
@@ -390,6 +423,14 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   return {
     write(chunk) {
       if (dead || ended || !chunk) return;
+      chunk = held + chunk;
+      held = '';
+      if (chunk.endsWith('\r')) {
+        held = '\r';
+        chunk = chunk.slice(0, -1);
+      }
+      chunk = chunk.replace(/\r\n?/g, '\n');
+      if (!chunk) return;
       src += chunk;
       schedule();
     },
@@ -397,13 +438,17 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       if (dead || ended) return;
       ended = true;
       stop();
+      if (held) src += '\n';
+      held = '';
       flush(true);
     },
     reset() {
       if (dead) return;
       stop();
+      stopCopy();
       container.replaceChildren();
       src = '';
+      held = '';
       froz = 0;
       fctx = null;
       tail = [];
@@ -413,6 +458,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     destroy() {
       if (dead) return;
       stop();
+      stopCopy();
       dead = true;
       container.removeEventListener('click', onClick);
     },
