@@ -147,9 +147,9 @@ Checked against streaming-markdown 0.2.15 with its default renderer, in November
 | Punctuation after a bare URL (`see https://a.com.`) | trimmed | kept in the link |
 | `)` inside a URL | handled | ends the link |
 
-## Why TypeScript, not Rust or WebAssembly
+## Why TypeScript, not Rust
 
-limmat's output is DOM nodes, and WebAssembly cannot touch the DOM, so a Rust parser would still hand every chunk's result back to JavaScript to build the elements. Size points the same way: the WebAssembly streaming renderers we measured in November 2026 were 29 to 105 kB gzip (md4w 28.7 kB, md4x 104.8 kB, flux-md about 104 kB of which the WebAssembly binary is 89 kB), against about 7 kB here. The work per chunk is small, since a 100 KB reply in 5-character chunks renders in about 10 ms in Chromium, so a faster parser would save little. This is a choice for a client-side chat widget. A Rust parser is a good fit on a server or for large documents.
+Parsing is only about a fifth of the work (measured in Chromium, rendering on every write). The rest is building the page's elements, and WebAssembly cannot do that, so JavaScript would still do it. WebAssembly would also make limmat much bigger: the streaming renderers we measured are 29 to 105 kB gzip, against about 7 kB here. A Rust parser fits better on a server or for huge documents.
 
 ## Tested
 
