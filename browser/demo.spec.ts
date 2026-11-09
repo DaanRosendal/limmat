@@ -39,12 +39,10 @@ test('every stream ends with the same HTML for every chunking (the check on the 
 test('the open block readout names the construct that is still open', async ({ page }) => {
   await open(page);
   await page.selectOption('#stream', 'table');
-  await page.click('#play'); // pause (autoplay started)
-  await page.click('#restart');
-  await page.click('#play'); // pause again right after restart
-  await page.click('#step');
-  await page.click('#step');
+  // The scrubber pauses and rebuilds in one step, so this does not race the autoplay timer.
+  await page.fill('#pos', '2');
   await expect(page.locator('#open-readout')).toContainText('table');
+  await expect(page.locator('#out .is-open')).toHaveCount(1);
   await page.click('#finish');
   await expect(page.locator('#open-readout')).toContainText('Done');
   await expect(page.locator('#out .is-open')).toHaveCount(0);
