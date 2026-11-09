@@ -26,7 +26,19 @@ export function markOpen() {
   chip.textContent = `Open: ${kindOf(last)}`;
 }
 
-const imgRequests = () => performance.getEntriesByType('resource').filter((e) => e.initiatorType === 'img').length;
+// Links that are not http, https, mailto, or a plain site path. A DOM check that does not trust limmat's own link policy.
+const unsafeHref = (a) => {
+  const h = (a.getAttribute('href') ?? '').trim();
+  if (h.startsWith('//') || h.includes('\\')) return true;
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(h)?.[1].toLowerCase();
+  return !!scheme && !['http', 'https', 'mailto'].includes(scheme);
+};
+
+/** Show a count in its chip, and turn the chip red if it is ever not zero. */
+function setCount(node, n) {
+  node.textContent = String(n);
+  node.parentElement.classList.toggle('bad', n > 0);
+}
 
 export function updateReadouts() {
   el.pos.value = String(s.i);
@@ -37,10 +49,11 @@ export function updateReadouts() {
     const sorted = s.dts.slice().sort((a, b) => a - b);
     s.stats = { n: s.dts.length, q50: sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0 };
   }
-  const count = (tag) => el.out.querySelectorAll(tag).length;
-  el.v.scripts.textContent = String(count('script') + counters.alerts);
-  el.v.images.textContent = String(count('img') + imgRequests());
-  el.v.nodes.textContent = String(el.out.querySelectorAll('*').length);
+  const all = Array.from(el.out.querySelectorAll('*'));
+  setCount(el.v.scripts, all.filter((n) => n.tagName === 'SCRIPT').length + counters.alerts);
+  setCount(el.v.images, all.filter((n) => n.tagName === 'IMG').length);
+  setCount(el.v.handlers, all.filter((n) => Array.from(n.attributes).some((a) => /^on/i.test(a.name))).length);
+  setCount(el.v.bad, all.filter((n) => n.tagName === 'A' && unsafeHref(n)).length);
   el.v.ms.textContent = s.dts.length ? s.stats.q50.toFixed(2) : '-';
 }
 

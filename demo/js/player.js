@@ -7,9 +7,6 @@ import { s } from './state.js';
 import { chunkText, STREAMS, textOf } from './streams.js';
 
 const sticky = [follow(el.out), follow(el.raw)];
-const resetHooks = [];
-/** Run `fn` after every reset (the chunking check uses this to follow the stream). */
-export const onReset = (fn) => resetHooks.push(fn);
 const phaseHooks = [];
 /** Run `fn(ended)` whenever the stream finishes or goes back to being open (the editor follows this). */
 export const onPhase = (fn) => phaseHooks.push(fn);
@@ -105,7 +102,6 @@ export function reset(autoplay) {
   setLabel('stopped', 'Play');
   markOpen();
   updateReadouts();
-  for (const fn of resetHooks) fn();
   emitPhase();
   if (autoplay && s.chunks.length) play();
 }

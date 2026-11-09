@@ -33,6 +33,31 @@ Before you ship:
 - [ ] Cancel on unmount
 `;
 
+// A reply that a model could be tricked into writing: every payload the safety claims are about, mixed with normal text.
+const HOSTILE = `Sure, here are the links you asked for:
+
+- [one](javascript:alert(1))
+- [two](java\tscript:alert(1))
+- [three](java&#115;cript:alert(1))
+- [four](data:text/html,<script>alert(1)</script>)
+- [five](//evil.com)
+- [six](/\\evil.com)
+
+<script>alert(1)</script>
+
+<img src=x onerror=alert(1)>
+
+![tracker](https://evil.com/track.png)
+
+[![logo](https://evil.com/p.png)](https://example.com)
+
+\`\`\`a b" onclick="alert(1)
+console.log(1)
+\`\`\`
+
+${'> '.repeat(40)}and that is the whole list.
+`;
+
 // Keys match the stream radio values in index.html and the share links, so keep them stable.
 export const STREAMS = {
   reply: { label: 'Reply', text: REPLY },
@@ -41,6 +66,7 @@ export const STREAMS = {
   fence: { label: 'Fence', chunks: ['``', '`ts\nlet a = 1;\n', '``', '`\ndone'] },
   'link-split': { label: 'Link', chunks: ['See [the pa', 'per](https://exa', 'mple.com/a) now.'] },
   list: { label: 'List', chunks: ['- a\n', '  - b\n', '    - c\n', '  - d\n'] },
+  hostile: { label: 'Attack', text: HOSTILE },
   custom: { label: 'Yours', text: '' },
 };
 export const textOf = (st) => (st.chunks ? st.chunks.join('') : st.text);

@@ -103,10 +103,6 @@ body {
     transform var(--med) var(--ease),
     visibility 0s var(--med);
 }
-.panel.compact {
-  bottom: auto;
-  max-height: 100%;
-}
 .panel.open {
   opacity: 1;
   visibility: visible;
@@ -123,16 +119,9 @@ body {
 .panel-head .close {
   margin-left: auto;
 }
-.panel-head .verdict,
 .panel-head .seg,
 .panel-head .filters {
   margin-left: 4px;
-}
-.panel-head .btn {
-  margin-left: auto;
-}
-.panel-head .btn + .close {
-  margin-left: 0;
 }
 .panel-body {
   flex: 1;
@@ -160,7 +149,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
-  gap: 10px 26px;
+  gap: 10px 20px;
 }
 .group {
   display: flex;

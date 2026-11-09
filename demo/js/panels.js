@@ -3,14 +3,9 @@ import { $, $$ } from './dom.js';
 
 const panes = $$('.pane');
 const tabs = $$('.tab');
-const onOpen = {};
 let current = null;
 let opener = null;
 
-/** Run `fn` each time the named panel opens. */
-export const whenOpened = (name, fn) => {
-  onOpen[name] = fn;
-};
 export const openName = () => current;
 
 export function closePanel(returnFocus = true) {
@@ -37,7 +32,6 @@ export function openPanel(name, from = document.activeElement) {
   panel.classList.add('open');
   for (const p of panes) p.inert = true;
   for (const t of tabs) t.setAttribute('aria-expanded', String(t.dataset.panel === name));
-  onOpen[name]?.();
   (name === 'paste' ? $('#custom-text') : $('.close', panel)).focus({ preventScroll: true });
 }
 

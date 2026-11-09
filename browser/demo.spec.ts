@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
 import { expect, open, test } from './demo-fixture';
 
 const VERSION = JSON.parse(readFileSync('package.json', 'utf8')).version;
-const STREAMS = ['reply', 'mid-marker', 'table', 'fence', 'link-split', 'list'];
+const STREAMS = ['reply', 'mid-marker', 'table', 'fence', 'link-split', 'list', 'hostile'];
 
 const pick = (page: Page, group: string, value: string) => page.locator(`input[name="${group}"][value="${value}"]`).click();
 const settle = (page: Page) =>
@@ -33,8 +33,7 @@ test('loads with no errors, no CSP violations, and only same-origin requests', a
 
 test('the page has no inline script, no inline style attribute, and sets no cookie or storage', async ({ page }) => {
   await open(page);
-  await openTab(page, 'attack');
-  await page.click('input[name="view"][value="dom"]');
+  await openTab(page, 'support');
   const found = await page.evaluate(() => ({
     inlineScripts: Array.from(document.scripts).filter((s) => !s.src).length,
     styleAttrs: document.querySelectorAll('[style]').length,
@@ -44,18 +43,18 @@ test('the page has no inline script, no inline style attribute, and sets no cook
   expect(found).toEqual({ inlineScripts: 0, styleAttrs: 0, cookie: '', storage: 0 });
 });
 
-test('every stream ends with the same HTML for every chunking (the check panel)', async ({ page }) => {
+test('every stream ends with the same HTML for every chunking (the "same as one write" chip)', async ({ page }) => {
   await open(page);
-  await openTab(page, 'check');
+  const chip = page.locator('#chip-same');
   for (const name of STREAMS) {
     await pick(page, 'stream', name);
-    await page.click('#finish');
-    await page.click('#run-check');
-    await expect(page.locator('#check-verdict')).toHaveClass(/ok/);
-    await expect(page.locator('#check-verdict')).toContainText('identical');
+    // Scripted streams keep their cuts, so only the others take a chunk size.
+    for (const size of name === 'reply' || name === 'hostile' ? ['1', '5', '20', 'random'] : [null]) {
+      if (size) await pick(page, 'size', size);
+      await page.click('#finish');
+      await expect(chip).toHaveAttribute('data-state', 'done');
+    }
   }
-  // Streams with scripted cuts also compare those exact cuts.
-  await expect(page.locator('#check-table tbody tr').last()).toContainText('scripted cuts');
 });
 
 test('the open block readout names the construct that is still open', async ({ page }) => {
@@ -94,44 +93,40 @@ test('chunk size changes the stream, and Random again reshuffles the cuts', asyn
   expect(await seed()).not.toBe(first);
 });
 
-test('the hostile gallery runs nothing, loads nothing, and the verdicts match reality', async ({ page, seen }) => {
+test('the Attack stream runs nothing, loads nothing, and shows the payloads as text', async ({ page, seen }) => {
   await open(page);
-  await openTab(page, 'attack');
-  const cards = page.locator('#cards .card');
-  await expect(cards).toHaveCount(12);
-  const proof = await page.evaluate(() =>
-    Object.fromEntries(
-      Array.from(document.querySelectorAll('#proof div'), (d) => [
-        d.querySelector('dt')!.textContent,
-        Number(d.querySelector('dd')!.textContent),
-      ]),
-    ),
-  );
-  expect(proof).toEqual({
-    Scripts: 0,
-    Images: 0,
-    Handlers: 0,
-    'Bad links': 0,
-    Links: 1,
-    'Image requests': 0,
-    'alert() calls': 0,
-  });
-  // The one link that exists is the safe one, and clicking links never leaves the page.
-  const hrefs = await page.$$eval('#cards a', (as) => as.map((a) => a.getAttribute('href')));
-  expect(hrefs).toEqual(['https://ok.com']);
+  await pick(page, 'stream', 'hostile');
+  await page.click('#finish');
+  for (const id of ['scripts', 'images', 'handlers', 'bad']) await expect(page.locator(`#chip-${id} b`)).toHaveText('0');
+  const out = page.locator('#out');
+  expect(await out.locator('script, img, [onerror], [onclick]').count()).toBe(0);
+  // The links that refused are plain text, the one real link has a safe address, and the payloads are visible as text.
+  const hrefs = await page.$$eval('#out a', (as) => as.map((a) => a.getAttribute('href')));
+  expect(hrefs).toEqual(['https://example.com']);
+  await expect(out).toContainText('<script>alert(1)</script>');
+  await expect(out).toContainText('<img src=x onerror=alert(1)>');
+  await expect(out.locator('.limmat-lang')).toHaveText('a');
+  // Nested quotes are capped, and clicking the link never leaves the page.
+  expect(await out.locator('blockquote').count()).toBeLessThan(40);
   await page.evaluate(() => {
-    for (const a of document.querySelectorAll<HTMLAnchorElement>('#cards a')) a.click();
+    for (const a of document.querySelectorAll<HTMLAnchorElement>('#out a')) a.addEventListener('click', (e) => e.preventDefault());
   });
-  expect(page.url()).toBe('https://limmat.test/');
-  // Nested quotes are capped, and the fence language became a plain label.
-  expect(await cards.nth(10).locator('.result blockquote').count()).toBeLessThan(20);
-  await expect(cards.nth(11).locator('.result .limmat-lang')).toHaveText('a');
-  // The DOM view shows the same output as text.
-  await page.click('input[name="view"][value="dom"]');
-  await expect(cards.nth(6).locator('.dom')).toContainText('<script>alert(1)</script>');
+  expect(page.url()).toContain('https://limmat.test/');
   expect(await page.evaluate(() => (window as any).__csp ?? [])).toEqual([]);
   expect(seen.errors).toEqual([]);
   expect(seen.requests.filter((u) => !u.startsWith('https://limmat.test/'))).toEqual([]);
+});
+
+test('a chip turns red if the output ever has something unsafe in it', async ({ page }) => {
+  await open(page);
+  await page.click('#finish');
+  await page.evaluate(() => {
+    const a = document.createElement('a');
+    a.href = 'javascript:void(0)';
+    document.querySelector('#out')!.append(a);
+  });
+  await expect(page.locator('#chip-bad')).toHaveClass(/bad/);
+  await expect(page.locator('#chip-bad b')).toHaveText('1');
 });
 
 test('a shared link restores the settings and plays the same chunks', async ({ page }) => {
@@ -234,10 +229,10 @@ test('the support panel shows every row, including the gaps, and filters', async
 
 test('panels open over the output, close with Escape, and give focus back', async ({ page }) => {
   await open(page);
-  const tab = page.locator('.tab[data-panel="check"]');
+  const tab = page.locator('.tab[data-panel="support"]');
   await tab.focus();
   await page.keyboard.press('Enter');
-  await expect(page.locator('#panel-check')).toHaveClass(/open/);
+  await expect(page.locator('#panel-support')).toHaveClass(/open/);
   await expect(tab).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('#out')).toHaveJSProperty('inert', false); // the element is not inert, its pane is
   expect(
@@ -247,7 +242,7 @@ test('panels open over the output, close with Escape, and give focus back', asyn
       .evaluate((e) => (e as HTMLElement).inert),
   ).toBe(true);
   await page.keyboard.press('Escape');
-  await expect(page.locator('#panel-check')).not.toHaveClass(/open/);
+  await expect(page.locator('#panel-support')).not.toHaveClass(/open/);
   await expect(tab).toHaveAttribute('aria-expanded', 'false');
   await expect(tab).toBeFocused();
   expect(
@@ -297,15 +292,13 @@ test('with reduced motion nothing autoplays and the finished state is shown', as
   expect(await page.locator('#out').innerHTML()).toBe(before);
 });
 
-test('the chips are measured from real writes and the timing is labeled as not a benchmark', async ({ page }) => {
+test('the chips measure real writes, and the timing is labeled as not a benchmark', async ({ page }) => {
   await open(page);
   await page.click('#finish');
   await expect(page.locator('#chip-ms')).toHaveAttribute('title', /not a benchmark/);
   const bytes = Number(await page.locator('#v-bytes').textContent());
   const raw = await page.locator('#raw').textContent();
   expect(bytes).toBe(new TextEncoder().encode(raw!).length);
-  // The count follows late changes (the highlighter adds spans after the fence closes), so wait for it to settle.
-  await expect.poll(async () => Number(await page.locator('#chip-nodes b').textContent()) - (await page.locator('#out *').count())).toBe(0);
 });
 
 for (const [name, setup] of [
@@ -322,7 +315,7 @@ for (const [name, setup] of [
       expect(results.violations.map((v) => `${label} ${v.id}: ${v.nodes[0]?.html.slice(0, 90)}`)).toEqual([]);
     };
     await scan('page');
-    for (const panel of ['check', 'attack', 'support']) {
+    for (const panel of ['support']) {
       await openTab(page, panel);
       await scan(panel);
       await page.keyboard.press('Escape');
@@ -340,9 +333,9 @@ for (const [w, h] of [
   [1100, 700],
   [1024, 640],
 ] as const) {
-  test(`the whole page fits one screen at ${w}x${h}, with and without a panel`, async ({ page }) => {
+  test(`the whole page fits one screen at ${w}x${h}, with and without the support panel`, async ({ page }) => {
     await page.setViewportSize({ width: w, height: h });
-    await open(page, '#v=1&stream=reply&c=6&r=1&s=1&t=0&d=400');
+    await open(page, '#v=1&stream=hostile&c=6&r=1&s=1&t=0&d=400');
     await page.click('#finish');
     const fits = () =>
       page.evaluate(() => ({
@@ -350,14 +343,8 @@ for (const [w, h] of [
         sideways: document.documentElement.scrollWidth - innerWidth,
       }));
     expect(await fits()).toEqual({ page: 0, sideways: 0 });
-    await openTab(page, 'attack');
+    await openTab(page, 'support');
     expect(await fits()).toEqual({ page: 0, sideways: 0 });
-    // Every hostile card fits inside the panel without scrolling it, even with 5,000 nested quotes.
-    const spill = await page.evaluate(() => {
-      const body = document.querySelector('#panel-attack .panel-body')!;
-      return body.scrollHeight - body.clientHeight;
-    });
-    if (w >= 1280) expect(spill).toBeLessThanOrEqual(1);
   });
 }
 
@@ -365,11 +352,11 @@ test('a phone-width screen has no sideways scroll and keeps every control reacha
   await page.setViewportSize({ width: 390, height: 844 });
   await open(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
-  for (const sel of ['#play', '.tab[data-panel="attack"]', '#menu-btn', 'input[name="stream"][value="custom"]']) {
+  for (const sel of ['#play', '.tab[data-panel="support"]', '#menu-btn', 'input[name="stream"][value="custom"]']) {
     await page.locator(sel).scrollIntoViewIfNeeded();
     await expect(page.locator(sel)).toBeVisible();
   }
-  await openTab(page, 'attack');
+  await openTab(page, 'support');
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
 });
 

@@ -55,29 +55,27 @@ h3 {
 }
 .tabs {
   display: flex;
-  gap: 4px;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface-2);
+  gap: 6px;
 }
 .tab {
-  height: 32px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 9px;
-  background: transparent;
-  color: var(--muted);
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
   font-weight: 500;
   cursor: pointer;
   transition:
     background-color var(--fast),
+    border-color var(--fast),
     color var(--fast);
 }
 .tab:hover {
-  color: var(--fg);
+  border-color: var(--accent);
 }
 .tab[aria-expanded="true"] {
+  border-color: transparent;
   background: var(--accent);
   color: var(--accent-ink);
 }
@@ -238,8 +236,8 @@ h3 {
 .seg.n4 {
   --n: 4;
 }
-.seg.n7 {
-  --n: 7;
+.seg.n8 {
+  --n: 8;
 }
 .seg::before {
   content: "";
@@ -273,12 +271,15 @@ h3 {
 .seg:has(> label:nth-child(7) > input:checked) {
   --i: 6;
 }
+.seg:has(> label:nth-child(8) > input:checked) {
+  --i: 7;
+}
 .seg label {
   position: relative;
   display: grid;
   place-items: center;
   height: 30px;
-  padding: 0 11px;
+  padding: 0 8px;
   border-radius: 9px;
   color: var(--muted);
   font-size: 13px;
@@ -346,6 +347,20 @@ h3 {
 .state[data-state="done"] {
   background: var(--ok-soft);
   color: var(--ok);
+}
+.state[data-state="bad"] {
+  background: rgb(185 28 28 / 0.12);
+  color: var(--bad);
+}
+.state[data-state="bad"]::before {
+  background: var(--bad);
+}
+.chip.bad {
+  background: rgb(185 28 28 / 0.12);
+  color: var(--bad);
+}
+.chip.bad b {
+  color: var(--bad);
 }
 .state[data-state="done"]::before {
   background: var(--ok);
@@ -452,8 +467,7 @@ input[type="range"] {
   border-radius: 2px;
 }
 /* Browsers indent a quote by 40px, so 13 nested quotes leave no width. Keep nesting visible but cheap. */
-.rendered blockquote,
-.card .result blockquote {
+.rendered blockquote {
   margin: 0.25em 0 0.25em 0.25em;
   padding-left: 0.5em;
   border-left: 2px solid var(--line-strong);
@@ -467,7 +481,6 @@ input[type="range"] {
   }
   .seg::before,
   .menu,
-  .card,
   .btn,
   .icon-btn,
   .pill,

@@ -1,6 +1,4 @@
 // Demo page for limmat: plain ES modules, no bundler, no framework. Everything runs the real built limmat.
-import { initAttack } from './attack.js';
-import { initCheck } from './check.js';
 import { initInstall, initTheme, showRelease } from './chrome.js';
 import { canPlay, initControls, syncControls } from './controls.js';
 import { $, reduceMotion } from './dom.js';
@@ -9,6 +7,7 @@ import { initPanels } from './panels.js';
 import { initPaste } from './paste.js';
 import { finish, play, reset } from './player.js';
 import { watchOutput } from './readouts.js';
+import { initSame } from './same.js';
 import { copyLink, readHash } from './share.js';
 import { counters, s } from './state.js';
 import { STREAMS } from './streams.js';
@@ -26,12 +25,11 @@ async function start() {
   initControls();
   initPaste();
   initEditor();
-  initCheck();
+  initSame();
   initTheme();
   initInstall();
   $('#share').addEventListener('click', copyLink);
   watchOutput();
-  initAttack();
   initSupport();
   showRelease();
   try {

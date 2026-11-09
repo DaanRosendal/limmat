@@ -13,7 +13,7 @@ Status: 0.x, so minor releases may still change the API (see [Stability](docs/AP
   </a>
 </p>
 
-**[Try the demo](https://limmat.daanrosendal.com)**: change the chunking, scrub through a stream, and throw hostile input at it. It also fits agent and tool output, comments, and live previews. To run it yourself, clone the repo and use `npm run demo`.
+**[Try the demo](https://limmat.daanrosendal.com)**: change the chunking, scrub through a stream, edit it when it ends, and stream a hostile reply with the Attack preset. It also fits agent and tool output, comments, and live previews. To run it yourself, clone the repo and use `npm run demo`.
 
 ```ts
 import { createRenderer } from 'limmat';

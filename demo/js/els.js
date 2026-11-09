@@ -6,6 +6,7 @@ export const el = {
   raw: $('#raw'),
   rawEdit: $('#raw-edit'),
   editHint: $('#edit-hint'),
+  sameChip: $('#chip-same'),
   play: $('#play'),
   step: $('#step'),
   finish: $('#finish'),
@@ -20,7 +21,8 @@ export const el = {
     bytes: $('#v-bytes'),
     scripts: $('#chip-scripts b'),
     images: $('#chip-images b'),
-    nodes: $('#chip-nodes b'),
+    handlers: $('#chip-handlers b'),
+    bad: $('#chip-bad b'),
     ms: $('#chip-ms b'),
   },
 };

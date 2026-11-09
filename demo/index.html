@@ -35,8 +35,6 @@
   <h1 class="brand"><span class="word">limmat</span><span class="tag">Streaming markdown</span></h1>
   <span class="chip release" id="release" title="Build details load with the page">limmat</span>
   <nav class="tabs" aria-label="Panels">
-    <button type="button" class="tab" data-panel="check" aria-expanded="false" aria-controls="panel-check">Chunking</button>
-    <button type="button" class="tab" data-panel="attack" aria-expanded="false" aria-controls="panel-attack">Attack</button>
     <button type="button" class="tab" data-panel="support" aria-expanded="false" aria-controls="panel-support">Support</button>
   </nav>
   <div class="actions">
@@ -64,46 +62,20 @@
     <footer class="pane-foot">
       <span class="chip"><b id="v-chunks">0</b> chunks</span>
       <span class="chip"><b id="v-bytes">0</b> bytes</span>
+      <span class="chip state" id="chip-same" data-state="idle" title="At the end, the same text is streamed again in your chunks and in one single write, and the final HTML is compared.">Same as one write</span>
     </footer>
   </div>
   <div class="pane">
     <header class="pane-head"><h2 id="out-h">limmat</h2><span class="chip state" id="open-readout" data-state="idle">Open: none yet</span></header>
     <div id="out" class="rendered" role="region" aria-labelledby="out-h" tabindex="0"></div>
     <footer class="pane-foot" role="group" aria-label="Live measurements of this output">
-      <span class="chip" id="chip-scripts" title="Script elements in the output plus alert() calls from payloads. Always zero."><b>0</b> scripts</span>
-      <span class="chip" id="chip-images" title="Image elements in the output plus image requests this page made. Always zero."><b>0</b> images</span>
-      <span class="chip" id="chip-nodes" title="Elements in the output right now."><b>0</b> nodes</span>
+      <span class="chip" id="chip-scripts" title="Script elements in the output. Always zero."><b>0</b> scripts</span>
+      <span class="chip" id="chip-images" title="Image elements in the output. Always zero, so nothing can be loaded."><b>0</b> images</span>
+      <span class="chip" id="chip-handlers" title="Elements with an on... attribute such as onerror. Always zero."><b>0</b> handlers</span>
+      <span class="chip" id="chip-bad" title="Links that are not http, https, mailto, or a plain site path. Always zero."><b>0</b> bad links</span>
       <span class="chip" id="chip-ms" title="Median synchronous write() time in this tab. Measured live, not a benchmark."><b>-</b> ms/write</span>
     </footer>
   </div>
-
-  <section class="panel compact" id="panel-check" aria-labelledby="check-h" inert>
-    <header class="panel-head">
-      <h2 id="check-h">Any chunking, same page</h2>
-      <span class="verdict" id="check-verdict" role="status"></span>
-      <button type="button" class="btn small" id="run-check">Run again</button>
-      <button type="button" class="icon-btn close" data-close aria-label="Close panel"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
-    </header>
-    <div class="panel-body">
-      <table class="grid" id="check-table">
-        <thead><tr><th scope="col">Chunking</th><th scope="col">Writes</th><th scope="col">Nodes</th><th scope="col">Same HTML</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
-
-  <section class="panel" id="panel-attack" aria-labelledby="attack-h" data-view="out" inert>
-    <header class="panel-head">
-      <h2 id="attack-h">Hostile input</h2>
-      <div class="seg n2" role="radiogroup" aria-label="Show">
-        <label><input type="radio" name="view" value="out" checked><span>Rendered</span></label>
-        <label><input type="radio" name="view" value="dom"><span>DOM</span></label>
-      </div>
-      <button type="button" class="icon-btn close" data-close aria-label="Close panel"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
-    </header>
-    <dl class="proof" id="proof" aria-label="Live measurements of the twelve outputs"></dl>
-    <div class="panel-body"><div class="cards" id="cards"></div></div>
-  </section>
 
   <section class="panel" id="panel-support" aria-labelledby="support-h" inert>
     <header class="panel-head">
@@ -142,13 +114,14 @@
   <div class="options">
     <div class="group" role="radiogroup" aria-labelledby="g-stream">
       <span class="gl" id="g-stream">Stream</span>
-      <div class="seg n7">
+      <div class="seg n8">
         <label><input type="radio" name="stream" value="reply" checked><span>Reply</span></label>
         <label><input type="radio" name="stream" value="mid-marker"><span>Marker</span></label>
         <label><input type="radio" name="stream" value="table"><span>Table</span></label>
         <label><input type="radio" name="stream" value="fence"><span>Fence</span></label>
         <label><input type="radio" name="stream" value="link-split"><span>Link</span></label>
         <label><input type="radio" name="stream" value="list"><span>List</span></label>
+        <label><input type="radio" name="stream" value="hostile"><span>Attack</span></label>
         <label><input type="radio" name="stream" value="custom"><span>Yours</span></label>
       </div>
     </div>
