@@ -67,6 +67,7 @@ test('the scrubber rebuilds the output at a position and stays paused', async ({
 
 /** Drag a slider to a position (0 to 100), the way a person would: press on it, move, release. */
 const slide = async (page: Page, id: string, position: number) => {
+  await page.locator(`#sl-${id}`).scrollIntoViewIfNeeded();
   const box = (await page.locator(`#sl-${id}`).boundingBox())!;
   const y = box.y + 16;
   await page.mouse.move(box.x + box.width / 2, y);
@@ -162,6 +163,18 @@ test('the sliders work from the keyboard', async ({ page }) => {
   expect(await readout(page, 'throttle')).not.toBe('500 ms');
   // The stream restarts once the key presses stop, and the link follows.
   await expect.poll(() => page.url()).toMatch(/t=4\d\d/);
+});
+
+test('every preset mark shows its value without a hover', async ({ page }) => {
+  await open(page);
+  const labels = async (id: string) => page.locator(`#sl-${id} .tick text`).allTextContents();
+  expect(await labels('size')).toEqual(['1', '5', '20']);
+  expect(await labels('throttle')).toEqual(['0', '50', '200']);
+  expect(await labels('speed')).toEqual(['5/s', '17/s', '67/s']);
+  // The label of the preset in use is highlighted, and the marks still say what they mean on hover.
+  await expect(page.locator('#sl-throttle .tick').nth(1)).toHaveClass(/on/);
+  await expect(page.locator('#sl-throttle .tick title').nth(2)).toHaveText('200 ms');
+  await expect(page.locator('#sl-speed .tick title').nth(1)).toHaveText('17 chunks per second');
 });
 
 test('every control has a short tip on hover and keyboard focus', async ({ page }) => {
@@ -542,4 +555,18 @@ test('a rebuilt code block is coloured in the same frame, so editing never flash
     return document.querySelectorAll('#out .shj-syn-kwd').length;
   });
   expect(coloured).toBeGreaterThan(0);
+});
+
+test('the sliders grow with the screen and fill the width on a phone', async ({ page }) => {
+  const width = () => page.locator('#sl-throttle').evaluate((e) => e.getBoundingClientRect().width);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await open(page);
+  const laptop = await width();
+  await page.setViewportSize({ width: 1800, height: 900 });
+  await expect.poll(width).toBeGreaterThan(laptop);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(width).toBeGreaterThan(300);
+  // The thumb still follows the pointer at this width.
+  await slide(page, 'throttle', 63);
+  await expect(page.locator('#sl-throttle')).toHaveAttribute('aria-valuetext', '200 ms');
 });

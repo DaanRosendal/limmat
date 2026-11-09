@@ -229,6 +229,10 @@ body {
   .group .seg {
     width: 100%;
   }
+  .slide,
+  .slide:has(.rand) {
+    max-width: none;
+  }
   .dock .seg {
     grid-template-columns: repeat(var(--n), minmax(0, 1fr));
   }

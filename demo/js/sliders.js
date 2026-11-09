@@ -10,7 +10,7 @@ import { s } from './state.js';
 
 const SNAP = 3; // positions
 const INSET = 26; // px kept free at each end so the widest thumb stays inside
-const H = 40;
+const H = 52;
 const MID = 16; // the track's height in the svg
 const ln = Math.log;
 const delayOfRate = (rate) => Math.min(400, Math.max(10, 1000 / rate));
@@ -25,6 +25,8 @@ const SPECS = {
       s.size = v;
     },
     text: (v = s.size) => (s.random ? `1-${v}` : String(v)),
+    mark: (v) => String(v),
+    hint: (v) => `${v} ${v === 1 ? 'character' : 'characters'}`,
     restart: true,
   },
   throttle: {
@@ -36,6 +38,8 @@ const SPECS = {
       s.throttle = v;
     },
     text: (v = s.throttle) => `${v} ms`,
+    mark: (v) => String(v),
+    hint: (v) => `${v} ms`,
     restart: true,
   },
   speed: {
@@ -48,6 +52,8 @@ const SPECS = {
       s.speed = v;
     },
     text: (v = s.speed) => `${Math.round(1000 / v)}/s`,
+    mark: (v) => `${Math.round(1000 / v)}/s`,
+    hint: (v) => `${Math.round(1000 / v)} chunks per second`,
     restart: false, // the delay is read on every tick, so the stream keeps going
   },
 };
@@ -70,12 +76,13 @@ function build(name, spec) {
     const x = `${spec.toPos(v)}%`;
     const g = svg('g', { class: 'tick' });
     const title = svg('title');
-    title.textContent = spec.text(v);
+    title.textContent = spec.hint(v);
     // A wide invisible target makes the thin mark easy to hit.
     g.append(
       title,
       svg('rect', { x, y: MID + 8, width: 18, height: H - MID - 8, transform: 'translate(-9 0)' }),
-      svg('line', { x1: x, x2: x, y1: MID + 14, y2: MID + 21 }),
+      svg('line', { x1: x, x2: x, y1: MID + 14, y2: MID + 20 }),
+      Object.assign(svg('text', { x, y: MID + 33 }), { textContent: spec.mark(v) }),
     );
     g.dataset.value = String(v);
     return { v, g };
