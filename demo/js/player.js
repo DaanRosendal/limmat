@@ -29,6 +29,7 @@ function rebuildChunks() {
   const st = STREAMS[s.stream];
   s.chunks = st.chunks ? st.chunks.slice() : chunkText(textOf(st), s.size, s.random, s.seed);
   el.pos.max = String(s.chunks.length);
+  s.totalBytes = utf8.encode(s.chunks.join('')).length;
   syncSizeEnabled();
 }
 
@@ -46,9 +47,7 @@ function appendRaw(chunk, n) {
 function writeChunk(showRaw = true) {
   const chunk = s.chunks[s.i];
   if (showRaw) appendRaw(chunk, s.i);
-  const t0 = performance.now();
   s.r.write(chunk);
-  s.dts.push(performance.now() - t0);
   s.bytes += utf8.encode(chunk).length;
   s.i++;
 }
@@ -97,7 +96,7 @@ export function pause() {
 
 export function reset(autoplay) {
   clearTimeout(s.timer);
-  Object.assign(s, { playing: false, ended: false, i: 0, dts: [], bytes: 0, scrubbed: false, lastSpan: null });
+  Object.assign(s, { playing: false, ended: false, i: 0, bytes: 0, scrubbed: false, lastSpan: null });
   el.raw.replaceChildren();
   newRenderer();
   rebuildChunks();
@@ -138,7 +137,7 @@ export function finish() {
 export function scrub(target) {
   if (s.playing) pause();
   clearTimeout(s.timer);
-  Object.assign(s, { ended: false, scrubbed: true, dts: [], lastSpan: null });
+  Object.assign(s, { ended: false, scrubbed: true, lastSpan: null });
   setLabel('stopped', 'Play');
   el.raw.replaceChildren();
   newRenderer();
@@ -164,7 +163,13 @@ export function edit(text) {
   STREAMS.custom.text = s.customText = text;
   s.stream = 'custom';
   s.chunks = chunkText(text, s.size, s.random, s.seed);
-  Object.assign(s, { i: s.chunks.length, ended: false, scrubbed: true, dts: [], bytes: utf8.encode(text).length });
+  Object.assign(s, {
+    i: s.chunks.length,
+    ended: false,
+    scrubbed: true,
+    bytes: utf8.encode(text).length,
+    totalBytes: utf8.encode(text).length,
+  });
   el.pos.max = String(s.chunks.length);
   syncSizeEnabled();
   setLabel('stopped', 'Replay');

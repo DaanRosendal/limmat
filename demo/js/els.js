@@ -17,11 +17,13 @@ export const el = {
   customGo: $('#custom-go'),
   v: {
     chunks: $('#v-chunks'),
+    chunksTotal: $('#v-chunks-total'),
     bytes: $('#v-bytes'),
-    scripts: $('#chip-scripts b'),
-    images: $('#chip-images b'),
-    handlers: $('#chip-handlers b'),
-    bad: $('#chip-bad b'),
-    ms: $('#chip-ms b'),
+    bytesTotal: $('#v-bytes-total'),
+    touched: $('#v-touched'),
+    nodes: $('#v-nodes'),
+    attacksIn: $('#v-in'),
+    attacksThrough: $('#v-through'),
   },
+  attacksChip: $('#chip-attacks'),
 };

@@ -358,6 +358,13 @@ h3 {
 .chip.bad b {
   color: var(--bad);
 }
+.chip.safe {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.chip.safe b {
+  color: var(--ok);
+}
 .state[data-state="done"]::before {
   background: var(--ok);
 }

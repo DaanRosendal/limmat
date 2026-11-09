@@ -12,14 +12,13 @@ export const s = {
   ended: false,
   timer: 0,
   r: null,
-  dts: [],
+  totalBytes: 0,
   bytes: 0,
   customText: '',
   hl: null,
   scrubbed: false,
   lastSpan: null,
   rendered: null, // the text in the live renderer while the visitor edits, null otherwise
-  stats: { n: -1, q50: 0 },
 };
 
 /** Payload alert() calls, counted by a patched window.alert (see main.js). */

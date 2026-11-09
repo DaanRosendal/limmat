@@ -53,19 +53,16 @@
     <pre id="raw" class="raw" role="region" aria-labelledby="raw-h" tabindex="0"></pre>
     <textarea id="raw-edit" class="raw edit" aria-label="Edit the markdown" spellcheck="false" maxlength="200000" hidden></textarea>
     <footer class="pane-foot">
-      <span class="chip"><b id="v-chunks">0</b> chunks</span>
-      <span class="chip"><b id="v-bytes">0</b> bytes</span>
+      <span class="chip" title="Chunks the model has sent so far, out of all of them"><b id="v-chunks">0</b> / <b id="v-chunks-total">0</b> chunks</span>
+      <span class="chip" title="Bytes sent so far, out of all of them"><b id="v-bytes">0</b> / <b id="v-bytes-total">0</b> bytes</span>
     </footer>
   </div>
   <div class="pane">
     <header class="pane-head"><h2 id="out-h">limmat</h2><span class="chip state" id="open-readout" data-state="idle">Open: none yet</span></header>
     <div id="out" class="rendered" role="region" aria-labelledby="out-h" tabindex="0"></div>
     <footer class="pane-foot" role="group" aria-label="Live measurements of this output">
-      <span class="chip" id="chip-scripts" title="Script elements in the output. Always zero."><b>0</b> scripts</span>
-      <span class="chip" id="chip-images" title="Image elements in the output. Always zero, so nothing can be loaded."><b>0</b> images</span>
-      <span class="chip" id="chip-handlers" title="Elements with an on... attribute such as onerror. Always zero."><b>0</b> handlers</span>
-      <span class="chip" id="chip-bad" title="Links that are not http, https, mailto, or a plain site path. Always zero."><b>0</b> bad links</span>
-      <span class="chip" id="chip-ms" title="Median synchronous write() time in this tab. Measured live, not a benchmark."><b>-</b> ms/write</span>
+      <span class="chip" id="chip-touched" title="Elements the latest render changed (added, removed, or edited), out of all elements in the output. Finished blocks are left alone, so while text streams in this stays small. It jumps when the whole output is rebuilt, such as after scrubbing. The code highlighter counts too."><b id="v-touched">0</b> / <b id="v-nodes">0</b> elements touched</span>
+      <span class="chip" id="chip-attacks" title="Unsafe patterns found in the text streamed so far (script tags, images, on... handlers, unsafe links), and how many of them ended up as a live element or link in the output." hidden><b id="v-in">0</b> attacks in, <b id="v-through">0</b> through</span>
     </footer>
   </div>
 

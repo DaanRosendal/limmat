@@ -34,32 +34,65 @@ const unsafeHref = (a) => {
   return !!scheme && !['http', 'https', 'mailto'].includes(scheme);
 };
 
-/** Show a count in its chip, and turn the chip red if it is ever not zero. */
-function setCount(node, n) {
-  node.textContent = String(n);
-  node.parentElement.classList.toggle('bad', n > 0);
+/** Unsafe patterns in the text, by pattern. This reads the input, so it never trusts limmat's own output. */
+export function attacksIn(text) {
+  const count = (re) => text.match(re)?.length ?? 0;
+  return (
+    count(/<script/gi) +
+    count(/<img\b|!\[/gi) +
+    count(/\bon[a-z]+\s*=/gi) +
+    count(/\]\(\s*(?:(?:javascript|data|vbscript)\s*:|\/\/|\/\\|java[\t&])/gi)
+  );
+}
+
+/** Live elements that must never exist in the output: scripts, images, on... attributes, unsafe links, and alert() calls. */
+function throughCount(all) {
+  const bad = (n) =>
+    n.tagName === 'SCRIPT' ||
+    n.tagName === 'IMG' ||
+    Array.from(n.attributes).some((a) => /^on/i.test(a.name)) ||
+    (n.tagName === 'A' && unsafeHref(n));
+  return all.filter(bad).length + counters.alerts;
 }
 
 export function updateReadouts() {
   el.pos.value = String(s.i);
   el.posOut.textContent = `${s.i} / ${s.chunks.length}`;
-  el.v.chunks.textContent = String(s.chunks.length);
+  el.v.chunks.textContent = String(s.i);
+  el.v.chunksTotal.textContent = String(s.chunks.length);
   el.v.bytes.textContent = String(s.bytes);
-  if (s.stats.n !== s.dts.length) {
-    const sorted = s.dts.slice().sort((a, b) => a - b);
-    s.stats = { n: s.dts.length, q50: sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0 };
-  }
+  el.v.bytesTotal.textContent = String(s.totalBytes);
   const all = Array.from(el.out.querySelectorAll('*'));
-  setCount(el.v.scripts, all.filter((n) => n.tagName === 'SCRIPT').length + counters.alerts);
-  setCount(el.v.images, all.filter((n) => n.tagName === 'IMG').length);
-  setCount(el.v.handlers, all.filter((n) => Array.from(n.attributes).some((a) => /^on/i.test(a.name))).length);
-  setCount(el.v.bad, all.filter((n) => n.tagName === 'A' && unsafeHref(n)).length);
-  el.v.ms.textContent = s.dts.length ? s.stats.q50.toFixed(2) : '-';
+  el.v.nodes.textContent = String(all.length);
+  const through = throughCount(all);
+  const inCount = attacksIn(s.chunks.slice(0, s.i).join(''));
+  // Shown only when there is something to defend against, or when something got through (which must never happen).
+  el.attacksChip.hidden = inCount === 0 && through === 0;
+  el.v.attacksIn.textContent = String(inCount);
+  el.v.attacksThrough.textContent = String(through);
+  el.attacksChip.classList.toggle('bad', through > 0);
+  el.attacksChip.classList.toggle('safe', inCount > 0 && through === 0);
+}
+
+/** Elements in a node, itself included. */
+const weigh = (n) => (n.nodeType === 1 ? 1 + n.querySelectorAll('*').length : 1);
+
+/** Count what each render touched, straight from the DOM mutation records. */
+function countTouched(records) {
+  let n = 0;
+  for (const r of records) {
+    if (r.type === 'childList') {
+      for (const x of r.addedNodes) n += weigh(x);
+      for (const x of r.removedNodes) n += weigh(x);
+    } else n += 1;
+  }
+  el.v.touched.textContent = String(n);
 }
 
 /** Follow the output as it changes, including late changes such as the highlighter adding spans after a fence closes. */
 export function watchOutput() {
   new MutationObserver(markOpen).observe(el.out, { childList: true });
+  new MutationObserver(countTouched).observe(el.out, { childList: true, subtree: true, characterData: true, attributes: true });
   let queued = false;
   new MutationObserver(() => {
     if (queued) return;
