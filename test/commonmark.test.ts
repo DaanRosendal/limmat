@@ -11,6 +11,7 @@ interface Example {
 }
 const spec: Example[] = JSON.parse(readFileSync(join(process.cwd(), 'test/fixtures/commonmark-spec.json'), 'utf8'));
 const FAILS = join(process.cwd(), 'test/fixtures/commonmark-known-failures.json');
+const SECTIONS = join(process.cwd(), 'test/fixtures/commonmark-sections.json');
 
 // Sections that are out of scope for v0.1 (documented in the README as unsupported).
 const OUT_OF_SCOPE: Record<string, string> = {
@@ -90,6 +91,21 @@ describe('CommonMark spec examples for the supported subset', () => {
   });
 
   const known: number[] = JSON.parse(readFileSync(FAILS, 'utf8'));
+  // Honest per-section numbers for the README, including the sections we do not aim for (what passes there is by accident).
+  const sectionStats = () => {
+    const out: Record<string, { pass: number; total: number; scope: 'in' | 'out' }> = {};
+    for (const e of spec) {
+      const row = (out[e.section] ??= { pass: 0, total: 0, scope: OUT_OF_SCOPE[e.section] ? 'out' : 'in' });
+      row.total++;
+      if (results.get(e.example) ?? run(e)) row.pass++;
+    }
+    return out;
+  };
+  it('keeps the per-section pass counts in the fixture current (UPDATE_CONFORMANCE=1 refreshes them)', () => {
+    const stats = sectionStats();
+    if (process.env.UPDATE_CONFORMANCE) writeFileSync(SECTIONS, `${JSON.stringify(stats, null, 1)}\n`);
+    expect(stats).toEqual(JSON.parse(readFileSync(SECTIONS, 'utf8')));
+  });
   it('has no new failures', () => {
     expect(failing.filter((n) => !known.includes(n))).toEqual([]);
   });
