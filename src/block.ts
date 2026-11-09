@@ -93,7 +93,7 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       i++;
     } else if (BQ.test(l)) {
       let j = i + 1;
-      while (j < n && L[j].trim() && (BQ.test(L[j]) || !interrupts(L[j], false))) j++;
+      while (j < n && L[j].trim() && (BQ.test(L[j]) || (L[j - 1].replace(BQ, '').trim() && !interrupts(L[j], false)))) j++;
       U.push({ k: 'q', a: i, e: j, b: j });
       i = j;
     } else if ((m = LI.exec(l))) {

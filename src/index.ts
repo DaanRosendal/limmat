@@ -138,7 +138,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       }
       case 'h': {
         const el = h('h' + u.lv);
-        inline(el, ATX.exec(L[u.a])![2] ?? '', spec);
+        inline(el, (ATX.exec(L[u.a])![2] ?? '').replace(/^#+$/, ''), spec);
         return { n: el };
       }
       case 'hr':
