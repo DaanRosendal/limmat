@@ -100,11 +100,11 @@
 .limmat-list {
   padding-left: 1.5em;
 }
-li:has(> input[type="checkbox"]:first-child) {
+.limmat-task {
   list-style: none;
   margin-left: -1.25em;
 }
-li > input[type="checkbox"]:first-child {
+.limmat-task > input[type="checkbox"]:first-child {
   margin-right: 0.5em;
 }
 :where(.limmat-code pre, .limmat-table-wrap):focus-visible,

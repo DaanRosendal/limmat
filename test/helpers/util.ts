@@ -6,7 +6,7 @@ export function rng(seed: number) {
   return () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32;
 }
 
-export function chunks(s: string, split: Split, seed = 1): string[] {
+function chunks(s: string, split: Split, seed = 1): string[] {
   if (split === 'whole') return [s];
   const out: string[] = [];
   const r = rng(seed);
@@ -25,6 +25,13 @@ export function render(md: string, split: Split = 'whole', options: Options = {}
   r.end();
   return root;
 }
+
+/** Renderer mounted in the document (so focus, clipboard, and layout work) with throttling off. */
+export const mk = (o: Options = {}) => {
+  const root = document.createElement('div');
+  document.body.append(root);
+  return { root, r: createRenderer(root, { throttleMs: 0, ...o }) };
+};
 
 /** Midstream state: write everything but do not call end(). */
 export function renderOpen(md: string, options: Options = {}) {

@@ -3,25 +3,34 @@ import { type N, parseInline } from './inline';
 import { safeUrl } from './url';
 
 export interface Options {
-  /** Return true if you handled the click. limmat then calls preventDefault. */
+  /** Called when a rendered link is clicked. Return true if you handled it: limmat then calls preventDefault. If it throws, the error reaches window.onerror and the link behaves normally. */
+  // biome-ignore lint/suspicious/noConfusingVoidType: a callback that returns nothing must type-check
   onLinkClick?: (href: string, event: MouseEvent) => boolean | void;
-  /** Site-relative paths ('/research/x/') are links only if this returns true. Default: all paths are links. */
+  /** Site-relative paths ('/research/x/') become links only if this returns true. Default: every path is a link. A throw counts as false. */
   isInternalPath?: (path: string) => boolean;
-  /** Default ['https:', 'http:', 'mailto:']. Everything else renders as plain text. */
+  /** Protocols that may become links, with or without the colon and in any case. Default ['https', 'http', 'mailto']. Everything else renders as plain text. */
   allowedProtocols?: string[];
-  /** Called once when a code fence closes. Receives the <code> element. */
+  /** Called once when a code fence closes (or at end()). Receives the <code> element, its text, and the language. A throw or rejection is ignored and the plain text stays. */
   highlight?: (el: HTMLElement, code: string, lang: string) => void | Promise<void>;
-  /** Minimum ms between re-renders of the open block. Default 50. 0 renders on every write. */
+  /** Minimum ms between re-renders of the open block. Default 50. 0 renders on every write. Non-finite values use the default. */
   throttleMs?: number;
-  /** Prefix for every generated class. Default 'limmat'. */
+  /** Prefix for every generated class. Default 'limmat'. The bundled style.css only styles the default prefix. */
   classPrefix?: string;
+  /** Visible and accessible text, for translation. Defaults: copy 'Copy', copied 'Copied', table 'Table', done 'Completed', todo 'Not completed'. */
   labels?: { copy?: string; copied?: string; table?: string; done?: string; todo?: string };
 }
 
+/** The type of the `highlight` option, for adapters. */
+export type Highlighter = NonNullable<Options['highlight']>;
+
 export interface Renderer {
+  /** Append markdown. Chunks may split anywhere. Ignored after end() until reset(), and after destroy(). */
   write(chunk: string): void;
+  /** Finish the message: unfinished constructs become literal text, code blocks are highlighted. Safe to call twice. */
   end(): void;
+  /** Clear the container and start a new message with the same options. */
   reset(): void;
+  /** Stop timers and remove the click listener. The rendered DOM stays. A pending throttled render is dropped. */
   destroy(): void;
 }
 
@@ -44,9 +53,17 @@ interface Built {
 
 const MAX_DEPTH = 12;
 
+/**
+ * Render streaming markdown into `container`.
+ * @example
+ * const r = createRenderer(el);
+ * for await (const chunk of stream) r.write(chunk);
+ * r.end();
+ */
 export function createRenderer(container: HTMLElement, options: Options = {}): Renderer {
+  if (!container || typeof container.addEventListener !== 'function') throw new TypeError('limmat: container must be an element');
   const o = options;
-  const protocols = o.allowedProtocols ?? ['https:', 'http:', 'mailto:'];
+  const protocols = (o.allowedProtocols ?? ['https', 'http', 'mailto']).map((p) => `${p}`.toLowerCase().replace(/:?$/, ':'));
   const internal = o.isInternalPath
     ? (p: string) => {
         try {
@@ -56,7 +73,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         }
       }
     : () => true;
-  const throttle = o.throttleMs ?? 50;
+  const throttle = Number.isFinite(o.throttleMs) ? (o.throttleMs as number) : 50;
   const px = o.classPrefix ?? 'limmat';
   const lb = o.labels ?? {};
   const label = {
@@ -77,6 +94,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   let nested: Entry['hl'];
   let ended = false;
   let dead = false;
+  let epoch = 0; // bumped by reset(), so a copy that finishes late can tell its message is gone
   let timer: ReturnType<typeof setTimeout> | undefined;
   let lastRun = -Infinity;
 
@@ -203,6 +221,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         const li = h('li');
         const tk = /^\[([ xX])\](?:[ \t]+|$)/.exec(body[0]);
         if (tk) {
+          li.className = cls('task');
           const box = h('input') as HTMLInputElement;
           box.type = 'checkbox';
           box.disabled = true;
@@ -405,8 +424,9 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     } else if (t.classList.contains(cls('copy'))) {
       const code = t.closest('.' + cls('code'))?.querySelector('code');
       const status = t.parentElement?.querySelector('.' + cls('status'));
+      const ep = epoch;
       copy(code?.textContent ?? '').then((ok) => {
-        if (!ok) return;
+        if (!ok || dead || ep !== epoch) return;
         t.textContent = label.copied;
         if (status) status.textContent = label.copied;
         const id = setTimeout(() => {
@@ -446,6 +466,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       if (dead) return;
       stop();
       stopCopy();
+      epoch++;
       container.replaceChildren();
       src = '';
       held = '';

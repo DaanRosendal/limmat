@@ -1,11 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRenderer } from '../src/index';
+import { mk } from './helpers/util';
 
-const mk = (o = {}) => {
-  const root = document.createElement('div');
-  document.body.append(root);
-  return { root, r: createRenderer(root, { throttleMs: 0, ...o }) };
-};
 const realClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
 const realExec = (document as any).execCommand;
 afterEach(() => {
@@ -74,7 +70,12 @@ describe('throttle', () => {
 describe('links', () => {
   it('onLinkClick can handle a click', () => {
     const calls: string[] = [];
-    const { root, r } = mk({ onLinkClick: (href: string) => (calls.push(href), true) });
+    const { root, r } = mk({
+      onLinkClick: (href: string) => {
+        calls.push(href);
+        return true;
+      },
+    });
     r.write('[a](/p/) [b](https://e.com)');
     r.end();
     const [a, b] = Array.from(root.querySelectorAll('a'));
@@ -179,5 +180,55 @@ describe('accessibility', () => {
     expect(root.querySelectorAll('[aria-live]').length).toBe(0);
     expect(root.querySelectorAll('[role="status"]').length).toBe(1);
     expect(root.querySelector('table')!.parentElement!.getAttribute('tabindex')).toBe('0');
+  });
+});
+
+describe('option and input hardening', () => {
+  it('a missing container throws a readable TypeError', () => {
+    expect(() => createRenderer(null as any)).toThrow(/limmat: container must be an element/);
+    expect(() => createRenderer({} as any)).toThrow(TypeError);
+  });
+  it('allowedProtocols accepts names with or without the colon, in any case', () => {
+    for (const p of ['https', 'HTTPS', 'https:', 'Https:']) {
+      const { root, r } = mk({ allowedProtocols: [p] });
+      r.write('[a](https://e.com) [b](http://e.com)');
+      r.end();
+      expect(Array.from(root.querySelectorAll('a')).map((a) => a.getAttribute('href'))).toEqual(['https://e.com']);
+    }
+  });
+  it('a non-finite throttleMs falls back to the default instead of breaking the timer', () => {
+    for (const t of [Number.NaN, Number.POSITIVE_INFINITY, undefined]) {
+      const { root, r } = mk({ throttleMs: t });
+      r.write('a');
+      r.write(' b');
+      r.end();
+      expect(root.textContent).toBe('a b');
+    }
+  });
+  it('a copy that resolves after destroy or reset leaves no timer and no label change', async () => {
+    for (const how of ['destroy', 'reset'] as const) {
+      let done!: () => void;
+      const writeText = vi.fn(() => new Promise<void>((res) => (done = res)));
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      const { root, r } = mk();
+      r.write('```\nx\n```');
+      r.end();
+      const btn = root.querySelector('button')!;
+      btn.click();
+      r[how]();
+      vi.useFakeTimers();
+      done();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(vi.getTimerCount()).toBe(0);
+      expect(btn.textContent).toBe('Copy');
+      vi.useRealTimers();
+    }
+  });
+  it('task items carry the task class, with the prefix applied', () => {
+    const { root, r } = mk({ classPrefix: 'x' });
+    r.write('- [x] a\n- b');
+    r.end();
+    expect(Array.from(root.querySelectorAll('li')).map((l) => l.className)).toEqual(['x-task', '']);
   });
 });

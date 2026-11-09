@@ -37,10 +37,7 @@ test.describe('performance budgets (Chromium)', () => {
     expect(t).toBeLessThan(1500);
   });
 
-  for (const [name, make] of [
-    ['8 KB list', (k: number) => Array.from({ length: k }, (_, i) => `- item ${i} with *em*`).join('\n')],
-    ['100-row table', (k: number) => '| a | b |\n|--|--|\n' + Array.from({ length: k }, (_, i) => `| ${i} | x *y* |`).join('\n')],
-  ] as const) {
+  for (const name of ['8 KB list', '100-row table']) {
     test(`${name} does not go quadratic when every write is rendered`, async ({ page }) => {
       const make2 = name.includes('list') ? 'list' : 'table';
       const r = await page.evaluate(

@@ -36,7 +36,7 @@ describe('hostile input stays bounded (batch 1)', () => {
     expect(depth(root)).toBeLessThan(45);
   });
   it('lines with unusual line terminators do not trigger regex backtracking', () => {
-    for (const nl of [' ', ' ', '\r']) {
+    for (const nl of ['\u2028', '\u2029', '\r']) {
       expect(timed(() => render(`# ${' '.repeat(1500)}${nl}`))).toBeLessThan(CEILING);
       expect(timed(() => render(`${'`'.repeat(30000)}${nl}`))).toBeLessThan(CEILING);
     }
@@ -64,7 +64,13 @@ describe('hostile input stays bounded (batch 1)', () => {
     vi.doUnmock('@speed-highlight/core');
   });
   it('refuses bidi, soft hyphen, nbsp and unparseable hosts in links', () => {
-    for (const u of ['https://a.com/‮', 'https://a­.com', 'https://a.com x', 'https://a.com/⁦x', 'https://a.com⁠/']) {
+    for (const u of [
+      'https://a.com/\u202e',
+      'https://a\u00ad.com',
+      'https://a.com\u00a0x',
+      'https://a.com/\u2066x',
+      'https://a.com\u2060/',
+    ]) {
       expect(render(`[x](${u})`).querySelector('a'), JSON.stringify(u)).toBeNull();
     }
     expect(render('www.javascript:alert(1)').querySelector('a')).toBeNull();

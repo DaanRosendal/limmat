@@ -365,8 +365,8 @@ export function parseInline(s: string, spec: boolean): N[] {
     } else if ((c === 'h' || c === 'H' || c === 'w' || c === 'W') && (i === 0 || !WORD.test(s[i - 1]))) {
       URLRE.lastIndex = i;
       const m = URLRE.exec(s);
-      const u = m && trimUrl(m[0]);
-      if (u && u.replace(/^(?:https?:\/\/|www\.)/i, '')) {
+      const u = m ? trimUrl(m[0]) : '';
+      if (u.replace(/^(?:https?:\/\/|www\.)/i, '')) {
         text(i);
         out.push({ k: 'a', s: u, href: /^www\./i.test(u) ? 'https://' + u : u });
         i += u.length;

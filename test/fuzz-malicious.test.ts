@@ -79,7 +79,7 @@ describe('malicious input never throws or hangs', () => {
       'a',
       'b',
       '\u0000',
-      '​',
+      '\u200b',
       '\u{1F600}',
       '\ud800',
     ];
