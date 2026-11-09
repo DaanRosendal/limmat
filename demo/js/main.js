@@ -4,6 +4,7 @@ import { initCheck } from './check.js';
 import { initInstall, initTheme, showRelease } from './chrome.js';
 import { canPlay, initControls, syncControls } from './controls.js';
 import { $, reduceMotion } from './dom.js';
+import { initEditor } from './editor.js';
 import { initPanels } from './panels.js';
 import { initPaste } from './paste.js';
 import { finish, play, reset } from './player.js';
@@ -24,6 +25,7 @@ async function start() {
   initPanels();
   initControls();
   initPaste();
+  initEditor();
   initCheck();
   initTheme();
   initInstall();

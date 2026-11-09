@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="color-scheme" content="light dark">
-<title>limmat: streaming markdown, safe by construction</title>
+<title>limmat: streaming markdown</title>
 <meta name="description" content="A tiny, safe markdown renderer for streaming LLM output. Change the chunking, scrub the stream, and throw hostile input at it.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="limmat.css">
@@ -32,7 +32,7 @@
 </svg>
 
 <header class="top">
-  <h1 class="brand"><span class="word">limmat</span><span class="caret" aria-hidden="true"></span><span class="tag">Streaming markdown, never half-finished</span></h1>
+  <h1 class="brand"><span class="word">limmat</span><span class="tag">Streaming markdown</span></h1>
   <span class="chip release" id="release" title="Build details load with the page">limmat</span>
   <nav class="tabs" aria-label="Panels">
     <button type="button" class="tab" data-panel="check" aria-expanded="false" aria-controls="panel-check">Chunking</button>
@@ -58,8 +58,9 @@
 
 <main class="stage" id="stage">
   <div class="pane">
-    <header class="pane-head"><h2 id="raw-h">Model stream</h2></header>
+    <header class="pane-head"><h2 id="raw-h">Model stream</h2><span class="chip edit-hint" id="edit-hint" hidden>Click and type to edit</span></header>
     <pre id="raw" class="raw" role="region" aria-labelledby="raw-h" tabindex="0"></pre>
+    <textarea id="raw-edit" class="raw edit" aria-label="Edit the markdown" spellcheck="false" maxlength="200000" hidden></textarea>
     <footer class="pane-foot">
       <span class="chip"><b id="v-chunks">0</b> chunks</span>
       <span class="chip"><b id="v-bytes">0</b> bytes</span>

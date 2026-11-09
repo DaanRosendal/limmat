@@ -4,6 +4,8 @@ import { $ } from './dom.js';
 export const el = {
   out: $('#out'),
   raw: $('#raw'),
+  rawEdit: $('#raw-edit'),
+  editHint: $('#edit-hint'),
   play: $('#play'),
   step: $('#step'),
   finish: $('#finish'),

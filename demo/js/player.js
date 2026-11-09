@@ -10,6 +10,12 @@ const sticky = [follow(el.out), follow(el.raw)];
 const resetHooks = [];
 /** Run `fn` after every reset (the chunking check uses this to follow the stream). */
 export const onReset = (fn) => resetHooks.push(fn);
+const phaseHooks = [];
+/** Run `fn(ended)` whenever the stream finishes or goes back to being open (the editor follows this). */
+export const onPhase = (fn) => phaseHooks.push(fn);
+const emitPhase = () => {
+  for (const fn of phaseHooks) fn(s.ended);
+};
 
 function newRenderer() {
   s.r?.destroy();
@@ -24,7 +30,12 @@ function rebuildChunks() {
   const st = STREAMS[s.stream];
   s.chunks = st.chunks ? st.chunks.slice() : chunkText(textOf(st), s.size, s.random, s.seed);
   el.pos.max = String(s.chunks.length);
-  for (const i of document.querySelectorAll('input[name="size"]')) i.disabled = !!st.chunks;
+  syncSizeEnabled();
+}
+
+/** Scripted streams have fixed cuts, so the chunk size toggle only applies to the others. */
+function syncSizeEnabled() {
+  for (const i of document.querySelectorAll('input[name="size"]')) i.disabled = !!STREAMS[s.stream].chunks;
 }
 
 function appendRaw(chunk, n) {
@@ -56,6 +67,7 @@ function complete() {
   setLabel('stopped', 'Replay');
   markOpen();
   updateReadouts();
+  emitPhase();
   say('Finished streaming.');
 }
 
@@ -68,7 +80,7 @@ function tick() {
 }
 
 export function play() {
-  if (s.ended) return reset(true);
+  if (s.ended || s.i >= s.chunks.length) return reset(true); // also after typing in the editor
   if (!s.chunks.length) return;
   s.playing = true;
   setLabel('playing', 'Pause');
@@ -94,6 +106,7 @@ export function reset(autoplay) {
   markOpen();
   updateReadouts();
   for (const fn of resetHooks) fn();
+  emitPhase();
   if (autoplay && s.chunks.length) play();
 }
 
@@ -140,6 +153,24 @@ export function scrub(target) {
     s.r.end();
     s.ended = true;
   }
+  markOpen();
+  updateReadouts();
+  emitPhase();
+}
+
+/** The visitor typed in the editor: the text becomes "Yours", and limmat renders it as an open stream, not a finished one. */
+export function edit(text) {
+  if (s.playing) pause();
+  clearTimeout(s.timer);
+  STREAMS.custom.text = s.customText = text;
+  s.stream = 'custom';
+  s.chunks = chunkText(text, s.size, s.random, s.seed);
+  Object.assign(s, { i: s.chunks.length, ended: false, scrubbed: true, dts: [], bytes: utf8.encode(text).length });
+  el.pos.max = String(s.chunks.length);
+  syncSizeEnabled();
+  setLabel('stopped', 'Replay');
+  s.r.reset();
+  s.r.write(text);
   markOpen();
   updateReadouts();
 }

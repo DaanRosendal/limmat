@@ -24,7 +24,7 @@ const openTab = async (page: Page, name: string) => {
 
 test('loads with no errors, no CSP violations, and only same-origin requests', async ({ page, seen }) => {
   await open(page);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('never half-finished');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Streaming markdown');
   expect(seen.errors).toEqual([]);
   expect(await page.evaluate(() => (window as any).__csp ?? [])).toEqual([]);
   expect(seen.requests.filter((u) => !u.startsWith('https://limmat.test/'))).toEqual([]);
@@ -381,4 +381,32 @@ test('choosing another stream puts the paste editor away', async ({ page }) => {
   await expect(page.locator('#panel-paste')).not.toHaveClass(/open/);
   await expect(page.locator('input[name="stream"][value="table"]')).toBeChecked();
   await expect(page.locator('.pane').first()).not.toHaveJSProperty('inert', true);
+});
+
+test('once a stream is done the raw pane is an editor, and typing renders as a live open stream', async ({ page }) => {
+  await open(page);
+  await expect(page.locator('#raw-edit')).toBeHidden();
+  await expect(page.locator('#edit-hint')).toBeHidden();
+  await pick(page, 'stream', 'table');
+  await page.click('#finish');
+  const editor = page.locator('#raw-edit');
+  await expect(editor).toBeVisible();
+  await expect(page.locator('#edit-hint')).toBeVisible();
+  await expect(editor).toHaveValue('| a | b |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n');
+  // A marker that is still open never shows its raw asterisks.
+  await editor.fill('Typing **bo');
+  await expect(page.locator('#out')).toContainText('Typing bo');
+  expect(await page.locator('#out').textContent()).not.toContain('*');
+  await expect(page.locator('#open-readout')).toContainText('Open');
+  await editor.fill('Typing **bold** now');
+  await expect(page.locator('#out strong')).toHaveText('bold');
+  // The edit became "Yours" and ends up in the link.
+  await expect(page.locator('input[name="stream"][value="custom"]')).toBeChecked();
+  await expect.poll(() => page.url()).toContain('stream=custom');
+  // Replay streams the edited text, and the editor steps aside while it plays.
+  await page.click('#play');
+  await expect(editor).toBeHidden();
+  await page.click('#finish');
+  await expect(page.locator('#out strong')).toHaveText('bold');
+  await expect(editor).toHaveValue('Typing **bold** now');
 });
