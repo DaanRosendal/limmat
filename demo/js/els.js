@@ -6,7 +6,6 @@ export const el = {
   raw: $('#raw'),
   rawEdit: $('#raw-edit'),
   editHint: $('#edit-hint'),
-  sameChip: $('#chip-same'),
   play: $('#play'),
   step: $('#step'),
   finish: $('#finish'),

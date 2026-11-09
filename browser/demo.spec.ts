@@ -4,7 +4,6 @@ import type { Page } from '@playwright/test';
 import { expect, open, test } from './demo-fixture';
 
 const VERSION = JSON.parse(readFileSync('package.json', 'utf8')).version;
-const STREAMS = ['reply', 'mid-marker', 'table', 'fence', 'link-split', 'list', 'hostile'];
 
 const pick = (page: Page, group: string, value: string) => page.locator(`input[name="${group}"][value="${value}"]`).click();
 const settle = (page: Page) =>
@@ -41,20 +40,6 @@ test('the page has no inline script, no inline style attribute, and sets no cook
     storage: localStorage.length + sessionStorage.length,
   }));
   expect(found).toEqual({ inlineScripts: 0, styleAttrs: 0, cookie: '', storage: 0 });
-});
-
-test('every stream ends with the same HTML for every chunking (the "same as one write" chip)', async ({ page }) => {
-  await open(page);
-  const chip = page.locator('#chip-same');
-  for (const name of STREAMS) {
-    await pick(page, 'stream', name);
-    // Scripted streams keep their cuts, so only the others take a chunk size.
-    for (const size of name === 'reply' || name === 'hostile' ? ['1', '5', '20', 'random'] : [null]) {
-      if (size) await pick(page, 'size', size);
-      await page.click('#finish');
-      await expect(chip).toHaveAttribute('data-state', 'done');
-    }
-  }
 });
 
 test('the open block readout names the construct that is still open', async ({ page }) => {
@@ -421,4 +406,33 @@ test('the play button keeps one width for Play, Pause, and Replay', async ({ pag
   await expect(page.locator('#play')).toHaveText('Replay');
   seen.add(await width());
   expect(seen.size).toBe(1);
+});
+
+test('typing at the end only appends, so finished blocks are not rebuilt', async ({ page }) => {
+  await open(page, '#v=1&stream=reply&c=12&r=1&s=1&t=0&d=10');
+  await page.click('#finish');
+  const editor = page.locator('#raw-edit');
+  await editor.press('Control+End');
+  await page.keyboard.type('x'); // the first edit after the stream ended rebuilds once
+  await page.evaluate(() => {
+    for (const n of document.querySelectorAll('#out > *')) (n as any).__keep = true;
+  });
+  await page.keyboard.type('yz');
+  const kept = await page.evaluate(() => Array.from(document.querySelectorAll('#out > *')).filter((n) => (n as any).__keep).length);
+  expect(kept).toBeGreaterThan(5); // every finished block is the same element as before
+  await expect(page.locator('#out')).toContainText('xyz');
+});
+
+test('a rebuilt code block is coloured in the same frame, so editing never flashes plain code', async ({ page }) => {
+  await open(page, '#v=1&stream=reply&c=12&r=1&s=1&t=0&d=10');
+  await page.click('#finish');
+  await expect(page.locator('#out .shj-syn-kwd').first()).toBeAttached();
+  const editor = page.locator('#raw-edit');
+  // A deletion at the end cannot append, so it rebuilds the whole output. Check the colours before the next frame.
+  const coloured = await editor.evaluate((t: HTMLTextAreaElement) => {
+    t.value = t.value.slice(0, -1);
+    t.dispatchEvent(new Event('input', { bubbles: true }));
+    return document.querySelectorAll('#out .shj-syn-kwd').length;
+  });
+  expect(coloured).toBeGreaterThan(0);
 });

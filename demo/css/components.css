@@ -351,13 +351,6 @@ h3 {
   background: var(--ok-soft);
   color: var(--ok);
 }
-.state[data-state="bad"] {
-  background: rgb(185 28 28 / 0.12);
-  color: var(--bad);
-}
-.state[data-state="bad"]::before {
-  background: var(--bad);
-}
 .chip.bad {
   background: rgb(185 28 28 / 0.12);
   color: var(--bad);

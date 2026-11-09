@@ -3,7 +3,6 @@
 import { syncControls } from './controls.js';
 import { el } from './els.js';
 import { edit, onPhase } from './player.js';
-import { runSame } from './same.js';
 import { writeHash } from './share.js';
 import { s } from './state.js';
 
@@ -23,7 +22,6 @@ export function initEditor() {
   el.rawEdit.addEventListener('input', () => {
     edit(el.rawEdit.value);
     syncControls();
-    runSame();
     clearTimeout(saved);
     saved = setTimeout(writeHash, 400); // the link follows the edit, but not every keystroke
   });

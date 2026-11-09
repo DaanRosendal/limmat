@@ -2,6 +2,7 @@
 import { createRenderer } from '../limmat.min.js';
 import { follow, make, say, utf8 } from './dom.js';
 import { el } from './els.js';
+import { highlight } from './hlcache.js';
 import { markOpen, updateReadouts } from './readouts.js';
 import { s } from './state.js';
 import { chunkText, STREAMS, textOf } from './streams.js';
@@ -15,11 +16,12 @@ const emitPhase = () => {
 };
 
 function newRenderer() {
+  s.rendered = null;
   s.r?.destroy();
   el.out.replaceChildren();
   s.r = createRenderer(el.out, {
     throttleMs: s.throttle,
-    highlight: (code, text, lang) => s.hl?.(code, text, lang),
+    highlight,
   });
 }
 
@@ -57,6 +59,7 @@ function setLabel(state, text) {
 }
 
 function complete() {
+  s.rendered = null; // end() closes the renderer, so the next edit starts a fresh one
   s.r.end();
   s.ended = true;
   s.playing = false;
@@ -165,8 +168,14 @@ export function edit(text) {
   el.pos.max = String(s.chunks.length);
   syncSizeEnabled();
   setLabel('stopped', 'Replay');
-  s.r.reset();
-  s.r.write(text);
+  // Typing at the end only appends, so write just the new characters and leave every finished block alone.
+  // Anything else (a first edit after the stream ended, a deletion, a change in the middle) rebuilds from scratch.
+  if (s.rendered !== null && text.length > s.rendered.length && text.startsWith(s.rendered)) s.r.write(text.slice(s.rendered.length));
+  else {
+    s.r.reset();
+    s.r.write(text);
+  }
+  s.rendered = text;
   markOpen();
   updateReadouts();
 }
