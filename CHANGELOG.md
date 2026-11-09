@@ -2,6 +2,8 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/), and the project follows [Semantic Versioning](https://semver.org/).
 
+While the version is 0.x, a minor release may change behavior and say so here. The DOM contract (the `limmat-*` classes and ARIA attributes), the option names, and the `createRenderer` and `Renderer` API follow the stability rules in the README. New syntax that would change how text renders today (for example math or citations) ships behind an opt-in option.
+
 ## [Unreleased]
 
 ### Added

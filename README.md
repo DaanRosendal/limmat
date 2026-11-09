@@ -1,13 +1,13 @@
 # limmat
 
-limmat renders streaming markdown into the DOM as it arrives: about 6 kB, safe by default, with no framework.
+limmat renders streaming markdown into the DOM as it arrives: about 7 kB gzip, safe by default, with no framework and no dependencies.
 
 It is built for chat UIs where an LLM streams a reply in chunks of a few characters. Finished blocks are never touched again, only the open block re-renders (throttled), and half-finished markdown never shows raw markers. Named after the river through Zurich.
 
 - **Safe by construction.** The DOM is built with `createElement` and text nodes only. There is no `innerHTML` and no raw HTML path. Links go through a protocol allow-list, and images are never loaded.
 - **Built for streaming.** Linear time overall. In Chromium, a 100 KB reply streamed in 5-character chunks renders in about 12 ms in total.
 - **Rich enough for LLM output.** Headings, emphasis, strikethrough, code with a language label and Copy button, lists (nested, task lists), blockquotes, tables with alignment, links, autolinked URLs and emails, hard breaks.
-- **Small and dependency-free.** About 6 kB gzip, ESM only, zero runtime dependencies. Optional CSS and a lazy code highlighter adapter.
+- **Small and dependency-free.** About 7 kB gzip, ESM only, zero runtime dependencies. Optional CSS and a lazy code highlighter adapter.
 
 ## Install
 
@@ -15,7 +15,16 @@ It is built for chat UIs where an LLM streams a reply in chunks of a few charact
 npm install limmat
 ```
 
-Or copy `dist/limmat.min.js` (and optionally `dist/style.css`) into your project.
+No bundler? Copy `dist/limmat.min.js` (and optionally `dist/style.css`) into your project and import it as a module:
+
+```html
+<script type="module">
+  import { createRenderer } from './limmat.min.js';
+  const r = createRenderer(document.querySelector('#answer'));
+  r.write('Hello **world**');
+  r.end();
+</script>
+```
 
 ## Use
 
@@ -23,59 +32,94 @@ Or copy `dist/limmat.min.js` (and optionally `dist/style.css`) into your project
 import { createRenderer } from 'limmat';
 import 'limmat/style.css'; // optional
 
-const md = createRenderer(document.querySelector('#answer')!, {
-  isInternalPath: (path) => knownPages.has(path),
-  onLinkClick: (href, event) => {
-    if (href.startsWith('/')) { navigate(href); return true; } // handled
-  },
-});
-
-for await (const chunk of stream) md.write(chunk);
+const md = createRenderer(document.querySelector('#answer')!);
+md.write('# Hello\n\nSome **streamed** text');
 md.end();
 ```
 
-Use one renderer per message. `write` takes the new text, not the full text so far.
+Use one renderer per message. `write` takes the new text, not the full text so far. Chunks can split anywhere, even inside a word or a marker. Rendering a finished string is the same three calls: `createRenderer(el)`, `write(text)`, `end()`.
+
+Streaming a `fetch` response:
+
+```ts
+const res = await fetch('/api/chat', { method: 'POST', body });
+const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
+const md = createRenderer(el);
+for (let r = await reader.read(); !r.done; r = await reader.read()) md.write(r.value);
+md.end();
+```
+
+With an LLM SDK, call `md.write(delta)` for each text delta and `md.end()` when the stream finishes.
+
+With every option:
+
+```ts
+import { createRenderer } from 'limmat';
+import { speedHighlight } from 'limmat/highlight';
+
+const el = document.querySelector<HTMLElement>('#answer')!;
+const knownPages = new Set(['/research/', '/about/']);
+const md = createRenderer(el, {
+  isInternalPath: (path) => knownPages.has(path),
+  onLinkClick: (href, event) => {
+    if (href.startsWith('/')) { history.pushState({}, '', href); return true; } // handled: limmat calls preventDefault
+  },
+  highlight: speedHighlight(),
+  labels: { copy: 'Kopieren', copied: 'Kopiert' },
+});
+```
 
 ### Options
 
 | Option | Default | |
 |---|---|---|
-| `onLinkClick(href, event)` | none | Return `true` if you handled the click. limmat then calls `preventDefault()`. |
+| `onLinkClick(href, event)` | none | Return `true` if you handled the click. limmat then calls `preventDefault()`. If it throws, the error reaches `window.onerror` and the link behaves normally. |
 | `isInternalPath(path)` | all paths | Site-relative paths (`/research/x/`) become links only if this returns `true`. Others render as plain text. It gets the raw path including any query and hash, may be called more than once per link while the reply streams, and a throw counts as `false`. Check the whole path, not just a prefix: `/research/../admin` starts with `/research/`. |
-| `allowedProtocols` | `['https:', 'http:', 'mailto:']` | Anything else renders as plain text. |
-| `highlight(el, code, lang)` | none | Called once when a fence closes (or at `end()`). Errors are swallowed and the plain text stays. |
-| `throttleMs` | `50` | Minimum time between re-renders of the open block. `0` renders on every write. |
-| `classPrefix` | `'limmat'` | Prefix of every generated class. |
-| `labels` | English | `copy`, `copied`, `table`, `done`, `todo`. |
+| `allowedProtocols` | `['https', 'http', 'mailto']` | Protocols that may become links, with or without the colon and in any case. Anything else renders as plain text. |
+| `highlight(el, code, lang)` | none | Called once when a fence closes (or at `end()`), with the `<code>` element. A throw or rejection is ignored and the plain text stays. |
+| `throttleMs` | `50` | Minimum time between re-renders of the open block. `0` renders on every write. A non-finite value uses the default. |
+| `classPrefix` | `'limmat'` | Prefix of every generated class. The bundled `style.css` only styles the default prefix. |
+| `labels` | English | `copy` (`Copy`), `copied` (`Copied`), `table` (`Table`), `done` (`Completed`), `todo` (`Not completed`). |
 
 ### Methods
 
-- `write(chunk)`: add text. The first write renders at once, later writes at most once per `throttleMs`.
-- `end()`: render the final state synchronously. Further writes are ignored until `reset()`.
-- `reset()`: empty the container and start over, keeping the options.
-- `destroy()`: remove the click listener and stop timers. Every later call is a no-op.
+- `write(chunk)`: add text. The first write renders at once, later writes at most once per `throttleMs`. Ignored after `end()` until `reset()`, and after `destroy()`.
+- `end()`: render the final state synchronously: unfinished constructs become literal text and code is highlighted. Calling it twice is safe.
+- `reset()`: empty the container and start a new message, keeping the options.
+- `destroy()`: remove the click listener and stop timers. The rendered DOM stays, and a render still waiting on the throttle is dropped (call `end()` first to keep it). Every later call is a no-op.
+
+`createRenderer` throws a `TypeError` if the container is not an element. Importing limmat is safe on the server, but rendering needs a DOM (for SSR use jsdom or happy-dom).
 
 ### Code highlighting
 
 ```ts
 import { speedHighlight } from 'limmat/highlight';
+import '@speed-highlight/core/themes/default.css'; // pick any theme, the highlighter only adds classes
 createRenderer(el, { highlight: speedHighlight() });
 ```
 
-This adapter uses [`@speed-highlight/core`](https://github.com/speed-highlight/core), an optional peer dependency you install yourself. Each language loads as its own small chunk the first time it is needed, so a reply without code downloads nothing extra.
+This adapter uses [`@speed-highlight/core`](https://github.com/speed-highlight/core), an optional peer dependency you install yourself. Each language loads as its own small chunk the first time it is needed, so a reply without code downloads nothing extra. Without a theme stylesheet the code stays uncolored. Choose a theme that matches your page (light or dark), because it sets the token colors. With `limmat/style.css` loaded, limmat keeps its own frame and the theme only supplies colors. Code over 4 KB or with lines over 300 characters is left as plain text (the highlighter is slow on those); tune it with `speedHighlight({ maxChars, maxLine })`.
 
 ### Styling
 
-`limmat/style.css` is optional. It uses CSS variables (`--limmat-link`, `--limmat-border`, ...), follows `prefers-color-scheme`, and supports forced colors and reduced motion. The generated structure is stable:
+`limmat/style.css` is optional. It uses CSS variables (`--limmat-link`, `--limmat-border`, `--limmat-code-bg`, `--limmat-radius`, `--limmat-font-mono`, `--limmat-muted`, `--limmat-focus`), follows `prefers-color-scheme`, and supports forced colors. The generated structure is:
 
 ```
-p, h1-h6, hr, blockquote, ul.limmat-list, ol.limmat-list, li
+p, h1-h6, hr, blockquote, ul.limmat-list, ol.limmat-list, li, li.limmat-task (task items)
 div.limmat-code
   div.limmat-code-head > span.limmat-lang[aria-hidden], button.limmat-copy, span.limmat-status[role=status]
   pre[tabindex=0] > code.limmat-lang-ts
 div.limmat-table-wrap[tabindex=0][role=region] > table
 a.limmat-link
 ```
+
+### Accessibility
+
+The message container has no live region, because announcing every chunk is noisy. If you want the finished reply announced, set `aria-busy` on your own element while streaming, or announce once after `end()`. The Copy button is labelled with the language (`Copy ts code`), the language label is hidden from screen readers, tables and code blocks are keyboard-scrollable, task checkboxes have names, and the copy result is announced through a polite status element. The Copy button is available while a fence is still open and copies what has arrived so far.
+
+### Stability
+
+From v0.1 these are stable, and a change to them is a breaking change: `createRenderer`, the four `Renderer` methods, the option names and meanings, the `limmat-*` class names listed above, the CSS variable names, and the ARIA attributes. Classes may be added, never removed or renamed. These are not stable and may change in a minor release: the exact set of recognized syntax (see Known gaps), the DOM inside a code block, the `labels` keys, and what a half-finished construct looks like mid-stream. While the version is 0.x, minor releases may also break the stable parts, and the [changelog](CHANGELOG.md) will say so. Text that renders literally today (math, `[1]` citations, emoji codes) will only become markup behind an opt-in option.
 
 ## Security model
 
@@ -93,7 +137,7 @@ limmat does not protect you from your own CSS or from what your `onLinkClick` do
 
 | | limmat | streaming-markdown 0.2.15 |
 |---|---|---|
-| Size (gzip) | about 6 kB | 3.5 kB |
+| Size (gzip) | about 7 kB | 3.5 kB |
 | Link and image URLs | allow-listed, images never load | not sanitized by the default renderer (`javascript:` and `//host` links pass, any image loads) |
 | `snake_case_words` | stay text | become italic |
 | `1)` lists, table alignment, bare URLs and emails | supported | not supported |
@@ -113,7 +157,7 @@ A general markdown parser plus a sanitizer re-parses the whole text on every chu
 
 ## Browser support
 
-The browser suite runs on current Chromium, Firefox, and WebKit. From the APIs used (`replaceChildren`, `matchAll`, `?.`, `??`, Unicode property escapes, sticky regexes) the minimum should be Chrome 86, Firefox 78, and Safari 14. These floors come from compatibility data, not from tests on old browsers. The optional CSS uses `:has()` and `color-mix()` as upgrades with plain fallbacks: without `:has()` a task-list item shows a bullet next to its checkbox.
+The browser suite runs on current Chromium, Firefox, and WebKit. From the APIs used (`replaceChildren`, `matchAll`, `?.`, `??`, Unicode property escapes, sticky regexes) the minimum should be Chrome 86, Firefox 78, and Safari 14. These floors come from compatibility data, not from tests on old browsers. The optional CSS uses `color-mix()` as an upgrade with plain fallbacks.
 
 ## Known gaps
 
