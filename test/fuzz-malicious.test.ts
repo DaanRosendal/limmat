@@ -5,7 +5,7 @@ const budget = (name: string, md: string, split: 'whole' | number = 'whole') =>
   it(name, () => {
     const t = performance.now();
     const root = render(md, split, { throttleMs: split === 'whole' ? 0 : 50 });
-    expect(performance.now() - t).toBeLessThan(6000); // loose: jsdom, run in parallel with other suites
+    expect(performance.now() - t).toBeLessThan(30_000); // only catches a real hang: precise budgets live in the Chromium suite
     expect(audit(root)).toEqual([]);
   });
 

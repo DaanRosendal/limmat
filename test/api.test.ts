@@ -6,9 +6,14 @@ const mk = (o = {}) => {
   document.body.append(root);
   return { root, r: createRenderer(root, { throttleMs: 0, ...o }) };
 };
+const realClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+const realExec = (document as any).execCommand;
 afterEach(() => {
   document.body.replaceChildren();
   vi.useRealTimers();
+  if (realClipboard) Object.defineProperty(navigator, 'clipboard', realClipboard);
+  else delete (navigator as any).clipboard;
+  (document as any).execCommand = realExec;
 });
 
 describe('lifecycle', () => {
@@ -123,7 +128,8 @@ describe('code blocks', () => {
     exec.mockReturnValue(false);
     btn.textContent = 'Copy';
     btn.click();
-    await new Promise((res) => setTimeout(res, 20));
+    await vi.waitFor(() => expect(exec).toHaveBeenCalledTimes(2));
+    for (let i = 0; i < 5; i++) await Promise.resolve();
     expect(btn.textContent).toBe('Copy');
   });
   it('highlight is called once when the fence closes, with element, code and lang', async () => {

@@ -9,7 +9,7 @@ export function safeUrl(raw: string, allowed: string[], internal: (path: string)
   const m = SCHEME.exec(raw);
   if (m) {
     const proto = m[1].toLowerCase() + ':';
-    if (!allowed.includes(proto) || raw.length === m[0].length) return null;
+    if (!allowed.includes(proto) || raw.length === m[0].length || /^(?:javascript|data|vbscript):$/.test(proto)) return null;
     if (proto[0] === 'h' && !/^https?:\/\/[^/?#]/i.test(raw)) return null;
     try {
       new URL(raw);
