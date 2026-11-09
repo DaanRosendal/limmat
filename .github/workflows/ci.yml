@@ -17,9 +17,11 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run check:style
       - run: npm test
       - run: npm run build
       - run: npm run check:package
+      - run: npm run check:support
       - run: npm run size
   browsers:
     runs-on: ubuntu-latest

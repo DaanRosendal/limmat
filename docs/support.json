@@ -1,0 +1,101 @@
+[
+  { "feature": "ATX headings (`# Title`)", "status": "supported", "cm": ["ATX headings"] },
+  { "feature": "Setext headings (`Title` over `---`)", "status": "not-yet", "cm": ["Setext headings"], "note": "The underline renders as a rule (`---`) or as text (`===`)." },
+  { "feature": "Thematic breaks", "status": "supported", "cm": ["Thematic breaks"] },
+  {
+    "feature": "Fenced code, backtick and tilde",
+    "status": "supported",
+    "cm": ["Fenced code blocks"],
+    "tests": [{ "file": "test/conformance.test.ts", "title": "tilde fences and fence lengths" }],
+    "note": "Language label, Copy button, optional highlighting."
+  },
+  { "feature": "Indented code blocks", "status": "not-yet", "cm": ["Indented code blocks"], "note": "Use fences." },
+  {
+    "feature": "Block quotes",
+    "status": "supported",
+    "cm": ["Block quotes"],
+    "tests": [{ "file": "test/regress.test.ts", "title": "lazy blockquote continuation only follows paragraph text" }]
+  },
+  {
+    "feature": "Bullet and ordered lists, nested",
+    "status": "partial",
+    "cm": ["Lists", "List items"],
+    "tests": [{ "file": "test/regress.test.ts", "title": "list scanning" }],
+    "note": "Common chat lists work. Loose lists render tight, and many edge cases in the spec differ."
+  },
+  {
+    "feature": "Task lists (GFM)",
+    "status": "supported",
+    "tests": [{ "file": "test/conformance.test.ts", "title": "task lists" }],
+    "note": "Checkboxes are disabled and labelled."
+  },
+  {
+    "feature": "Tables with alignment (GFM)",
+    "status": "supported",
+    "tests": [{ "file": "test/conformance.test.ts", "title": "tables with alignment" }],
+    "note": "Keyboard-scrollable wrapper. A header and delimiter row with different column counts is not a table."
+  },
+  { "feature": "Emphasis and strong", "status": "supported", "cm": ["Emphasis and strong emphasis"], "note": "`snake_case_words` stay text." },
+  {
+    "feature": "Strikethrough (GFM)",
+    "status": "supported",
+    "tests": [{ "file": "test/gaps.test.ts", "title": "single tilde is literal" }],
+    "note": "Needs two tildes on both sides."
+  },
+  { "feature": "Code spans", "status": "supported", "cm": ["Code spans"] },
+  {
+    "feature": "Inline links",
+    "status": "partial",
+    "cm": ["Links"],
+    "tests": [{ "file": "test/xss.test.ts", "title": "blocked links keep the label as text" }],
+    "note": "Inline `[text](url)` works. Reference-style links, many title forms, and unsafe URLs render as text (most of the misses)."
+  },
+  { "feature": "Reference links and definitions", "status": "not-yet", "cm": ["Link reference definitions"] },
+  {
+    "feature": "Autolinks: `<url>`, bare URLs, `www.`, emails (GFM)",
+    "status": "partial",
+    "cm": ["Autolinks"],
+    "tests": [{ "file": "test/gaps.test.ts", "title": "urls only autolink at a word boundary" }],
+    "note": "Only allowed protocols become links, so spec examples with other schemes differ by design."
+  },
+  {
+    "feature": "Images",
+    "status": "wont",
+    "cm": ["Images"],
+    "tests": [{ "file": "test/xss.test.ts", "title": "images become plain text" }],
+    "note": "The alt text is shown and nothing is ever loaded, so images cannot track or exfiltrate."
+  },
+  {
+    "feature": "Raw HTML and HTML blocks",
+    "status": "wont",
+    "cm": ["HTML blocks", "Raw HTML"],
+    "tests": [{ "file": "test/conformance.test.ts", "title": "unsupported things degrade to text" }],
+    "note": "Shown as text. Only `<br>` is understood."
+  },
+  { "feature": "HTML entities (`&amp;`)", "status": "not-yet", "cm": ["Entity and numeric character references"], "note": "Shown literally." },
+  { "feature": "Backslash escapes", "status": "partial", "cm": ["Backslash escapes"] },
+  {
+    "feature": "Hard and soft line breaks",
+    "status": "supported",
+    "cm": ["Hard line breaks", "Soft line breaks"],
+    "tests": [{ "file": "test/gaps.test.ts", "title": "single trailing space before newline" }]
+  },
+  { "feature": "Tabs for indentation", "status": "not-yet", "cm": ["Tabs"] },
+  {
+    "feature": "Half-open constructs never show raw markers while streaming",
+    "status": "supported",
+    "tests": [
+      { "file": "test/half-open.test.ts", "title": "open fence shows code immediately" },
+      { "file": "browser/behavior.spec.ts", "title": "streaming never shows raw markers" }
+    ]
+  },
+  {
+    "feature": "Any chunking gives the same DOM as one write",
+    "status": "supported",
+    "tests": [{ "file": "test/chunk-fuzz.test.ts", "title": "two-part splits at every index" }]
+  },
+  { "feature": "Math (`$...$`, `$$...$$`)", "status": "not-yet", "note": "Planned as an opt-in option. Dollar signs render literally today." },
+  { "feature": "Footnotes", "status": "not-yet" },
+  { "feature": "Alerts and callouts (`> [!NOTE]`)", "status": "not-yet", "note": "Renders as a normal block quote." },
+  { "feature": "Citation chips (`[1]`) and emoji codes", "status": "not-yet", "note": "Planned as opt-in options. Rendered literally today." }
+]
