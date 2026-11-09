@@ -35,14 +35,23 @@ test('the page has no inline script, no inline style attribute, and sets no cook
   await openTab(page, 'support');
   const found = await page.evaluate(() => ({
     inlineScripts: Array.from(document.scripts).filter((s) => !s.src).length,
+    // The page's own markup. limmat's output is checked below, because its tables set text-align through the CSSOM.
     styleAttrs: Array.from(
-      document.querySelectorAll('[style]'),
+      document.querySelectorAll('[style]:not(#out *)'),
       (e) => `${e.tagName}${e.id ? `#${e.id}` : ''}.${e.getAttribute('class')} style="${e.getAttribute('style')}"`,
     ),
     cookie: document.cookie,
     storage: localStorage.length + sessionStorage.length,
   }));
   expect(found).toEqual({ inlineScripts: 0, styleAttrs: [], cookie: '', storage: 0 });
+  // Inside limmat's output the only style is a table cell's alignment (set through the CSSOM, which a strict
+  // style-src allows), and it appears once the stream reaches a table, so which cells exist depends on timing.
+  await page.click('#finish');
+  const inOutput = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('#out [style]'), (e) => `${e.tagName} ${e.getAttribute('style')}`),
+  );
+  for (const s of inOutput) expect(s).toMatch(/^(TH|TD) text-align: (left|center|right);$/);
+  expect(await page.evaluate(() => (window as any).__csp ?? [])).toEqual([]);
 });
 
 test('the open block readout names the construct that is still open', async ({ page }) => {
