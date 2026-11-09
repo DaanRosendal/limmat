@@ -71,7 +71,9 @@ describe('CommonMark spec examples for the supported subset', () => {
   const failing = [...results].filter(([, ok]) => !ok).map(([n]) => n);
 
   it('reports the pass rate', () => {
-    if (process.env.SHOW) {
+    expect(inScope.length).toBeGreaterThan(400);
+    expect(inScope.length - failing.length).toBeGreaterThan(300);
+    if (process.env.SHOW && process.env.OUT) {
       for (const ex of inScope.filter((e) => failing.includes(e.example) && process.env.SHOW!.split(',').includes(e.section))) {
         const exp = document.createElement('div');
         exp.innerHTML = ex.html;

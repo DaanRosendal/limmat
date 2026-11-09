@@ -39,7 +39,8 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "test:browser": "playwright test",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build && npm run size && npm run test:browser"
+    "check": "npm run typecheck && npm run lint && npm test && npm run build && npm run size && npm run test:browser",
+    "test:browser:chromium": "playwright test --project=chromium"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",

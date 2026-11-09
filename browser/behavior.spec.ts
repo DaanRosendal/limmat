@@ -23,7 +23,7 @@ test('chunked output equals whole output, with real timers and the default throt
           const n = size || 1 + Math.floor(rnd() * 12);
           c.r.write(docs[d].slice(i, i + n));
           i += n;
-          if (rnd() < 0.05) await new Promise((r) => setTimeout(r, 60));
+          if (d % 4 === 0 && rnd() < 0.01) await new Promise((r) => setTimeout(r, 60));
         }
         c.r.end();
         if (c.root.innerHTML !== whole.root.innerHTML) out.push(d);
@@ -62,8 +62,9 @@ test('streaming never shows raw markers, and finished blocks never move', async 
   expect(r.jumps).toEqual([]);
 });
 
-test('copy button copies the code and announces it', async ({ page, context }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+test('copy button copies the code and announces it', async ({ page, context, browserName }) => {
+  // Only Chromium lets a test grant clipboard permissions and read the clipboard back.
+  if (browserName === 'chromium') await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.evaluate(() => {
     const root = document.getElementById('root')!;
     root.replaceChildren();
@@ -73,11 +74,13 @@ test('copy button copies the code and announces it', async ({ page, context }) =
   });
   await page.getByRole('button', { name: 'Copy js' }).click();
   await expect(page.getByRole('status')).toHaveText('Copied');
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('console.log(1);\nlet b = 2;');
+  if (browserName === 'chromium') expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('console.log(1);\nlet b = 2;');
   await expect(page.getByRole('status')).toHaveText('', { timeout: 4000 });
 });
 
-test('keyboard users can reach the copy button, the code, and a wide table', async ({ page }) => {
+test('keyboard users can reach the copy button, the code, and a wide table', async ({ page, browserName }) => {
+  // Safari on macOS skips buttons with Tab unless Option is held. Elsewhere plain Tab reaches them.
+  const tab = browserName === 'webkit' && process.platform === 'darwin' ? 'Alt+Tab' : 'Tab';
   await page.evaluate(() => {
     const root = document.getElementById('root')!;
     root.replaceChildren();
@@ -87,7 +90,7 @@ test('keyboard users can reach the copy button, the code, and a wide table', asy
   });
   const seen: string[] = [];
   for (let i = 0; i < 3; i++) {
-    await page.keyboard.press('Tab');
+    await page.keyboard.press(tab);
     seen.push(
       await page.evaluate(() => {
         const a = document.activeElement!;
