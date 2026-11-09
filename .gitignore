@@ -4,3 +4,6 @@ coverage/
 test-results/
 playwright-report/
 .DS_Store
+
+# Local handoff notes for the maintainer session, not part of the project
+STATUS.md
