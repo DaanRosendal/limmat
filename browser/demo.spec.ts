@@ -337,6 +337,7 @@ for (const [name, setup] of [
 
 for (const [w, h] of [
   [1280, 720],
+  [1100, 700],
   [1024, 640],
 ] as const) {
   test(`the whole page fits one screen at ${w}x${h}, with and without a panel`, async ({ page }) => {
@@ -359,3 +360,15 @@ for (const [w, h] of [
     if (w >= 1280) expect(spill).toBeLessThanOrEqual(1);
   });
 }
+
+test('a phone-width screen has no sideways scroll and keeps every control reachable', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await open(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+  for (const sel of ['#play', '.tab[data-panel="attack"]', '#menu-btn', 'input[name="stream"][value="custom"]']) {
+    await page.locator(sel).scrollIntoViewIfNeeded();
+    await expect(page.locator(sel)).toBeVisible();
+  }
+  await openTab(page, 'attack');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+});
