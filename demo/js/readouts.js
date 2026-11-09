@@ -58,41 +58,20 @@ function throughCount(all) {
 export function updateReadouts() {
   el.pos.value = String(s.i);
   el.posOut.textContent = `${s.i} / ${s.chunks.length}`;
-  el.v.chunks.textContent = String(s.i);
-  el.v.chunksTotal.textContent = String(s.chunks.length);
-  el.v.bytes.textContent = String(s.bytes);
-  el.v.bytesTotal.textContent = String(s.totalBytes);
   const all = Array.from(el.out.querySelectorAll('*'));
-  el.v.nodes.textContent = String(all.length);
   const through = throughCount(all);
-  const inCount = attacksIn(s.chunks.slice(0, s.i).join(''));
+  const sent = attacksIn(s.chunks.slice(0, s.i).join(''));
   // Shown only when there is something to defend against, or when something got through (which must never happen).
-  el.attacksChip.hidden = inCount === 0 && through === 0;
-  el.v.attacksIn.textContent = String(inCount);
-  el.v.attacksThrough.textContent = String(through);
-  el.attacksChip.classList.toggle('bad', through > 0);
-  el.attacksChip.classList.toggle('safe', inCount > 0 && through === 0);
-}
-
-/** Elements in a node, itself included. */
-const weigh = (n) => (n.nodeType === 1 ? 1 + n.querySelectorAll('*').length : 1);
-
-/** Count what each render touched, straight from the DOM mutation records. */
-function countTouched(records) {
-  let n = 0;
-  for (const r of records) {
-    if (r.type === 'childList') {
-      for (const x of r.addedNodes) n += weigh(x);
-      for (const x of r.removedNodes) n += weigh(x);
-    } else n += 1;
-  }
-  el.v.touched.textContent = String(n);
+  const chip = el.attacksChip;
+  chip.hidden = sent === 0 && through === 0;
+  chip.textContent = through > 0 ? 'Something unsafe got through' : 'Nothing unsafe got through';
+  chip.classList.toggle('bad', through > 0);
+  chip.classList.toggle('safe', sent > 0 && through === 0);
 }
 
 /** Follow the output as it changes, including late changes such as the highlighter adding spans after a fence closes. */
 export function watchOutput() {
   new MutationObserver(markOpen).observe(el.out, { childList: true });
-  new MutationObserver(countTouched).observe(el.out, { childList: true, subtree: true, characterData: true, attributes: true });
   let queued = false;
   new MutationObserver(() => {
     if (queued) return;

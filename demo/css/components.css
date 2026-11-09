@@ -329,7 +329,10 @@ h3 {
   color: var(--fg);
   font-weight: 600;
 }
-.pane-head .state {
+.head-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
 }
 .state::before {

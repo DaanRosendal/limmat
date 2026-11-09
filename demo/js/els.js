@@ -15,15 +15,5 @@ export const el = {
   openChip: $('#open-readout'),
   customText: $('#custom-text'),
   customGo: $('#custom-go'),
-  v: {
-    chunks: $('#v-chunks'),
-    chunksTotal: $('#v-chunks-total'),
-    bytes: $('#v-bytes'),
-    bytesTotal: $('#v-bytes-total'),
-    touched: $('#v-touched'),
-    nodes: $('#v-nodes'),
-    attacksIn: $('#v-in'),
-    attacksThrough: $('#v-through'),
-  },
   attacksChip: $('#chip-attacks'),
 };

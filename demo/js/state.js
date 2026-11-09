@@ -12,8 +12,6 @@ export const s = {
   ended: false,
   timer: 0,
   r: null,
-  totalBytes: 0,
-  bytes: 0,
   customText: '',
   hl: null,
   scrubbed: false,

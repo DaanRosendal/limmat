@@ -1,6 +1,6 @@
 // The stream player: feeds chunks to a real limmat renderer, mirrors them in the raw pane, and scrubs.
 import { createRenderer } from '../limmat.min.js';
-import { follow, make, say, utf8 } from './dom.js';
+import { follow, make, say } from './dom.js';
 import { el } from './els.js';
 import { highlight } from './hlcache.js';
 import { markOpen, updateReadouts } from './readouts.js';
@@ -29,7 +29,6 @@ function rebuildChunks() {
   const st = STREAMS[s.stream];
   s.chunks = st.chunks ? st.chunks.slice() : chunkText(textOf(st), s.size, s.random, s.seed);
   el.pos.max = String(s.chunks.length);
-  s.totalBytes = utf8.encode(s.chunks.join('')).length;
   syncSizeEnabled();
 }
 
@@ -48,7 +47,6 @@ function writeChunk(showRaw = true) {
   const chunk = s.chunks[s.i];
   if (showRaw) appendRaw(chunk, s.i);
   s.r.write(chunk);
-  s.bytes += utf8.encode(chunk).length;
   s.i++;
 }
 
@@ -96,7 +94,7 @@ export function pause() {
 
 export function reset(autoplay) {
   clearTimeout(s.timer);
-  Object.assign(s, { playing: false, ended: false, i: 0, bytes: 0, scrubbed: false, lastSpan: null });
+  Object.assign(s, { playing: false, ended: false, i: 0, scrubbed: false, lastSpan: null });
   el.raw.replaceChildren();
   newRenderer();
   rebuildChunks();
@@ -146,7 +144,6 @@ export function scrub(target) {
   s.lastSpan?.classList.remove('new');
   s.r.write(prefix.join(''));
   s.i = target;
-  s.bytes = utf8.encode(prefix.join('')).length;
   if (target >= s.chunks.length) {
     s.r.end();
     s.ended = true;
@@ -167,8 +164,6 @@ export function edit(text) {
     i: s.chunks.length,
     ended: false,
     scrubbed: true,
-    bytes: utf8.encode(text).length,
-    totalBytes: utf8.encode(text).length,
   });
   el.pos.max = String(s.chunks.length);
   syncSizeEnabled();

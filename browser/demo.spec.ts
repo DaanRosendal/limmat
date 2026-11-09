@@ -70,7 +70,7 @@ test('chunk size changes the stream, and Random again reshuffles the cuts', asyn
   await pick(page, 'size', '1');
   await page.click('#finish');
   const chars = Array.from((await page.locator('#raw').textContent())!).length;
-  await expect(page.locator('#v-chunks')).toHaveText(String(chars));
+  await expect(page.locator('#pos')).toHaveAttribute('max', String(chars));
   await pick(page, 'size', 'random');
   const seed = () => new URL(page.url().replace('#', '?')).searchParams.get('s');
   const first = await seed();
@@ -82,10 +82,9 @@ test('the Attack stream runs nothing, loads nothing, and shows the payloads as t
   await open(page);
   await pick(page, 'stream', 'hostile');
   await page.click('#finish');
-  // Twelve attacks went in (counted by pattern in the input), and none came out as a live element.
+  // Hostile input went in (counted by pattern in the text), and nothing came out as a live element.
   await expect(page.locator('#chip-attacks')).toBeVisible();
-  expect(Number(await page.locator('#v-in').textContent())).toBeGreaterThanOrEqual(10);
-  await expect(page.locator('#v-through')).toHaveText('0');
+  await expect(page.locator('#chip-attacks')).toHaveText('Nothing unsafe got through');
   await expect(page.locator('#chip-attacks')).toHaveClass(/safe/);
   const out = page.locator('#out');
   expect(await out.locator('script, img, [onerror], [onclick]').count()).toBe(0);
@@ -116,7 +115,7 @@ test('a chip turns red if the output ever has something unsafe in it', async ({ 
     document.querySelector('#out')!.append(a);
   });
   await expect(page.locator('#chip-attacks')).toHaveClass(/bad/);
-  await expect(page.locator('#v-through')).toHaveText('1');
+  await expect(page.locator('#chip-attacks')).toHaveText('Something unsafe got through');
 });
 
 test('a shared link restores the settings and plays the same chunks', async ({ page }) => {
@@ -176,7 +175,7 @@ test('pasted hostile text is only text, and the proof still holds', async ({ pag
   expect(await page.locator('#out img, #out script, #out a').count()).toBe(0);
   expect(await page.locator('#out').textContent()).toContain('<img src=x onerror=alert(1)>');
   await expect(page.locator('#chip-attacks')).toBeVisible();
-  await expect(page.locator('#v-through')).toHaveText('0');
+  await expect(page.locator('#chip-attacks')).toHaveText('Nothing unsafe got through');
   expect(seen.errors).toEqual([]);
 });
 
@@ -294,23 +293,6 @@ test('with reduced motion nothing autoplays and the finished state is shown', as
   const before = await page.locator('#out').innerHTML();
   await page.waitForTimeout(300);
   expect(await page.locator('#out').innerHTML()).toBe(before);
-});
-
-test('the chips count what was sent and what each render touched', async ({ page }) => {
-  await open(page);
-  await page.click('#finish');
-  const raw = await page.locator('#raw').textContent();
-  const bytes = new TextEncoder().encode(raw!).length;
-  await expect(page.locator('#v-bytes')).toHaveText(String(bytes));
-  await expect(page.locator('#v-bytes-total')).toHaveText(String(bytes));
-  await expect(page.locator('#v-chunks')).toHaveText((await page.locator('#v-chunks-total').textContent()) as string);
-  // The element total follows the output, including late changes from the highlighter, so wait for it to settle.
-  await expect.poll(async () => Number(await page.locator('#v-nodes').textContent()) - (await page.locator('#out *').count())).toBe(0);
-  // Streaming one more chunk into a long reply touches a handful of elements, not the whole output.
-  await page.fill('#pos', '60');
-  const total = Number(await page.locator('#v-nodes').textContent());
-  await page.click('#step');
-  await expect.poll(async () => Number(await page.locator('#v-touched').textContent())).toBeLessThan(total / 2);
 });
 
 for (const [name, setup] of [
