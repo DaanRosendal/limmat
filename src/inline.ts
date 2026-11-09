@@ -45,8 +45,10 @@ function merge(t: N[]): N[] {
   return o;
 }
 
-function parseDest(s: string, j: number): { end: number; href: string } | 'p' | null {
+// `w` is a work budget shared by one parseInline call, so hostile input cannot make destination scans quadratic.
+function parseDest(s: string, j: number, w: { n: number }): { end: number; href: string } | 'p' | null {
   const n = s.length;
+  if (w.n <= 0) return null;
   j++;
   while (s[j] === ' ' || s[j] === '\t') j++;
   if (j >= n) return 'p';
@@ -54,6 +56,7 @@ function parseDest(s: string, j: number): { end: number; href: string } | 'p' | 
   if (s[j] === '<') {
     let k = j + 1;
     while (k < n && s[k] !== '>' && s[k] !== '\n' && s[k] !== '<' && k - j < MAXDEST) k++;
+    w.n -= k - j;
     if (k >= n) return 'p';
     if (s[k] !== '>') return null;
     dest = s.slice(j + 1, k);
@@ -70,8 +73,12 @@ function parseDest(s: string, j: number): { end: number; href: string } | 'p' | 
       }
       if (c === 40) depth++;
       else if (c === 41 && !depth--) break;
-      if (++k - j > MAXDEST) return null;
+      if (++k - j > MAXDEST) {
+        w.n -= k - j;
+        return null;
+      }
     }
+    w.n -= k - j;
     if (k >= n) return 'p';
     dest = s.slice(j, k);
     j = k;
@@ -85,9 +92,12 @@ function parseDest(s: string, j: number): { end: number; href: string } | 'p' | 
   if (s[j] === ')') return { end: j + 1, href: href() };
   const q = s[j];
   if (q === '"' || q === "'" || q === '(') {
-    const k = s.indexOf(q === '(' ? ')' : q, j + 1);
-    if (k < 0) return n - j <= 500 ? 'p' : null;
-    if (k - j > 500) return null;
+    const close = q === '(' ? ')' : q;
+    const lim = Math.min(n, j + 501);
+    let k = j + 1;
+    while (k < lim && s[k] !== close) k++;
+    w.n -= k - j;
+    if (k >= lim) return k >= n ? 'p' : null;
     j = k + 1;
     skip();
     if (j >= n) return 'p';
@@ -183,7 +193,7 @@ function resolve(t: N[], spec: boolean): N[] {
     let last = head;
     while (last.x) last = last.x;
     if (last.k === 'd' && last !== head) last.p!.x = null;
-    for (let j = stack.length - 1; j >= 0; j--) {
+    closing: for (let j = stack.length - 1; j >= 0; j--) {
       const op = stack[j];
       while (op.n! > 0 && op.x && !(op.ch === '~' && op.n! < 2)) {
         const kids: N[] = [];
@@ -192,7 +202,7 @@ function resolve(t: N[], spec: boolean): N[] {
           kids.push(z.k === 'd' ? lit(z) : z);
           md = Math.max(md, z.d ?? 0);
         }
-        if (md >= MAXDEPTH) break;
+        if (md >= MAXDEPTH) break closing;
         const use = op.n! >= 2 ? 2 : 1;
         const node: N = { k: 'e', tag: use === 2 ? (op.ch === '~' ? 'del' : 'strong') : 'em', kids, d: md + 1, p: op, x: null };
         op.x = node;
@@ -216,6 +226,7 @@ export function parseInline(s: string, spec: boolean): N[] {
   let i = 0;
   let runs: Map<number, number[]> | undefined;
   const ptr = new Map<number, number>();
+  const work = { n: 8 * n + 8192 };
   const text = (to: number) => {
     if (to > ts) out.push({ k: 't', s: s.slice(ts, to) });
   };
@@ -303,19 +314,22 @@ export function parseInline(s: string, spec: boolean): N[] {
         continue;
       }
       const open = out[bi];
-      const r = s[i + 1] === '(' ? parseDest(s, i + 1) : null;
+      const r = s[i + 1] === '(' ? parseDest(s, i + 1, work) : null;
       if (r && r !== 'p') {
         text(i);
         const kids = resolve(out.splice(bi + 1), false);
         out.length = bi;
-        out.push({ k: 'l', href: r.href, img: open.img, kids });
+        let md = 0;
+        for (const z of kids) md = Math.max(md, z.d ?? 0);
+        if (md >= MAXDEPTH) for (const z of kids) out.push(z);
+        else out.push({ k: 'l', href: r.href, img: open.img, kids, d: md + 1 });
         i = r.end;
         ts = i;
       } else if (spec && (r === 'p' || i + 1 === n)) {
         text(i);
         const kids = resolve(out.splice(bi + 1), spec);
         out.length = bi;
-        out.push(...kids);
+        for (const z of kids) out.push(z);
         i = n;
         ts = n;
       } else {

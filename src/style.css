@@ -1,12 +1,19 @@
 /* Optional styles for limmat. Override the variables, or ignore this file and style the classes yourself. */
 :root {
-  --limmat-code-bg: color-mix(in srgb, currentColor 7%, transparent);
-  --limmat-border: color-mix(in srgb, currentColor 22%, transparent);
-  --limmat-muted: color-mix(in srgb, currentColor 65%, transparent);
+  --limmat-code-bg: rgba(128, 128, 128, 0.1);
+  --limmat-border: rgba(128, 128, 128, 0.4);
+  --limmat-muted: rgba(128, 128, 128, 0.95);
   --limmat-link: #1d4ed8;
   --limmat-radius: 0.5rem;
   --limmat-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --limmat-focus: #2563eb;
+}
+@supports (color: color-mix(in srgb, red, blue)) {
+  :root {
+    --limmat-code-bg: color-mix(in srgb, currentColor 7%, transparent);
+    --limmat-border: color-mix(in srgb, currentColor 22%, transparent);
+    --limmat-muted: color-mix(in srgb, currentColor 65%, transparent);
+  }
 }
 @media (prefers-color-scheme: dark) {
   :root {
