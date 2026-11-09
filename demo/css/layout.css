@@ -202,7 +202,7 @@ body {
   flex: none;
   white-space: nowrap;
 }
-@media (max-width: 1340px) {
+@media (max-width: 1100px) {
   .brand .tag {
     display: none;
   }
