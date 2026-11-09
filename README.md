@@ -72,21 +72,21 @@ Statuses: Supported (works, with tests), Partial (the common cases work, the not
 | Hard and soft line breaks | 🟢 Supported | 14/17 | Test: `single trailing space before newline` in [gaps.test.ts](test/gaps.test.ts). |
 | Half-open constructs never show raw markers while streaming | 🟢 Supported |  | Test: `open fence shows code immediately` in [half-open.test.ts](test/half-open.test.ts), `streaming never shows raw markers` in [behavior.spec.ts](browser/behavior.spec.ts). |
 | Any chunking gives the same DOM as one write | 🟢 Supported |  | Test: `two-part splits at every index` in [chunk-fuzz.test.ts](test/chunk-fuzz.test.ts). |
-| Bullet and ordered lists, nested | 🟡 Partial | 32/74 | Bullet, ordered, and nested lists work. Loose lists render tight, and many edge cases in the spec differ. Test: `list scanning` in [regress.test.ts](test/regress.test.ts). |
-| Inline links | 🟡 Partial | 23/90 | Inline `[text](url)` works. Reference-style links, many title forms, and unsafe URLs render as text. These cause most of the misses. Test: `blocked links keep the label as text` in [xss.test.ts](test/xss.test.ts). |
+| Bullet and ordered lists, nested | 🟡 Partial | 32/74 | Bullet, ordered, and nested lists work. Loose lists render tight (a loose-list style is planned), and many edge cases in the spec differ. Test: `list scanning` in [regress.test.ts](test/regress.test.ts). |
+| Inline links | 🟡 Partial | 23/90 | Inline `[text](url)` works. Reference-style links, many title forms, and unsafe URLs render as text. Titles and URL encoding are planned. These cause most of the misses. Test: `blocked links keep the label as text` in [xss.test.ts](test/xss.test.ts). |
 | Autolinks: `<url>`, bare URLs, `www.`, emails (GFM) | 🟡 Partial | 9/19 | Only allowed protocols become links, so spec examples with other schemes differ by design. Test: `urls only autolink at a word boundary` in [gaps.test.ts](test/gaps.test.ts). |
 | Backslash escapes | 🟡 Partial | 9/13 |  |
-| Setext headings (`Title` over `---`) | ⚪ Not yet | 12/27 | The underline renders as a rule (`---`) or as text (`===`). |
-| Indented code blocks | ⚪ Not yet | 1/12 | Use fences. |
-| Reference links and definitions | ⚪ Not yet | 5/27 | Render as text. Added if real LLM output needs them. |
-| HTML entities (`&amp;`) | ⚪ Not yet | 5/17 | Shown literally. |
+| Setext headings (`Title` over `---`) | ⚪ Not yet | 12/27 | The underline renders as a rule (`---`) or as text (`===`). Planned. |
+| Indented code blocks | ⚪ Not yet | 1/12 | Use fences. Planned. |
+| Reference links and definitions | ⚪ Not yet | 5/27 | Render as text. Planned for definitions that come before the link. Definitions that come after will not work, because they would rewrite text that is already final. |
+| Images | ⚪ Not yet | 1/22 | The alt text is shown and nothing is loaded, so images cannot track or leak data. Planned as an opt-in with an origin allow-list. Test: `images become plain text` in [xss.test.ts](test/xss.test.ts). |
+| HTML entities (`&amp;`) | ⚪ Not yet | 5/17 | Shown literally. Planned: numeric entities and a few common names. The full table is too big. |
 | Tabs for indentation | ⚪ Not yet | 2/11 |  |
-| Math (`$...$`, `$$...$$`) | ⚪ Not yet |  | Planned as an opt-in option. Dollar signs render literally today. |
+| Math (`$...$`, `$$...$$`) | ⚪ Not yet |  | Planned as an opt-in hook that you supply, so limmat bundles no math library. Dollar signs render literally today. |
 | Footnotes | ⚪ Not yet |  | Render as text. Planned as an opt-in option. |
 | Alerts and callouts (`> [!NOTE]`) | ⚪ Not yet |  | Renders as a normal block quote. |
 | Citation chips (`[1]`) and emoji codes | ⚪ Not yet |  | Planned as opt-in options. Rendered literally today. |
-| Images | 🔴 Will not | 1/22 | The alt text is shown and nothing is ever loaded, so images cannot track or exfiltrate. Test: `images become plain text` in [xss.test.ts](test/xss.test.ts). |
-| Raw HTML and HTML blocks | 🔴 Will not | 7/64 | Shown as text. Only `<br>` is understood. Test: `unsupported things degrade to text` in [conformance.test.ts](test/conformance.test.ts). |
+| Raw HTML and HTML blocks | 🔴 Will not | 7/64 | Shown as text, because raw HTML can run code. Only `<br>` is understood. A hook for your own sanitizer is possible if asked. Test: `unsupported things degrade to text` in [conformance.test.ts](test/conformance.test.ts). |
 <!-- support:end -->
 
 ## Compared with streaming-markdown

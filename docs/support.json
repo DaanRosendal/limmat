@@ -1,6 +1,6 @@
 [
   { "feature": "ATX headings (`# Title`)", "status": "supported", "cm": ["ATX headings"] },
-  { "feature": "Setext headings (`Title` over `---`)", "status": "not-yet", "cm": ["Setext headings"], "note": "The underline renders as a rule (`---`) or as text (`===`)." },
+  { "feature": "Setext headings (`Title` over `---`)", "status": "not-yet", "cm": ["Setext headings"], "note": "The underline renders as a rule (`---`) or as text (`===`). Planned." },
   { "feature": "Thematic breaks", "status": "supported", "cm": ["Thematic breaks"] },
   {
     "feature": "Fenced code, backtick and tilde",
@@ -9,7 +9,7 @@
     "tests": [{ "file": "test/conformance.test.ts", "title": "tilde fences and fence lengths" }],
     "note": "Language label, Copy button, optional highlighting."
   },
-  { "feature": "Indented code blocks", "status": "not-yet", "cm": ["Indented code blocks"], "note": "Use fences." },
+  { "feature": "Indented code blocks", "status": "not-yet", "cm": ["Indented code blocks"], "note": "Use fences. Planned." },
   {
     "feature": "Block quotes",
     "status": "supported",
@@ -21,7 +21,7 @@
     "status": "partial",
     "cm": ["Lists", "List items"],
     "tests": [{ "file": "test/regress.test.ts", "title": "list scanning" }],
-    "note": "Bullet, ordered, and nested lists work. Loose lists render tight, and many edge cases in the spec differ."
+    "note": "Bullet, ordered, and nested lists work. Loose lists render tight (a loose-list style is planned), and many edge cases in the spec differ."
   },
   {
     "feature": "Task lists (GFM)",
@@ -48,13 +48,13 @@
     "status": "partial",
     "cm": ["Links"],
     "tests": [{ "file": "test/xss.test.ts", "title": "blocked links keep the label as text" }],
-    "note": "Inline `[text](url)` works. Reference-style links, many title forms, and unsafe URLs render as text. These cause most of the misses."
+    "note": "Inline `[text](url)` works. Reference-style links, many title forms, and unsafe URLs render as text. Titles and URL encoding are planned. These cause most of the misses."
   },
   {
     "feature": "Reference links and definitions",
     "status": "not-yet",
     "cm": ["Link reference definitions"],
-    "note": "Render as text. Added if real LLM output needs them."
+    "note": "Render as text. Planned for definitions that come before the link. Definitions that come after will not work, because they would rewrite text that is already final."
   },
   {
     "feature": "Autolinks: `<url>`, bare URLs, `www.`, emails (GFM)",
@@ -65,19 +65,19 @@
   },
   {
     "feature": "Images",
-    "status": "wont",
+    "status": "not-yet",
     "cm": ["Images"],
     "tests": [{ "file": "test/xss.test.ts", "title": "images become plain text" }],
-    "note": "The alt text is shown and nothing is ever loaded, so images cannot track or exfiltrate."
+    "note": "The alt text is shown and nothing is loaded, so images cannot track or leak data. Planned as an opt-in with an origin allow-list."
   },
   {
     "feature": "Raw HTML and HTML blocks",
     "status": "wont",
     "cm": ["HTML blocks", "Raw HTML"],
     "tests": [{ "file": "test/conformance.test.ts", "title": "unsupported things degrade to text" }],
-    "note": "Shown as text. Only `<br>` is understood."
+    "note": "Shown as text, because raw HTML can run code. Only `<br>` is understood. A hook for your own sanitizer is possible if asked."
   },
-  { "feature": "HTML entities (`&amp;`)", "status": "not-yet", "cm": ["Entity and numeric character references"], "note": "Shown literally." },
+  { "feature": "HTML entities (`&amp;`)", "status": "not-yet", "cm": ["Entity and numeric character references"], "note": "Shown literally. Planned: numeric entities and a few common names. The full table is too big." },
   { "feature": "Backslash escapes", "status": "partial", "cm": ["Backslash escapes"] },
   {
     "feature": "Hard and soft line breaks",
@@ -99,7 +99,7 @@
     "status": "supported",
     "tests": [{ "file": "test/chunk-fuzz.test.ts", "title": "two-part splits at every index" }]
   },
-  { "feature": "Math (`$...$`, `$$...$$`)", "status": "not-yet", "note": "Planned as an opt-in option. Dollar signs render literally today." },
+  { "feature": "Math (`$...$`, `$$...$$`)", "status": "not-yet", "note": "Planned as an opt-in hook that you supply, so limmat bundles no math library. Dollar signs render literally today." },
   { "feature": "Footnotes", "status": "not-yet", "note": "Render as text. Planned as an opt-in option." },
   { "feature": "Alerts and callouts (`> [!NOTE]`)", "status": "not-yet", "note": "Renders as a normal block quote." },
   { "feature": "Citation chips (`[1]`) and emoji codes", "status": "not-yet", "note": "Planned as opt-in options. Rendered literally today." }
