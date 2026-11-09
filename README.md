@@ -1,10 +1,5 @@
 # limmat
 
-[![CI](https://img.shields.io/github/actions/workflow/status/DaanRosendal/limmat/ci.yml?branch=main&label=ci)](https://github.com/DaanRosendal/limmat/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/limmat)](https://www.npmjs.com/package/limmat)
-[![types](https://img.shields.io/npm/types/limmat)](docs/API.md)
-[![license](https://img.shields.io/npm/l/limmat)](LICENSE)
-
 limmat renders streaming markdown into the DOM as it arrives. It is about 7 kB gzip, has no dependencies and no framework, and builds DOM nodes instead of HTML strings, so raw HTML in model output shows as text.
 
 It is built for chat UIs where an LLM streams a reply in chunks of a few characters. Only the open block re-renders, and half-finished markdown never shows raw markers.

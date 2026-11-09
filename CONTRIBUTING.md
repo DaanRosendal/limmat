@@ -4,6 +4,8 @@ Thanks for helping. limmat stays small on purpose, so features need a clear use 
 
 ## Setup
 
+Use Node 24 (see `.nvmrc`). The dev tools need Node 22.22.2 or newer on 22, 24.15 or newer on 24, or 26 and up (jsdom 31 and vitest 5 skip odd-numbered releases such as 25). CI runs the checks on 22, 24, and 26.
+
 ```sh
 npm ci --ignore-scripts
 npx playwright install chromium firefox webkit

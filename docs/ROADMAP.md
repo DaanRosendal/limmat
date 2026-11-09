@@ -17,7 +17,7 @@ limmat stays small on purpose. This page lists what is missing. The [support tab
 - Render hooks as additive options: a custom code-block renderer (for diagrams), a text transform (for mentions), and opt-in images through an allow-list function that reuses the link policy.
 - Setext headings, reference links, and HTML entity decoding, if real LLM output needs them.
 - A one-shot `render(el, markdown)` helper and a `text()` getter. Three calls cover static rendering today, and every public method is permanent, so this waits for demand.
-- A weekly fuzz run in CI with a higher iteration count, a pinned-by-SHA actions policy, and an OpenSSF Best Practices badge.
+- A weekly fuzz run in CI with a higher iteration count and a pinned-by-SHA actions policy.
 
 ## Decided against
 
