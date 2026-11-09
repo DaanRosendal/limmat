@@ -21,6 +21,5 @@ export const s = {
 
 /** Payload alert() calls, counted by a patched window.alert (see main.js). */
 export const counters = { alerts: 0 };
-export const SPEEDS = { slow: 200, normal: 60, fast: 15 };
 export const CUSTOM_MAX = 200000;
 export const SHARE_MAX = 4096;

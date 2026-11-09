@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/controls.css">
 <link rel="stylesheet" href="css/panels.css">
 <script type="module" src="js/main.js"></script>
 </head>
@@ -93,9 +94,13 @@
     <output id="pos-out" class="mono">0 / 0</output>
   </div>
   <div class="options">
-    <div class="group" role="radiogroup" aria-labelledby="g-stream">
-      <span class="gl" id="g-stream">Stream</span>
-      <div class="seg n8">
+    <div class="group">
+      <div class="gl-row">
+        <span class="gl" id="g-stream">Stream</span>
+        <button type="button" class="info" aria-label="About stream" aria-describedby="tip-stream">i</button>
+        <span class="tip" id="tip-stream" role="tooltip">Pick a sample, or write your own.</span>
+      </div>
+      <div class="seg n8" role="radiogroup" aria-labelledby="g-stream">
         <label><input type="radio" name="stream" value="reply" checked><span>Reply</span></label>
         <label><input type="radio" name="stream" value="mid-marker"><span>Marker</span></label>
         <label><input type="radio" name="stream" value="table"><span>Table</span></label>
@@ -106,29 +111,38 @@
         <label><input type="radio" name="stream" value="custom"><span>Custom</span></label>
       </div>
     </div>
-    <div class="group" role="radiogroup" aria-labelledby="g-size">
-      <span class="gl" id="g-size">Chunk size</span>
-      <div class="seg n4">
-        <label><input type="radio" name="size" value="1"><span>1</span></label>
-        <label><input type="radio" name="size" value="5"><span>5</span></label>
-        <label><input type="radio" name="size" value="20"><span>20</span></label>
-        <label><input type="radio" name="size" value="random" checked><span>Random</span></label>
+    <div class="group slide">
+      <div class="gl-row">
+        <span class="gl" id="g-size">Chunk size</span>
+        <button type="button" class="info" aria-label="About chunk size" aria-describedby="tip-size">i</button>
+        <span class="tip" id="tip-size" role="tooltip">Characters per chunk. Random varies it.</span>
+        <output class="val" id="val-size" for="sl-size"></output>
+      </div>
+      <div class="slide-row">
+        <div class="slider"><input type="range" id="sl-size" min="0" max="100" step="1" aria-labelledby="g-size"><svg class="ticks" aria-hidden="true" focusable="false"></svg></div>
+        <button type="button" class="rand" id="rand" aria-pressed="true">Random</button>
       </div>
     </div>
-    <div class="group" role="radiogroup" aria-labelledby="g-throttle">
-      <span class="gl" id="g-throttle">Throttle ms</span>
-      <div class="seg n3">
-        <label><input type="radio" name="throttle" value="0"><span>0</span></label>
-        <label><input type="radio" name="throttle" value="50" checked><span>50</span></label>
-        <label><input type="radio" name="throttle" value="200"><span>200</span></label>
+    <div class="group slide">
+      <div class="gl-row">
+        <span class="gl" id="g-throttle">Throttle</span>
+        <button type="button" class="info" aria-label="About throttle" aria-describedby="tip-throttle">i</button>
+        <span class="tip" id="tip-throttle" role="tooltip">Minimum time between redraws.</span>
+        <output class="val" id="val-throttle" for="sl-throttle"></output>
+      </div>
+      <div class="slide-row">
+        <div class="slider"><input type="range" id="sl-throttle" min="0" max="100" step="1" aria-labelledby="g-throttle"><svg class="ticks" aria-hidden="true" focusable="false"></svg></div>
       </div>
     </div>
-    <div class="group" role="radiogroup" aria-labelledby="g-speed">
-      <span class="gl" id="g-speed">Speed</span>
-      <div class="seg n3">
-        <label><input type="radio" name="speed" value="slow"><span>Slow</span></label>
-        <label><input type="radio" name="speed" value="normal" checked><span>Normal</span></label>
-        <label><input type="radio" name="speed" value="fast"><span>Fast</span></label>
+    <div class="group slide">
+      <div class="gl-row">
+        <span class="gl" id="g-speed">Speed</span>
+        <button type="button" class="info" aria-label="About speed" aria-describedby="tip-speed">i</button>
+        <span class="tip" id="tip-speed" role="tooltip">How fast chunks arrive.</span>
+        <output class="val" id="val-speed" for="sl-speed"></output>
+      </div>
+      <div class="slide-row">
+        <div class="slider"><input type="range" id="sl-speed" min="0" max="100" step="1" aria-labelledby="g-speed"><svg class="ticks" aria-hidden="true" focusable="false"></svg></div>
       </div>
     </div>
   </div>

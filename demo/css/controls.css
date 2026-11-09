@@ -1,0 +1,191 @@
+/* Dock controls other than the stream presets: labels with an info tip, and the sliders with preset marks. */
+.group {
+  position: relative;
+}
+.gl-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+}
+.gl-row .val {
+  margin-left: auto;
+  color: var(--fg);
+  font: 600 12px var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The small "i" and the short sentence it shows on hover or keyboard focus. */
+.info {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font:
+    italic 600 11px / 1 Georgia,
+    "Times New Roman",
+    serif;
+  cursor: help;
+  transition:
+    color var(--fast),
+    border-color var(--fast);
+}
+.info:hover,
+.info:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 6;
+  width: max-content;
+  max-width: 100%; /* never wider than its group, so it cannot push the page sideways */
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition:
+    opacity var(--fast) var(--ease),
+    transform var(--fast) var(--ease),
+    visibility 0s var(--fast);
+}
+.info:hover + .tip,
+.info:focus-visible + .tip {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
+}
+
+/* Sliders: a thin track, a round thumb, and small marks where the presets are. */
+.slide {
+  min-width: 150px;
+}
+.slide-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+}
+.slider {
+  position: relative;
+  display: grid;
+  align-items: center;
+  width: 150px;
+  height: 38px;
+}
+.slider input[type="range"] {
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.slider input[type="range"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-strong);
+}
+.slider input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-strong);
+}
+.slider input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+  transition: transform var(--fast) var(--ease);
+}
+.slider input[type="range"]::-moz-range-thumb {
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+  transition: transform var(--fast) var(--ease);
+}
+.slider input[type="range"]:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+.slider input[type="range"]:active::-moz-range-thumb {
+  transform: scale(1.15);
+}
+.ticks {
+  position: absolute;
+  top: calc(50% + 9px);
+  left: 8px;
+  width: calc(100% - 16px);
+  height: 6px;
+  pointer-events: none;
+  overflow: visible;
+}
+.ticks line {
+  stroke: var(--line-strong);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.rand {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--fast),
+    color var(--fast),
+    border-color var(--fast);
+}
+.rand:hover {
+  color: var(--fg);
+}
+.rand[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.rand:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tip,
+  .info,
+  .rand,
+  .slider input[type="range"]::-webkit-slider-thumb,
+  .slider input[type="range"]::-moz-range-thumb {
+    transition: none;
+  }
+}

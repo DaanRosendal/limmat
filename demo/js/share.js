@@ -44,7 +44,7 @@ export function readHash() {
     if (p.has('c')) s.size = clamp(p.get('c'), 1, 50, 12);
     if (p.has('r')) s.random = p.get('r') !== '0';
     if (p.has('s')) s.seed = clamp(p.get('s'), 0, 4294967295, 1);
-    if (p.has('t')) s.throttle = [0, 50, 200].includes(Number(p.get('t'))) ? Number(p.get('t')) : 50;
+    if (p.has('t')) s.throttle = clamp(p.get('t'), 0, 500, 50);
     if (p.has('d')) s.speed = clamp(p.get('d'), 10, 400, 60);
     if (p.has('m')) {
       const text = b64url.dec(p.get('m'));

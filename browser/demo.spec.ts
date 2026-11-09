@@ -65,17 +65,66 @@ test('the scrubber rebuilds the output at a position and stays paused', async ({
   await expect(page.locator('#out code')).toContainText('let a = 1;');
 });
 
-test('chunk size changes the stream, and Random again reshuffles the cuts', async ({ page }) => {
+/** Move a slider to a position (0 to 100) the way a drag would: input while moving, change on release. */
+const slide = (page: Page, id: string, position: number) =>
+  page.locator(`#sl-${id}`).evaluate((el: HTMLInputElement, p) => {
+    el.value = String(p);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }, position);
+const seedOf = (page: Page) => new URL(page.url().replace('#', '?')).searchParams.get('s');
+
+test('the chunk size slider changes the stream, and turning Random on picks new cuts', async ({ page }) => {
   await open(page);
-  await pick(page, 'size', '1');
+  await slide(page, 'size', 0); // the far left is size 1
+  await expect(page.locator('#val-size')).toHaveText('1 to 1');
+  await page.click('#rand'); // off: every chunk is exactly the size
+  await expect(page.locator('#rand')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('#val-size')).toHaveText('1');
   await page.click('#finish');
   const chars = Array.from((await page.locator('#raw').textContent())!).length;
   await expect(page.locator('#pos')).toHaveAttribute('max', String(chars));
-  await pick(page, 'size', 'random');
-  const seed = () => new URL(page.url().replace('#', '?')).searchParams.get('s');
-  const first = await seed();
-  await pick(page, 'size', 'random');
-  expect(await seed()).not.toBe(first);
+  const before = await seedOf(page);
+  await page.click('#rand');
+  expect(await seedOf(page)).not.toBe(before);
+  expect(page.url()).toContain('r=1');
+});
+
+test('sliders snap to the preset marks when close, and any value in between is reachable', async ({ page }) => {
+  await open(page);
+  // Throttle presets are 0, 50, and 200 ms. Close to a mark snaps onto it.
+  await slide(page, 'throttle', 31);
+  await expect(page.locator('#val-throttle')).toHaveText('50 ms');
+  await slide(page, 'throttle', 63);
+  await expect(page.locator('#val-throttle')).toHaveText('200 ms');
+  // Far from every mark, the value is whatever the position says, so it is neither of the presets.
+  await slide(page, 'throttle', 45);
+  const between = Number((await page.locator('#val-throttle').textContent())!.replace(' ms', ''));
+  expect([0, 50, 200]).not.toContain(between);
+  expect(between).toBeGreaterThan(50);
+  expect(between).toBeLessThan(200);
+  expect(page.url()).toContain(`t=${between}`);
+  await slide(page, 'size', 41); // the preset 5
+  await expect(page.locator('#val-size')).toHaveText('1 to 5');
+  await slide(page, 'speed', 55); // the preset 60 ms between chunks, 17 per second
+  await expect(page.locator('#val-speed')).toHaveText('17 per s');
+});
+
+test('every control has a short tip on hover and keyboard focus', async ({ page }) => {
+  await open(page);
+  const tips = page.locator('.tip');
+  expect(await tips.count()).toBe(4);
+  for (const text of await tips.allTextContents()) expect(text.trim().split(/\s+/).length).toBeLessThanOrEqual(7);
+  const info = page.locator('button[aria-label="About throttle"]');
+  await expect(page.locator('#tip-throttle')).toBeHidden();
+  await info.hover();
+  await expect(page.locator('#tip-throttle')).toBeVisible();
+  await page.mouse.move(0, 0);
+  await info.focus();
+  await page.keyboard.press('Tab'); // leave, then come back with the keyboard
+  await page.keyboard.press('Shift+Tab');
+  await expect(page.locator('#tip-throttle')).toBeVisible();
+  await expect(info).toHaveAttribute('aria-describedby', 'tip-throttle');
 });
 
 test('the Attack stream runs nothing, loads nothing, and shows the payloads as text', async ({ page, seen }) => {
@@ -121,14 +170,21 @@ test('a chip turns red if the output ever has something unsafe in it', async ({ 
 test('a shared link restores the settings and plays the same chunks', async ({ page }) => {
   await open(page, '#v=1&stream=table&c=3&r=0&s=7&t=0&d=10');
   await expect(page.locator('input[name="stream"][value="table"]')).toBeChecked();
-  await expect(page.locator('input[name="throttle"][value="0"]')).toBeChecked();
+  await expect(page.locator('#val-throttle')).toHaveText('0 ms');
   await page.click('#finish');
   await expect(page.locator('#out table')).toHaveCount(1);
   await pick(page, 'stream', 'reply');
   expect(page.url()).toContain('stream=reply');
-  await pick(page, 'size', 'random');
+  await page.click('#rand');
   expect(page.url()).toContain('r=1');
-  expect(page.url()).toContain('s=7');
+  expect(page.url()).toContain('s=8'); // turning Random on moved the seed along from 7
+});
+
+test('a link can carry any throttle and speed, not only the presets', async ({ page }) => {
+  await open(page, '#v=1&stream=reply&c=9&r=0&s=1&t=120&d=100');
+  await expect(page.locator('#val-throttle')).toHaveText('120 ms');
+  await expect(page.locator('#val-speed')).toHaveText('10 per s');
+  await expect(page.locator('#val-size')).toHaveText('9');
 });
 
 test('a custom run survives the round trip through the link', async ({ page }) => {
@@ -325,6 +381,8 @@ for (const [w, h] of [
   [1280, 720],
   [1100, 700],
   [1024, 640],
+  [1000, 640],
+  [900, 640],
 ] as const) {
   test(`the whole page fits one screen at ${w}x${h}, with and without the support panel`, async ({ page }) => {
     await page.setViewportSize({ width: w, height: h });

@@ -32,9 +32,9 @@ function rebuildChunks() {
   syncSizeEnabled();
 }
 
-/** Scripted streams have fixed cuts, so the chunk size toggle only applies to the others. */
+/** Scripted streams have fixed cuts, so the chunk size controls only apply to the others. */
 function syncSizeEnabled() {
-  for (const i of document.querySelectorAll('input[name="size"]')) i.disabled = !!STREAMS[s.stream].chunks;
+  for (const i of document.querySelectorAll('#sl-size, #rand')) i.disabled = !!STREAMS[s.stream].chunks;
 }
 
 function appendRaw(chunk, n) {
