@@ -267,11 +267,18 @@ test('the share button copies the run link and says so, and the theme toggle swi
 
 test('the header links to GitHub and the support table links to the CommonMark spec', async ({ page }) => {
   await open(page);
-  await expect(page.locator('a[aria-label="limmat on GitHub"]')).toHaveAttribute('href', 'https://github.com/DaanRosendal/limmat');
+  const github = page.locator('a[aria-label="limmat on GitHub"]');
+  await expect(github).toHaveAttribute('href', 'https://github.com/DaanRosendal/limmat');
+  await expect(github).toHaveAttribute('target', '_blank');
+  await expect(github).toHaveAttribute('rel', /noopener/);
   await openTab(page, 'support');
   const spec = page.locator('#support-table th a');
   await expect(spec).toHaveAttribute('href', 'https://spec.commonmark.org/0.31.2/');
+  await expect(spec).toHaveAttribute('target', '_blank');
   await expect(spec).toHaveAttribute('rel', /noopener/);
+  // The header stays on one line, and every link on the page opens a new tab.
+  expect(await spec.evaluate((a) => a.getBoundingClientRect().height)).toBeLessThan(30);
+  expect(await page.$$eval('a[href^="http"]:not(#out a)', (as) => as.filter((a) => a.getAttribute('target') !== '_blank').length)).toBe(0);
 });
 
 test('the controls work from the keyboard alone', async ({ page, browserName }) => {
