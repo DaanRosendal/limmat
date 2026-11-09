@@ -1,6 +1,6 @@
 # Architecture
 
-limmat is four small modules and one stylesheet. Read this page first if you want to fix a bug or add syntax.
+limmat is five small modules and one stylesheet. Read this page first if you want to fix a bug or add syntax.
 
 ```
 write(chunk) --> src (string) --> flush() --> scan() --> units --> build() --> DOM
@@ -24,11 +24,11 @@ write(chunk) --> src (string) --> flush() --> scan() --> units --> build() --> D
 Rules that must hold (they are also written above `flush()`):
 
 1. **Chunked output equals whole output.** Rendering in any chunking gives the same DOM as rendering at once. `test/chunk-fuzz.test.ts` enforces this on a corpus.
-2. **Freeze only behind a complete line.** A unit is frozen only if a later unit starts on a complete line. `test/freeze.test.ts` checks this and is mutation-tested.
+2. **Freeze only behind a complete line.** A unit is frozen only if a later unit starts on a complete line. `test/freeze.test.ts` checks this deterministically.
 3. **`spec` vs `final`.** While streaming, the last unit renders with `spec` (speculative): unfinished emphasis, links, and code are closed so raw markers never show. At `end()`, `final` is true: unmatched markers become literal text, and every code block is highlighted.
 4. **List and table context** crosses the freeze point in `fctx`, because a list item or table row is its own unit but belongs to a parent element. A blank line ends a table both in `scan()` and in `flush()`.
 5. **Open fences update in place**, so the node, scroll position, and text selection survive each chunk.
-6. **Hostile input stays linear.** Depth caps, a work budget for link destinations, and no regex that backtracks on user text.
+6. **Hostile input stays linear.** Depth caps, a work budget per paragraph for link destinations, and no regex that backtracks on user text.
 
 ## Safety invariants
 

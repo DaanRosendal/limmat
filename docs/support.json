@@ -33,7 +33,7 @@
     "feature": "Tables with alignment (GFM)",
     "status": "supported",
     "tests": [{ "file": "test/conformance.test.ts", "title": "tables with alignment" }],
-    "note": "Keyboard-scrollable wrapper. A header and delimiter row with different column counts is not a table."
+    "note": "Keyboard-scrollable wrapper. Without a leading pipe, a header and delimiter row with different column counts is not a table."
   },
   { "feature": "Emphasis and strong", "status": "supported", "cm": ["Emphasis and strong emphasis"], "note": "`snake_case_words` stay text." },
   {
