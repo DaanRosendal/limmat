@@ -21,6 +21,7 @@ jobs:
       - run: npm run check:links
       - run: npm test
       - run: npm run build
+      - run: npm run build:demo
       - run: npm run check:package
       - run: npm run check:support
       - run: npm run size
@@ -39,6 +40,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: npm run build
+      - run: npm run build:demo
       - run: npx playwright test --project=${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         if: failure()

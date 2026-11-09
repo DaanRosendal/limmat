@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="color-scheme" content="light dark">
+<title>limmat: streaming markdown that never shows a half-finished marker</title>
+<meta name="description" content="A tiny, safe markdown renderer for streaming LLM output. Break it yourself: change the chunking, scrub through a stream, and throw hostile input at it.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="limmat.css">
+<link rel="stylesheet" href="demo.css">
+<script type="module" src="demo.js"></script>
+</head>
+<body>
+<a class="skip" href="#sim">Skip to the demo</a>
+<header class="top">
+  <a class="brand" href="#top" id="top">limmat</a>
+  <nav aria-label="Links">
+    <a href="#gallery">Hostile input</a>
+    <a href="#support">Support</a>
+    <a href="https://github.com/DaanRosendal/limmat">GitHub</a>
+    <a href="https://www.npmjs.com/package/limmat">npm</a>
+    <button type="button" id="theme" aria-label="Switch between light and dark theme">Theme</button>
+  </nav>
+</header>
+
+<main>
+  <section class="hero" aria-labelledby="h1">
+    <h1 id="h1">Streaming markdown that never shows a half-finished marker.</h1>
+    <p class="sub">limmat renders LLM replies into the DOM as they arrive. It is <span data-size>about 7 kB</span> gzip, has no dependencies, and shows raw HTML as text. Below, you can break it yourself.</p>
+    <div class="install">
+      <code id="install">npm install limmat</code>
+      <button type="button" id="copy-install">Copy</button>
+    </div>
+  </section>
+
+  <section id="sim" aria-labelledby="sim-h">
+    <h2 id="sim-h">Watch a reply stream in</h2>
+    <p class="cap">The left pane is exactly what the model sends, in the chunks you choose. The right pane is limmat's output after every chunk. Only the open block (outlined) is touched, and finished blocks stay still.</p>
+
+    <div class="controls" role="group" aria-label="Stream controls">
+      <button type="button" id="play" class="primary">Pause</button>
+      <button type="button" id="step">Step</button>
+      <button type="button" id="finish">Jump to end</button>
+      <button type="button" id="restart">Restart</button>
+      <label><span>Stream</span>
+        <select id="stream"></select>
+      </label>
+      <label><span>Chunk size <output id="size-out">5</output></span>
+        <input type="range" id="size" min="1" max="50" value="5">
+      </label>
+      <label><span>Cuts</span>
+        <select id="mode"><option value="random">random up to size</option><option value="fixed">fixed size</option></select>
+      </label>
+      <label><span>Seed</span>
+        <input type="number" id="seed" min="0" max="4294967295" value="1">
+      </label>
+      <label><span>Delay <output id="speed-out">60</output> ms</span>
+        <input type="range" id="speed" min="10" max="400" value="60">
+      </label>
+      <label><span>Throttle</span>
+        <select id="throttle"><option value="0">0 ms (render every write)</option><option value="50" selected>50 ms (default)</option><option value="200">200 ms</option></select>
+      </label>
+    </div>
+
+    <div class="custom" id="custom" hidden>
+      <label>Your markdown (up to 200,000 characters; it stays in this page)
+        <textarea id="custom-text" rows="6" spellcheck="false"></textarea>
+      </label>
+      <button type="button" id="custom-go">Stream it</button>
+    </div>
+
+    <div class="scrub">
+      <label><span>Position <output id="pos-out">0 / 0</output></span>
+        <input type="range" id="pos" min="0" max="0" value="0">
+      </label>
+      <span class="open-readout" id="open-readout">Open block: none yet</span>
+    </div>
+
+    <div class="panes">
+      <div class="pane">
+        <h3 id="raw-h">What the model sends</h3>
+        <pre id="raw" class="raw" role="region" aria-labelledby="raw-h" tabindex="0"></pre>
+      </div>
+      <div class="pane">
+        <h3 id="out-h">What limmat shows</h3>
+        <div id="out" class="rendered" role="region" aria-labelledby="out-h" tabindex="0"></div>
+      </div>
+    </div>
+
+    <p class="metrics" id="metrics">Measured in this tab, not a benchmark: nothing yet.</p>
+    <p class="notice" id="notice" role="status"></p>
+    <p class="sr" id="live" role="status"></p>
+    <p class="cap"><button type="button" id="share" class="link">Copy a link to this exact run</button> The link keeps the stream, chunking, seed, and throttle in the address after the #, and never leaves your browser.</p>
+  </section>
+
+  <section id="check" aria-labelledby="check-h">
+    <h2 id="check-h">Any chunking gives the same page</h2>
+    <p class="cap">This streams the stream above four different ways into hidden containers and compares the final HTML. It runs limmat for real each time you press the button.</p>
+    <button type="button" id="run-check">Run the chunking check</button>
+    <table class="check-table" id="check-table" hidden>
+      <thead><tr><th scope="col">Chunking</th><th scope="col">Writes</th><th scope="col">DOM nodes</th><th scope="col">Same as one write</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="verdict" id="check-verdict" role="status"></p>
+  </section>
+
+  <section id="gallery" aria-labelledby="gallery-h">
+    <h2 id="gallery-h">Throw hostile input at it</h2>
+    <p class="cap">Twelve inputs that try to run script, steal a click, or load a tracker. Each card shows the input, what limmat built, and the actual DOM as text. The links are real: click one, and nothing happens.</p>
+    <dl class="proof" id="proof" aria-label="Live measurements of the gallery output"></dl>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section id="support" aria-labelledby="support-h">
+    <h2 id="support-h">What is supported</h2>
+    <p class="cap">The gaps are listed here on purpose. The same table is in the README and is checked in CI. "Spec examples" are CommonMark 0.31.2 examples that pass.</p>
+    <div class="filters" role="group" aria-label="Filter the table">
+      <button type="button" data-filter="all" aria-pressed="true">All</button>
+      <button type="button" data-filter="supported" aria-pressed="false">Supported</button>
+      <button type="button" data-filter="partial" aria-pressed="false">Partial</button>
+      <button type="button" data-filter="not-yet" aria-pressed="false">Not yet</button>
+      <button type="button" data-filter="wont" aria-pressed="false">Will not</button>
+    </div>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Support table">
+      <table id="support-table" class="support-table"><thead><tr><th scope="col">Feature</th><th scope="col">Status</th><th scope="col">Spec examples</th><th scope="col">Notes</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section class="cta" aria-labelledby="cta-h">
+    <h2 id="cta-h">Try it</h2>
+    <div class="install"><code>npm install limmat</code></div>
+    <p><a href="https://github.com/DaanRosendal/limmat">GitHub</a> · <a href="https://www.npmjs.com/package/limmat">npm</a> · MIT · 0.x, one maintainer</p>
+  </section>
+</main>
+
+<footer>
+  <p id="release">limmat, loading build details.</p>
+  <p>This page makes no third-party requests, sets no cookies, and sends nothing you type anywhere. Content-Security-Policy: scripts and styles from this origin only.</p>
+</footer>
+</body>
+</html>

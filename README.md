@@ -11,6 +11,17 @@ It is built for chat UIs where an LLM streams a reply in chunks of a few charact
 
 Status: 0.x, one maintainer. See [Stability](docs/API.md#stability) and [Project status](#project-status).
 
+<p align="center">
+  <a href="https://limmat.daanrosendal.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/demo-dark.png">
+      <img src="docs/demo-light.png" width="760" alt="The limmat demo: the raw text a model sends on the left, and limmat's output on the right. A link is only half typed, so it shows as plain text and its paragraph is outlined as the open block.">
+    </picture>
+  </a>
+</p>
+
+**[Try the demo](https://limmat.daanrosendal.com)**: change the chunking, scrub through a stream, and throw hostile input at it. To run it yourself, clone the repo and use `npm run demo`.
+
 ```ts
 import { createRenderer } from 'limmat';
 import 'limmat/style.css'; // optional
@@ -145,6 +156,10 @@ Checked against streaming-markdown 0.2.15 with its default renderer, in November
 | `1)` lists, table alignment, `www.` links, bare emails | supported | not supported |
 | Punctuation after a bare URL (`see https://a.com.`) | trimmed | kept in the link |
 | `)` inside a URL | handled | ends the link |
+
+## Why TypeScript, not Rust or WebAssembly
+
+limmat's output is DOM nodes, and WebAssembly cannot touch the DOM, so a Rust parser would still hand every chunk's result back to JavaScript to build the elements. Size points the same way: the WebAssembly streaming renderers we measured in November 2026 were 29 to 105 kB gzip (md4w 28.7 kB, md4x 104.8 kB, flux-md about 104 kB of which the WebAssembly binary is 89 kB), against about 7 kB here. The work per chunk is small, since a 100 KB reply in 5-character chunks renders in about 10 ms in Chromium, so a faster parser would save little. This is a choice for a client-side chat widget. A Rust parser is a good fit on a server or for large documents.
 
 ## Tested
 

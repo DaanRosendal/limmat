@@ -28,6 +28,7 @@ Run on the built `dist` through route fulfilment on `https://limmat.test`, so no
 | ------------------ | ----------------------------------------------------------------------------- |
 | `xss.spec.ts`      | The XSS list executed in real browsers: nothing runs, nothing loads.          |
 | `behavior.spec.ts` | Streaming stability, copy, focus, keyboard order, and accessibility with axe. |
+| `demo.spec.ts` | The demo page: strict CSP with no violations, only same-origin requests, every stream equal for every chunking, the hostile gallery runs and loads nothing, share links (including bad ones), and axe in three color modes. |
 | `bench.spec.ts`    | Performance budgets and the memory test.                                      |
 
 ## Updating fixtures
