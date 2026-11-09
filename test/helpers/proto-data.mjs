@@ -36,12 +36,6 @@ function add(a: number, b: number): number {
 
 That is **all** for now, see https://daanrosendal.com for more.
 `;
-export const MOMENTS = {
-  'half-open fence': 'function add(a: number, b',
-  'half-open table': '| Project | Role | Year |\n|---',
-  'half-open bold': 'wrote a **federated lear',
-  'half-open link': '[the paper](/research/fed',
-};
 export const XSS = [
   ['script tag', '<script>alert(1)</script>'],
   ['img onerror', '<img src=x onerror=alert(1)>'],

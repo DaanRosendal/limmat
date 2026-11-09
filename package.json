@@ -1,7 +1,7 @@
 {
   "name": "limmat",
   "version": "0.1.0-dev.0",
-  "description": "Renders streaming markdown into the DOM as it arrives: about 2.5 kB, safe by default, with no framework.",
+  "description": "A tiny, safe markdown renderer for streaming LLM output. Builds DOM nodes as text arrives, never HTML strings, with no framework and no dependencies.",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -9,6 +9,9 @@
   "sideEffects": [
     "*.css"
   ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
@@ -21,10 +24,12 @@
       "types": "./dist/highlight.d.ts",
       "default": "./dist/highlight.js"
     },
-    "./style.css": "./dist/style.css"
+    "./style.css": "./dist/style.css",
+    "./limmat.min.js": "./dist/limmat.min.js",
+    "./package.json": "./package.json"
   },
   "peerDependencies": {
-    "@speed-highlight/core": "*"
+    "@speed-highlight/core": "^2.0.0"
   },
   "peerDependenciesMeta": {
     "@speed-highlight/core": {
@@ -39,8 +44,9 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "test:browser": "playwright test",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build && npm run size && npm run test:browser",
-    "test:browser:chromium": "playwright test --project=chromium"
+    "check": "npm run typecheck && npm run lint && npm test && npm run build && npm run check:package && npm run size && npm run test:browser",
+    "test:browser:chromium": "playwright test --project=chromium",
+    "check:package": "node scripts/check-package.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",

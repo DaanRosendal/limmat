@@ -1,13 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRenderer } from '../src/index';
 import { safeUrl } from '../src/url';
-import { audit, html, render, renderOpen } from './helpers/util';
+import { audit, html, mk, render, renderOpen } from './helpers/util';
 
-const mk = (o = {}) => {
-  const root = document.createElement('div');
-  document.body.append(root);
-  return { root, r: createRenderer(root, { throttleMs: 0, ...o }) };
-};
 afterEach(() => {
   document.body.replaceChildren();
   vi.useRealTimers();
@@ -136,7 +131,12 @@ describe('lifecycle gaps', () => {
   it('two renderers on one page are independent', () => {
     const a = mk({ onLinkClick: vi.fn(() => true) });
     const calls: string[] = [];
-    const b = mk({ onLinkClick: (h: string) => (calls.push(h), true) });
+    const b = mk({
+      onLinkClick: (h: string) => {
+        calls.push(h);
+        return true;
+      },
+    });
     a.r.write('[x](https://a.com)');
     b.r.write('[y](https://b.com)');
     a.r.end();
@@ -150,7 +150,12 @@ describe('lifecycle gaps', () => {
 describe('options gaps', () => {
   it('onLinkClick fires for autolinks, bare urls and mailto', () => {
     const calls: string[] = [];
-    const { root, r } = mk({ onLinkClick: (h: string) => (calls.push(h), true) });
+    const { root, r } = mk({
+      onLinkClick: (h: string) => {
+        calls.push(h);
+        return true;
+      },
+    });
     r.write('<https://a.com> https://b.com me@c.com [m](mailto:d@e.com)');
     r.end();
     root.querySelectorAll('a').forEach((a) => click(a));
@@ -201,7 +206,12 @@ describe('options gaps', () => {
   });
   it('isInternalPath receives the raw path including query', () => {
     const seen: string[] = [];
-    render('[x](/a/b?x=1#h)', 'whole', { isInternalPath: (p) => (seen.push(p), true) });
+    render('[x](/a/b?x=1#h)', 'whole', {
+      isInternalPath: (p) => {
+        seen.push(p);
+        return true;
+      },
+    });
     expect([...new Set(seen)]).toEqual(['/a/b?x=1#h']);
   });
 });

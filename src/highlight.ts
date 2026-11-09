@@ -1,4 +1,4 @@
-import type { Options } from './index';
+import type { Options } from './index.js';
 
 /**
  * Adapter for @speed-highlight/core. Each language loads as its own small chunk the first time it is needed,

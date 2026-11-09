@@ -16,7 +16,7 @@ const r = await build({
 const gz = gzipSync(r.outputFiles[0].contents, { level: 9 }).length;
 const file = '.size-baseline.json';
 if (process.argv.includes('--update')) {
-  writeFileSync(file, `${JSON.stringify({ core: gz })}\n`);
+  writeFileSync(file, `{ "core": ${gz} }\n`);
   console.log(`baseline set to ${gz} B gzip`);
 } else {
   const base = JSON.parse(readFileSync(file, 'utf8')).core;
