@@ -35,11 +35,14 @@ test('the page has no inline script, no inline style attribute, and sets no cook
   await openTab(page, 'support');
   const found = await page.evaluate(() => ({
     inlineScripts: Array.from(document.scripts).filter((s) => !s.src).length,
-    styleAttrs: document.querySelectorAll('[style]').length,
+    styleAttrs: Array.from(
+      document.querySelectorAll('[style]'),
+      (e) => `${e.tagName}${e.id ? `#${e.id}` : ''}.${e.getAttribute('class')} style="${e.getAttribute('style')}"`,
+    ),
     cookie: document.cookie,
     storage: localStorage.length + sessionStorage.length,
   }));
-  expect(found).toEqual({ inlineScripts: 0, styleAttrs: 0, cookie: '', storage: 0 });
+  expect(found).toEqual({ inlineScripts: 0, styleAttrs: [], cookie: '', storage: 0 });
 });
 
 test('the open block readout names the construct that is still open', async ({ page }) => {
