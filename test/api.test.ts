@@ -232,3 +232,26 @@ describe('option and input hardening', () => {
     expect(Array.from(root.querySelectorAll('li')).map((l) => l.className)).toEqual(['x-task', '']);
   });
 });
+
+describe('strict Content-Security-Policy', () => {
+  it('never sets a style attribute as a string, because style-src without unsafe-inline blocks it', async () => {
+    const seen: string[] = [];
+    const real = Element.prototype.setAttribute;
+    Element.prototype.setAttribute = function (this: Element, name: string, value: string) {
+      if (name.toLowerCase() === 'style') seen.push(`${this.tagName}:${value}`);
+      return real.call(this, name, value);
+    };
+    try {
+      Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });
+      (document as any).execCommand = vi.fn().mockReturnValue(true);
+      const { root, r } = mk();
+      r.write('| a | b |\n|:-:|--:|\n| 1 | 2 |\n\n```ts\nx\n```');
+      r.end();
+      root.querySelector<HTMLButtonElement>('button')!.click();
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+    } finally {
+      Element.prototype.setAttribute = real;
+    }
+    expect(seen).toEqual([]);
+  });
+});

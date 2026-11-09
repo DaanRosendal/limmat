@@ -416,7 +416,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     } catch {
       const ta = h('textarea') as HTMLTextAreaElement;
       ta.value = text;
-      ta.setAttribute('style', 'position:fixed;opacity:0');
+      ta.style.cssText = 'position:fixed;opacity:0'; // CSSOM, so a strict style-src policy allows it
       const prev = document.activeElement as HTMLElement | null;
       document.body.append(ta);
       ta.select();
