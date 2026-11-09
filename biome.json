@@ -27,5 +27,17 @@
         "useIterableCallbackReturn": "off"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["src/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "error"
+          }
+        }
+      }
+    }
+  ]
 }
