@@ -46,10 +46,10 @@ test('the page has no inline script, no inline style attribute, and sets no cook
 });
 
 test('the open block readout names the construct that is still open', async ({ page }) => {
-  await open(page);
-  await pick(page, 'stream', 'table');
+  // One character per chunk, so the position below is inside the table's first data row.
+  await open(page, '#v=1&stream=table&c=1&r=0&s=1&t=0&d=400');
   // The scrubber pauses and rebuilds in one step, so this does not race the autoplay timer.
-  await page.fill('#pos', '2');
+  await page.fill('#pos', '119');
   await expect(page.locator('#open-readout')).toContainText('table');
   await expect(page.locator('#out .is-open')).toHaveCount(1);
   await page.click('#finish');
@@ -58,14 +58,16 @@ test('the open block readout names the construct that is still open', async ({ p
 });
 
 test('the scrubber rebuilds the output at a position and stays paused', async ({ page }) => {
-  await open(page);
-  await pick(page, 'stream', 'fence');
-  await page.fill('#pos', '2');
-  await expect(page.locator('#pos-out')).toHaveText('2 / 4');
+  await open(page, '#v=1&stream=fence&c=1&r=0&s=1&t=0&d=400');
+  await page.fill('#pos', '70');
+  await expect(page.locator('#pos-out')).toHaveText(/^70 \/ \d+$/);
   await expect(page.locator('#play')).toHaveText('Play');
-  expect(await page.locator('#raw').textContent()).toBe('``' + '`ts\nlet a = 1;\n');
+  const raw = (await page.locator('#raw').textContent())!;
+  expect(Array.from(raw).length).toBe(70);
+  expect(raw).toMatch(/^Here is a small retry helper:\n\n```ts\n/);
+  // The fence is still open, and its code is already on the page.
   await expect(page.locator('#out .limmat-code')).toHaveCount(1);
-  await expect(page.locator('#out code')).toContainText('let a = 1;');
+  await expect(page.locator('#out code')).toContainText('async function');
 });
 
 /** Drag a slider to a position (0 to 100), the way a person would: press on it, move, release. */
@@ -128,11 +130,8 @@ test('clicking a preset mark jumps the slider to that preset', async ({ page }) 
   await marks.nth(0).locator('rect').click(); // the 0 ms mark
   await expect(page.locator('#sl-throttle')).toHaveAttribute('aria-valuetext', '0 ms');
   await expect(marks.nth(2)).not.toHaveClass(/on/);
-  // The chunk size marks do nothing on the scripted streams, which have fixed cuts.
-  await pick(page, 'stream', 'table');
-  await expect(page.locator('#sl-size')).toHaveAttribute('aria-disabled', 'true');
-  await page.locator('#sl-size .tick rect').nth(1).click({ force: true });
-  await expect(page.locator('#sl-size')).not.toHaveAttribute('aria-valuetext', '1-5');
+  await page.locator('#sl-size .tick rect').nth(1).click(); // the chunk size 5 mark
+  await expect(page.locator('#sl-size')).toHaveAttribute('aria-valuetext', '1-5');
 });
 
 test('the value sits inside the thumb, and the thumb is where the slider says', async ({ page }) => {
@@ -500,7 +499,7 @@ test('once a stream is done the raw pane is an editor, and typing renders as a l
   const editor = page.locator('#raw-edit');
   await expect(editor).toBeVisible();
   await expect(page.locator('#edit-hint')).toBeVisible();
-  await expect(editor).toHaveValue('| a | b |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n');
+  await expect(editor).toHaveValue(/^Here is a comparison of the three plans:/);
   // A marker that is still open never shows its raw asterisks.
   await editor.fill('Typing **bo');
   await expect(page.locator('#out')).toContainText('Typing bo');

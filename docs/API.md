@@ -47,6 +47,48 @@ a.limmat-link
 code.limmat-inline-code (inline code)
 ```
 
+## Frameworks
+
+Give limmat an empty element and call `destroy()` when it goes away. React:
+
+```tsx
+function Answer({ stream }: { stream: AsyncIterable<string> }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const md = createRenderer(ref.current!);
+    let live = true;
+    (async () => {
+      for await (const chunk of stream) if (live) md.write(chunk);
+      if (live) md.end();
+    })();
+    return () => {
+      live = false;
+      md.destroy();
+    };
+  }, [stream]);
+  return <div ref={ref} />;
+}
+```
+
+Svelte, as an action:
+
+```svelte
+<script>
+  import { createRenderer } from 'limmat';
+  export let stream;
+  function render(node, stream) {
+    const md = createRenderer(node);
+    (async () => {
+      for await (const chunk of stream) md.write(chunk);
+      md.end();
+    })();
+    return { destroy: () => md.destroy() };
+  }
+</script>
+
+<div use:render={stream}></div>
+```
+
 ## Accessibility
 
 The message container has no live region, because announcing every chunk is noisy. To have the finished reply announced, set `aria-busy` on your own element while streaming, or announce once after `end()`.

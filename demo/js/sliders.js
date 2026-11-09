@@ -143,20 +143,11 @@ export function syncSliders() {
   $('#rand').setAttribute('aria-pressed', String(s.random));
 }
 
-/** Scripted streams have fixed cuts, so the chunk size controls only apply to the others. */
-export function setSizeEnabled(on) {
-  const root = sliders.size.root;
-  root.setAttribute('aria-disabled', String(!on));
-  root.tabIndex = on ? 0 : -1;
-  $('#rand').disabled = !on;
-}
-
 /** `restart` re-runs the stream after a change that needs it. */
 export function initSliders(restart) {
   for (const [name, spec] of Object.entries(SPECS)) {
     const sl = build(name, spec);
     const { root } = sl;
-    const off = () => root.getAttribute('aria-disabled') === 'true';
     let keyTimer = 0;
     const commit = () => {
       if (openName() === 'paste') closePanel(false);
@@ -165,7 +156,7 @@ export function initSliders(restart) {
     };
     let dragging = false;
     root.addEventListener('pointerdown', (e) => {
-      if (off() || e.button !== 0) return;
+      if (e.button !== 0) return;
       const tick = e.target.closest?.('.tick');
       if (tick) {
         // A click on a mark jumps straight to that preset.
@@ -192,7 +183,6 @@ export function initSliders(restart) {
     root.addEventListener('pointerup', release);
     root.addEventListener('pointercancel', release);
     root.addEventListener('keydown', (e) => {
-      if (off()) return;
       const step = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1, PageDown: -10, PageUp: 10 }[e.key];
       let p;
       if (step !== undefined) p = Math.min(100, Math.max(0, sl.pos + step));

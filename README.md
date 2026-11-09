@@ -1,8 +1,13 @@
 # limmat
 
-limmat is a tiny, safe markdown renderer for text that arrives in pieces, built for LLM chat. It renders into the DOM as it streams, never builds HTML strings, and has no dependencies. It is about 7 kB gzip, and raw HTML in model output shows as text.
+**Streaming markdown for LLM chat that never shows a half-finished marker.**
 
-Status: 0.x, so minor releases may still change the API (see [Stability](docs/API.md#stability)).
+- **Clean streaming:** a half-typed `**` or `[link](` never flashes on screen, and the result is the same however the text is split.
+- **Safe:** it builds DOM nodes, never HTML strings. Raw HTML shows as text, images never load, and links are allow-listed.
+- **Tiny:** about 7 kB gzip, no dependencies.
+- **Fast:** only the open block re-renders, so a 100 KB reply takes about 10 ms in Chromium with the default 50 ms throttle.
+
+It suits any text that arrives in pieces: LLM replies, agent and tool output, comments, and live previews. The name is that of the [Limmat](https://en.wikipedia.org/wiki/Limmat), the river through Zurich, because the text arrives as a stream.
 
 <p align="center">
   <a href="https://limmat.daanrosendal.com">
@@ -13,7 +18,11 @@ Status: 0.x, so minor releases may still change the API (see [Stability](docs/AP
   </a>
 </p>
 
-**[Try the demo](https://limmat.daanrosendal.com)**: change the chunking, scrub through a stream, edit it when it ends, and stream a hostile reply with the Attack preset. It also fits agent and tool output, comments, and live previews. To run it yourself, clone the repo and use `npm run demo`.
+**[Try the demo](https://limmat.daanrosendal.com)**. To run it yourself, clone the repo and use `npm run demo`.
+
+```sh
+npm install limmat
+```
 
 ```ts
 import { createRenderer } from 'limmat';
@@ -22,12 +31,6 @@ import 'limmat/style.css'; // optional
 const md = createRenderer(document.querySelector('#answer')!);
 md.write('# Hello\n\nSome **streamed** text'); // call it for every chunk
 md.end();
-```
-
-## Install
-
-```sh
-npm install limmat
 ```
 
 ## Use
@@ -46,55 +49,7 @@ md.end();
 
 With an LLM SDK, call `md.write(delta)` for each text delta and `md.end()` when the stream finishes.
 
-In a framework, give limmat an empty element and call `destroy()` when it goes away. React:
-
-```tsx
-function Answer({ stream }: { stream: AsyncIterable<string> }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const md = createRenderer(ref.current!);
-    let live = true;
-    (async () => {
-      for await (const chunk of stream) if (live) md.write(chunk);
-      if (live) md.end();
-    })();
-    return () => {
-      live = false;
-      md.destroy();
-    };
-  }, [stream]);
-  return <div ref={ref} />;
-}
-```
-
-Svelte, as an action:
-
-```svelte
-<script>
-  import { createRenderer } from 'limmat';
-  export let stream;
-  function render(node, stream) {
-    const md = createRenderer(node);
-    (async () => {
-      for await (const chunk of stream) md.write(chunk);
-      md.end();
-    })();
-    return { destroy: () => md.destroy() };
-  }
-</script>
-
-<div use:render={stream}></div>
-```
-
-Options, methods, code highlighting, styling, and accessibility are in [docs/API.md](docs/API.md).
-
-## Why limmat
-
-- Only the open block re-renders, at most every 50 ms by default. A 100 KB reply in 5-character chunks with no pauses renders in about 10 ms in Chromium (about 130 ms with `throttleMs: 0`, which renders on every write).
-- The DOM is built with `createElement` and text nodes. Links go through a protocol allow-list, and images are never loaded.
-- Headings, emphasis, strikethrough, code with a language label and Copy button, nested and task lists, blockquotes, tables with alignment, links, autolinked URLs and emails, and hard breaks. Optional CSS, and an optional lazy code highlighter.
-
-Security model and how to report a problem: [SECURITY.md](SECURITY.md).
+Options, methods, code highlighting, styling, and accessibility are in [docs/API.md](docs/API.md), including React and Svelte examples. Security model and how to report a problem: [SECURITY.md](SECURITY.md).
 
 ## What is supported
 
@@ -151,12 +106,8 @@ Checked against streaming-markdown 0.2.15 with its default renderer, in November
 
 Parsing is only about a fifth of the work (measured in Chromium, rendering on every write). The rest is building the page's elements, and WebAssembly cannot do that, so JavaScript would still do it. WebAssembly would also make limmat much bigger: the streaming renderers we measured are 29 to 105 kB gzip, against about 7 kB here. A Rust parser fits better on a server or for huge documents.
 
-## Tested
-
-`npm run check` runs typecheck, lint, unit tests, the support-table check, a size ratchet, and a browser suite in Chromium, Firefox, and WebKit, including 54 XSS inputs, chunk-split fuzzing, and accessibility checks.
-
 ## License
 
-MIT, Copyright (c) 2026 Daan Rosendal. Named after the river through Zurich.
+MIT, Copyright (c) 2026 Daan Rosendal.
 
 To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -58,18 +58,80 @@ console.log(1)
 ${'> '.repeat(40)}and that is the whole list.
 `;
 
+const MARKER = `Streaming markdown has a **hard part**: the text arrives in *pieces*, so a marker like \`**\` or a [link](url) is often cut in half.
+
+When limmat sees a **bold** that has not closed yet, it waits. The same goes for \`code\` that is still open, or half a URL like [this one](https://example.com/docs/streaming).
+
+Try ***bold italic***, ~~strikethrough~~, and a bare link such as https://example.com/limmat.
+`;
+
+const TABLE = `Here is a comparison of the three plans:
+
+| Plan | Price | Seats | Support |
+|:-----|------:|:-----:|:--------|
+| Free | $0 | 1 | Community |
+| Team | $12 | 10 | Email |
+| Business | $40 | 50 | Chat |
+| Enterprise | Custom | Unlimited | Dedicated |
+
+The Team plan is the most popular.
+`;
+
+const FENCE = `Here is a small retry helper:
+
+\`\`\`ts
+async function retry<T>(fn: () => Promise<T>, tries = 3): Promise<T> {
+  for (let i = 0; ; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i + 1 >= tries) throw err;
+      await new Promise((r) => setTimeout(r, 2 ** i * 100));
+    }
+  }
+}
+\`\`\`
+
+It waits 100, 200, then 400 ms between tries.
+`;
+
+const LINKS = `Some good reading:
+
+- [MDN: Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API)
+- [The CommonMark spec](https://spec.commonmark.org/0.31.2/)
+- [Server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events)
+
+Or just visit https://example.com/docs, or write to hello@example.com.
+`;
+
+const LIST = `Packing list:
+
+1. Documents
+   - Passport
+   - Tickets
+2. Clothes
+   - Jacket
+   - Two shirts
+     - One for the flight
+3. Chargers
+   - Phone
+   - Laptop
+
+- [x] Check in online
+- [ ] Print the boarding pass
+`;
+
 // Keys match the stream radio values in index.html and the share links, so keep them stable.
 export const STREAMS = {
   reply: { label: 'Reply', text: REPLY },
-  'mid-marker': { label: 'Marker', chunks: ['Hi **bo', 'ld** there, and `co', 'de` too, plus [a li', 'nk](https://exa', 'mple.com/a).'] },
-  table: { label: 'Table', chunks: ['| a | b |\n', '|---|---|\n', '| 1 | 2 |\n', '| 3 | 4 |\n'] },
-  fence: { label: 'Fence', chunks: ['``', '`ts\nlet a = 1;\n', '``', '`\ndone'] },
-  'link-split': { label: 'Link', chunks: ['See [the pa', 'per](https://exa', 'mple.com/a) now.'] },
-  list: { label: 'List', chunks: ['- a\n', '  - b\n', '    - c\n', '  - d\n'] },
+  'mid-marker': { label: 'Marker', text: MARKER },
+  table: { label: 'Table', text: TABLE },
+  fence: { label: 'Fence', text: FENCE },
+  'link-split': { label: 'Link', text: LINKS },
+  list: { label: 'List', text: LIST },
   hostile: { label: 'Attack', text: HOSTILE },
   custom: { label: 'Custom', text: '' },
 };
-export const textOf = (st) => (st.chunks ? st.chunks.join('') : st.text);
 
 export function mulberry32(seed) {
   let a = seed >>> 0;

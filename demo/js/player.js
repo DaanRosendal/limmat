@@ -4,9 +4,8 @@ import { follow, make, say } from './dom.js';
 import { el } from './els.js';
 import { highlight } from './hlcache.js';
 import { markOpen, updateReadouts } from './readouts.js';
-import { setSizeEnabled } from './sliders.js';
 import { s } from './state.js';
-import { chunkText, STREAMS, textOf } from './streams.js';
+import { chunkText, STREAMS } from './streams.js';
 
 const sticky = [follow(el.out), follow(el.raw)];
 const phaseHooks = [];
@@ -27,15 +26,8 @@ function newRenderer() {
 }
 
 function rebuildChunks() {
-  const st = STREAMS[s.stream];
-  s.chunks = st.chunks ? st.chunks.slice() : chunkText(textOf(st), s.size, s.random, s.seed);
+  s.chunks = chunkText(STREAMS[s.stream].text, s.size, s.random, s.seed);
   el.pos.max = String(s.chunks.length);
-  syncSizeEnabled();
-}
-
-/** Scripted streams have fixed cuts, so the chunk size controls only apply to the others. */
-function syncSizeEnabled() {
-  setSizeEnabled(!STREAMS[s.stream].chunks);
 }
 
 function appendRaw(chunk, n) {
@@ -167,7 +159,6 @@ export function edit(text) {
     scrubbed: true,
   });
   el.pos.max = String(s.chunks.length);
-  syncSizeEnabled();
   setLabel('stopped', 'Replay');
   // Typing at the end only appends, so write just the new characters and leave every finished block alone.
   // Anything else (a first edit after the stream ended, a deletion, a change in the middle) rebuilds from scratch.
