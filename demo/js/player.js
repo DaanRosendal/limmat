@@ -4,6 +4,7 @@ import { follow, make, say } from './dom.js';
 import { el } from './els.js';
 import { highlight } from './hlcache.js';
 import { markOpen, updateReadouts } from './readouts.js';
+import { setSizeEnabled } from './sliders.js';
 import { s } from './state.js';
 import { chunkText, STREAMS, textOf } from './streams.js';
 
@@ -34,7 +35,7 @@ function rebuildChunks() {
 
 /** Scripted streams have fixed cuts, so the chunk size controls only apply to the others. */
 function syncSizeEnabled() {
-  for (const i of document.querySelectorAll('#sl-size, #rand')) i.disabled = !!STREAMS[s.stream].chunks;
+  setSizeEnabled(!STREAMS[s.stream].chunks);
 }
 
 function appendRaw(chunk, n) {

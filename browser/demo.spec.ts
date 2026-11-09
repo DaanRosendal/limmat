@@ -65,22 +65,25 @@ test('the scrubber rebuilds the output at a position and stays paused', async ({
   await expect(page.locator('#out code')).toContainText('let a = 1;');
 });
 
-/** Move a slider to a position (0 to 100) the way a drag would: input while moving, change on release. */
-const slide = (page: Page, id: string, position: number) =>
-  page.locator(`#sl-${id}`).evaluate((el: HTMLInputElement, p) => {
-    el.value = String(p);
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  }, position);
+/** Drag a slider to a position (0 to 100), the way a person would: press on it, move, release. */
+const slide = async (page: Page, id: string, position: number) => {
+  const box = (await page.locator(`#sl-${id}`).boundingBox())!;
+  const y = box.y + 16;
+  await page.mouse.move(box.x + box.width / 2, y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 26 + ((box.width - 52) * position) / 100, y, { steps: 3 });
+  await page.mouse.up();
+};
+const readout = (page: Page, id: string) => page.locator(`#sl-${id}`).getAttribute('aria-valuetext');
 const seedOf = (page: Page) => new URL(page.url().replace('#', '?')).searchParams.get('s');
 
 test('the chunk size slider changes the stream, and turning Random on picks new cuts', async ({ page }) => {
   await open(page);
   await slide(page, 'size', 0); // the far left is size 1
-  await expect(page.locator('#val-size')).toHaveText('1 to 1');
+  await expect(page.locator('#sl-size')).toHaveAttribute('aria-valuetext', '1-1');
   await page.click('#rand'); // off: every chunk is exactly the size
   await expect(page.locator('#rand')).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.locator('#val-size')).toHaveText('1');
+  await expect(page.locator('#sl-size')).toHaveAttribute('aria-valuetext', '1');
   await page.click('#finish');
   const chars = Array.from((await page.locator('#raw').textContent())!).length;
   await expect(page.locator('#pos')).toHaveAttribute('max', String(chars));
@@ -94,20 +97,71 @@ test('sliders snap to the preset marks when close, and any value in between is r
   await open(page);
   // Throttle presets are 0, 50, and 200 ms. Close to a mark snaps onto it.
   await slide(page, 'throttle', 31);
-  await expect(page.locator('#val-throttle')).toHaveText('50 ms');
+  await expect(page.locator('#sl-throttle')).toHaveAttribute('aria-valuetext', '50 ms');
   await slide(page, 'throttle', 63);
-  await expect(page.locator('#val-throttle')).toHaveText('200 ms');
+  await expect(page.locator('#sl-throttle')).toHaveAttribute('aria-valuetext', '200 ms');
   // Far from every mark, the value is whatever the position says, so it is neither of the presets.
   await slide(page, 'throttle', 45);
-  const between = Number((await page.locator('#val-throttle').textContent())!.replace(' ms', ''));
+  const between = Number((await readout(page, 'throttle'))!.replace(' ms', ''));
   expect([0, 50, 200]).not.toContain(between);
   expect(between).toBeGreaterThan(50);
   expect(between).toBeLessThan(200);
   expect(page.url()).toContain(`t=${between}`);
   await slide(page, 'size', 41); // the preset 5
-  await expect(page.locator('#val-size')).toHaveText('1 to 5');
+  await expect(page.locator('#sl-size')).toHaveAttribute('aria-valuetext', '1-5');
   await slide(page, 'speed', 55); // the preset 60 ms between chunks, 17 per second
-  await expect(page.locator('#val-speed')).toHaveText('17 per s');
+  await expect(page.locator('#sl-speed')).toHaveAttribute('aria-valuetext', '17/s');
+});
+
+test('clicking a preset mark jumps the slider to that preset', async ({ page }) => {
+  await open(page);
+  const marks = page.locator('#sl-throttle .tick');
+  expect(await marks.count()).toBe(3);
+  await marks.nth(2).locator('rect').click(); // the 200 ms mark
+  await expect(page.locator('#sl-throttle')).toHaveAttribute('aria-valuetext', '200 ms');
+  expect(page.url()).toContain('t=200');
+  await expect(marks.nth(2)).toHaveClass(/on/);
+  await marks.nth(0).locator('rect').click(); // the 0 ms mark
+  await expect(page.locator('#sl-throttle')).toHaveAttribute('aria-valuetext', '0 ms');
+  await expect(marks.nth(2)).not.toHaveClass(/on/);
+  // The chunk size marks do nothing on the scripted streams, which have fixed cuts.
+  await pick(page, 'stream', 'table');
+  await expect(page.locator('#sl-size')).toHaveAttribute('aria-disabled', 'true');
+  await page.locator('#sl-size .tick rect').nth(1).click({ force: true });
+  await expect(page.locator('#sl-size')).not.toHaveAttribute('aria-valuetext', '1-5');
+});
+
+test('the value sits inside the thumb, and the thumb is where the slider says', async ({ page }) => {
+  await open(page);
+  await slide(page, 'throttle', 63); // the 200 ms preset
+  const where = await page.evaluate(() => {
+    const root = document.querySelector('#sl-throttle')!.getBoundingClientRect();
+    const pill = document.querySelector('#sl-throttle .thumb rect')!.getBoundingClientRect();
+    const text = document.querySelector('#sl-throttle .thumb text')!.getBoundingClientRect();
+    return {
+      thumbX: pill.left + pill.width / 2,
+      expectedX: root.left + 26 + ((root.width - 52) * 63) / 100,
+      textInside: text.left >= pill.left && text.right <= pill.right && text.top >= pill.top && text.bottom <= pill.bottom,
+    };
+  });
+  expect(Math.abs(where.thumbX - where.expectedX)).toBeLessThan(2);
+  expect(where.textInside).toBe(true);
+  await expect(page.locator('#sl-throttle .thumb text')).toHaveText('200 ms');
+});
+
+test('the sliders work from the keyboard', async ({ page }) => {
+  await open(page);
+  const slider = page.locator('#sl-throttle');
+  await slider.focus();
+  await page.keyboard.press('Home');
+  await expect(slider).toHaveAttribute('aria-valuetext', '0 ms');
+  await page.keyboard.press('End');
+  await expect(slider).toHaveAttribute('aria-valuetext', '500 ms');
+  await page.keyboard.press('ArrowLeft');
+  await expect(slider).toHaveAttribute('aria-valuenow', '99');
+  expect(await readout(page, 'throttle')).not.toBe('500 ms');
+  // The stream restarts once the key presses stop, and the link follows.
+  await expect.poll(() => page.url()).toMatch(/t=4\d\d/);
 });
 
 test('every control has a short tip on hover and keyboard focus', async ({ page }) => {
@@ -170,7 +224,7 @@ test('a chip turns red if the output ever has something unsafe in it', async ({ 
 test('a shared link restores the settings and plays the same chunks', async ({ page }) => {
   await open(page, '#v=1&stream=table&c=3&r=0&s=7&t=0&d=10');
   await expect(page.locator('input[name="stream"][value="table"]')).toBeChecked();
-  await expect(page.locator('#val-throttle')).toHaveText('0 ms');
+  await expect(page.locator('#sl-throttle')).toHaveAttribute('aria-valuetext', '0 ms');
   await page.click('#finish');
   await expect(page.locator('#out table')).toHaveCount(1);
   await pick(page, 'stream', 'reply');
@@ -182,9 +236,9 @@ test('a shared link restores the settings and plays the same chunks', async ({ p
 
 test('a link can carry any throttle and speed, not only the presets', async ({ page }) => {
   await open(page, '#v=1&stream=reply&c=9&r=0&s=1&t=120&d=100');
-  await expect(page.locator('#val-throttle')).toHaveText('120 ms');
-  await expect(page.locator('#val-speed')).toHaveText('10 per s');
-  await expect(page.locator('#val-size')).toHaveText('9');
+  await expect(page.locator('#sl-throttle')).toHaveAttribute('aria-valuetext', '120 ms');
+  await expect(page.locator('#sl-speed')).toHaveAttribute('aria-valuetext', '10/s');
+  await expect(page.locator('#sl-size')).toHaveAttribute('aria-valuetext', '9');
 });
 
 test('a custom run survives the round trip through the link', async ({ page }) => {

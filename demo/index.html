@@ -116,10 +116,9 @@
         <span class="gl" id="g-size">Chunk size</span>
         <button type="button" class="info" aria-label="About chunk size" aria-describedby="tip-size">i</button>
         <span class="tip" id="tip-size" role="tooltip">Characters per chunk. Random varies it.</span>
-        <output class="val" id="val-size" for="sl-size"></output>
       </div>
       <div class="slide-row">
-        <div class="slider"><input type="range" id="sl-size" min="0" max="100" step="1" aria-labelledby="g-size"><svg class="ticks" aria-hidden="true" focusable="false"></svg></div>
+        <div class="slider" id="sl-size" role="slider" tabindex="0" aria-labelledby="g-size" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
         <button type="button" class="rand" id="rand" aria-pressed="true">Random</button>
       </div>
     </div>
@@ -128,10 +127,9 @@
         <span class="gl" id="g-throttle">Throttle</span>
         <button type="button" class="info" aria-label="About throttle" aria-describedby="tip-throttle">i</button>
         <span class="tip" id="tip-throttle" role="tooltip">Minimum time between redraws.</span>
-        <output class="val" id="val-throttle" for="sl-throttle"></output>
       </div>
       <div class="slide-row">
-        <div class="slider"><input type="range" id="sl-throttle" min="0" max="100" step="1" aria-labelledby="g-throttle"><svg class="ticks" aria-hidden="true" focusable="false"></svg></div>
+        <div class="slider" id="sl-throttle" role="slider" tabindex="0" aria-labelledby="g-throttle" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
       </div>
     </div>
     <div class="group slide">
@@ -139,10 +137,9 @@
         <span class="gl" id="g-speed">Speed</span>
         <button type="button" class="info" aria-label="About speed" aria-describedby="tip-speed">i</button>
         <span class="tip" id="tip-speed" role="tooltip">How fast chunks arrive.</span>
-        <output class="val" id="val-speed" for="sl-speed"></output>
       </div>
       <div class="slide-row">
-        <div class="slider"><input type="range" id="sl-speed" min="0" max="100" step="1" aria-labelledby="g-speed"><svg class="ticks" aria-hidden="true" focusable="false"></svg></div>
+        <div class="slider" id="sl-speed" role="slider" tabindex="0" aria-labelledby="g-speed" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
       </div>
     </div>
   </div>
