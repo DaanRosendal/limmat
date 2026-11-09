@@ -1,20 +1,22 @@
 // Block scanner: lines to units. Forward-only, so a unit followed by a unit that starts on a complete line is final.
+/** Column alignments of a table: 'left', 'center', 'right', or null. */
 export type Al = (string | null)[];
-export interface Unit {
-  k: 'p' | 'h' | 'hr' | 'f' | 'q' | 'li' | 'th' | 'tr';
+/** Line range shared by every unit. Lines are indexes into the array passed to scan(). */
+interface Span {
   a: number; // first line
   e: number; // end of content (exclusive)
   b: number; // end including trailing blank lines (exclusive)
-  lv?: number;
-  lang?: string;
-  closed?: boolean;
-  ind?: number;
-  ord?: boolean;
-  num?: number;
-  off?: number;
-  al?: Al;
-  pend?: boolean;
 }
+/** One top-level block. A list item is one unit per item, and a table is a header unit plus one unit per row. */
+export type Unit = Span &
+  (
+    | { k: 'p' | 'hr' | 'q' } // paragraph, thematic break, blockquote (its inner lines are scanned again when built)
+    | { k: 'h'; lv: number } // ATX heading, level 1 to 6
+    | { k: 'f'; lang: string; closed: boolean; ind: number } // fenced code, `ind` is the opening fence indent to strip
+    | { k: 'li'; ord: boolean; num: number; off: number } // list item, `off` is the content column, `num` the start number
+    | { k: 'th'; al: Al; pend?: boolean } // table header, `pend` while the delimiter row is still arriving
+    | { k: 'tr'; al: Al } // table body row
+  );
 
 // `[^\n]` instead of `.`: a dot stops at \r, \u2028 and \u2029, which made some of these regexes backtrack badly.
 const ATXRE = /^ {0,3}(#{1,6})(?:[ \t]([^\n]*))?$/;
@@ -75,6 +77,93 @@ function interrupts(l: string, inTable: boolean): boolean {
   return !!m && !!m[4] && m[1].length < 4 && m[2].length < 4;
 }
 
+/** Fenced code starting at line i. Runs to the closing fence or to the end of input. */
+function fenceUnit(L: string[], i: number, m: RegExpExecArray, partial: boolean, final: boolean): Unit {
+  const n = L.length;
+  const close = closer(m, ' {0,3}');
+  let j = i + 1;
+  let closed = false;
+  while (j < n) {
+    if (close.test(L[j])) {
+      closed = true;
+      j++;
+      break;
+    }
+    j++;
+  }
+  // While a closing fence is still arriving (a lone backtick run on the unfinished last line), keep it out of the code.
+  const hide = !closed && !final && partial && j === n && j - 1 > i && PARTIAL_CLOSE.test(L[n - 1]);
+  return { k: 'f', a: i, e: hide ? j - 1 : j, b: j, lang: m[3].trim().split(/\s+/)[0], closed, ind: m[1].length };
+}
+
+/** End (exclusive) of the blockquote starting at line i. */
+function quoteEnd(L: string[], i: number): number {
+  const n = L.length;
+  // Lazy continuation (a line without `>`) is only allowed right after paragraph text.
+  let j = i;
+  let para = false;
+  let fe: RegExp | null = null;
+  for (; j < n && L[j].trim(); j++) {
+    if (!BQ.test(L[j])) {
+      if (!para || interrupts(L[j], false)) break;
+      continue;
+    }
+    const c = L[j].replace(/^ {0,3}> ?/, '');
+    const f = fe ? null : fence(c);
+    if (fe) {
+      if (fe.test(c)) fe = null;
+      para = false;
+    } else if (f) {
+      fe = closer(f, ' {0,3}');
+      para = false;
+    } else para = !!c.trim() && !atx(c) && !HR.test(c);
+  }
+  return j;
+}
+
+/**
+ * Extent of the list item starting at line i, whose content starts at column `off` and has text on its first line
+ * if `text`. Returns the end of its content (`last`) and the end including trailing blank lines (`j`).
+ */
+function itemEnd(L: string[], i: number, off: number, text: boolean): { last: number; j: number } {
+  const n = L.length;
+  let j = i + 1;
+  let fe: RegExp | null = null;
+  let blank = false;
+  let last = i + 1;
+  for (; j < n; j++) {
+    const x = L[j];
+    if (fe) {
+      if (x.trim() && spaces(x) < 2) break; // the item ended, and its fence with it
+      if (fe.test(x)) {
+        fe = null;
+        text = false;
+      }
+      last = j + 1;
+      continue;
+    }
+    if (!x.trim()) {
+      blank = true;
+      continue;
+    }
+    const xi = spaces(x);
+    if (xi >= 2) {
+      const f = fence(x.slice(Math.min(xi, off)));
+      if (f) fe = closer(f, ' *');
+    } else if (LI.test(x) || interrupts(x, false) || blank || !text) break;
+    blank = false;
+    text = !fe;
+    last = j + 1;
+  }
+  return { last, j };
+}
+
+/**
+ * Split lines into units. `tbl` is the alignment of a table that was already open before line 0 (see flush() in
+ * index.ts). `partial` says the last line is still arriving, and `final` says no more input will come: both make
+ * scan() hold back constructs that the next characters could still turn into something else.
+ * One branch per block kind, tried in priority order. Each pushes a unit and advances `i` past it.
+ */
 export function scan(L: string[], tbl: Al | null, partial: boolean, final: boolean): Unit[] {
   const U: Unit[] = [];
   const n = L.length;
@@ -96,47 +185,19 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       tbl = null;
     }
     let m: RegExpExecArray | null;
+    let h: [number, string] | null;
     if ((m = fence(l))) {
-      const close = closer(m, ' {0,3}');
-      let j = i + 1;
-      let closed = false;
-      while (j < n) {
-        if (close.test(L[j])) {
-          closed = true;
-          j++;
-          break;
-        }
-        j++;
-      }
-      const hide = !closed && !final && partial && j === n && j - 1 > i && PARTIAL_CLOSE.test(L[n - 1]);
-      U.push({ k: 'f', a: i, e: hide ? j - 1 : j, b: j, lang: m[3].trim().split(/\s+/)[0], closed, ind: m[1].length });
-      i = j;
-    } else if (atx(l)) {
-      U.push({ k: 'h', a: i, e: i + 1, b: i + 1, lv: atx(l)![0] });
+      const u = fenceUnit(L, i, m, partial, final);
+      U.push(u);
+      i = u.b;
+    } else if ((h = atx(l))) {
+      U.push({ k: 'h', a: i, e: i + 1, b: i + 1, lv: h[0] });
       i++;
     } else if (HR.test(l)) {
       U.push({ k: 'hr', a: i, e: i + 1, b: i + 1 });
       i++;
     } else if (BQ.test(l)) {
-      // Lazy continuation (a line without `>`) is only allowed right after paragraph text.
-      let j = i;
-      let para = false;
-      let fe: RegExp | null = null;
-      for (; j < n && L[j].trim(); j++) {
-        if (!BQ.test(L[j])) {
-          if (!para || interrupts(L[j], false)) break;
-          continue;
-        }
-        const c = L[j].replace(/^ {0,3}> ?/, '');
-        const f = fe ? null : fence(c);
-        if (fe) {
-          if (fe.test(c)) fe = null;
-          para = false;
-        } else if (f) {
-          fe = closer(f, ' {0,3}');
-          para = false;
-        } else para = !!c.trim() && !atx(c) && !HR.test(c);
-      }
+      const j = quoteEnd(L, i);
       U.push({ k: 'q', a: i, e: j, b: j });
       i = j;
     } else if ((m = LI.exec(l))) {
@@ -148,35 +209,7 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       const ord = /\d/.test(m[2]);
       const sp = m[3]?.length ?? 1;
       const off = ind + m[2].length + (m[4] === undefined || sp > 4 ? 1 : sp);
-      let j = i + 1;
-      let fe: RegExp | null = null;
-      let blank = false;
-      let text = !!m[4];
-      let last = i + 1;
-      for (; j < n; j++) {
-        const x = L[j];
-        if (fe) {
-          if (x.trim() && spaces(x) < 2) break; // the item ended, and its fence with it
-          if (fe.test(x)) {
-            fe = null;
-            text = false;
-          }
-          last = j + 1;
-          continue;
-        }
-        if (!x.trim()) {
-          blank = true;
-          continue;
-        }
-        const xi = spaces(x);
-        if (xi >= 2) {
-          const f = fence(x.slice(Math.min(xi, off)));
-          if (f) fe = closer(f, ' *');
-        } else if (LI.test(x) || interrupts(x, false) || blank || !text) break;
-        blank = false;
-        text = !fe;
-        last = j + 1;
-      }
+      const { last, j } = itemEnd(L, i, off, !!m[4]);
       U.push({ k: 'li', a: i, e: last, b: j, ord, num: ord ? parseInt(m[2], 10) : 0, off });
       i = j;
     } else {

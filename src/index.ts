@@ -1,5 +1,5 @@
 import { type Al, atx, cells, LI, scan, spaces, type Unit } from './block';
-import { type N, parseInline } from './inline';
+import { type Inline, parseInline } from './inline';
 import { safeUrl } from './url';
 
 export interface Options {
@@ -91,7 +91,6 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   let fctx: Ctx = null;
   let tail: Entry[] = [];
   let held = ''; // a trailing CR waits for the next chunk, in case it is the first half of CRLF
-  let nested: Entry['hl'];
   let ended = false;
   let dead = false;
   let epoch = 0; // bumped by reset(), so a copy that finishes late can tell its message is gone
@@ -106,7 +105,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   };
 
   function inline(parent: Element, s: string, spec: boolean) {
-    const st: { nodes: N[]; i: number; el: Element; il: boolean }[] = [{ nodes: parseInline(s, spec), i: 0, el: parent, il: false }];
+    const st: { nodes: Inline[]; i: number; el: Element; il: boolean }[] = [{ nodes: parseInline(s, spec), i: 0, el: parent, il: false }];
     while (st.length) {
       const f = st[st.length - 1];
       if (f.i >= f.nodes.length) {
@@ -114,18 +113,18 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         continue;
       }
       const x = f.nodes[f.i++];
-      if (x.k === 't') f.el.append(x.s!);
+      if (x.k === 't') f.el.append(x.s);
       else if (x.k === 'c') f.el.append(h('code', '', x.s));
       else if (x.k === 'br') f.el.append(h('br'));
       else if (x.k === 'e') {
-        const el = h(x.tag!);
+        const el = h(x.tag);
         f.el.append(el);
-        st.push({ nodes: x.kids!, i: 0, el, il: f.il });
+        st.push({ nodes: x.kids, i: 0, el, il: f.il });
       } else {
-        const href = x.img ? null : safeUrl(x.href!, protocols, internal);
+        const href = x.k === 'l' && x.img ? null : safeUrl(x.href, protocols, internal);
         if (!href || f.il) {
-          if (x.k === 'a') f.el.append(x.s!);
-          else st.push({ nodes: x.kids!, i: 0, el: f.el, il: true });
+          if (x.k === 'a') f.el.append(x.s);
+          else st.push({ nodes: x.kids, i: 0, el: f.el, il: true });
         } else {
           const a = h('a', cls('link'));
           a.setAttribute('href', href);
@@ -134,8 +133,8 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
             a.setAttribute('rel', 'noopener noreferrer');
           }
           f.el.append(a);
-          if (x.k === 'a') a.append(x.s!);
-          else st.push({ nodes: x.kids!, i: 0, el: a, il: true });
+          if (x.k === 'a') a.append(x.s);
+          else st.push({ nodes: x.kids, i: 0, el: a, il: true });
         }
       }
     }
@@ -158,13 +157,18 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       .join('\n')
       .trimEnd();
 
-  function fenceText(u: Unit, L: string[]) {
+  function fenceText(u: Extract<Unit, { k: 'f' }>, L: string[]) {
     return L.slice(u.a + 1, u.closed ? u.e - 1 : u.e)
-      .map((x) => dedent(x, u.ind!))
+      .map((x) => dedent(x, u.ind))
       .join('\n');
   }
 
-  function build(u: Unit, L: string[], spec: boolean, depth: number, final: boolean): Built {
+  /**
+   * Turn one unit into DOM. `spec` means the unit may still grow, so unfinished markup is closed speculatively.
+   * `settled` means no more input can change it, so code is highlighted now. Fences nested in a quote or list item
+   * are queued on `hl` instead, because their parent unit can still change until it is frozen.
+   */
+  function build(u: Unit, L: string[], spec: boolean, depth: number, settled: boolean, hl?: Entry['hl']): Built {
     switch (u.k) {
       case 'p': {
         const el = h('p');
@@ -179,7 +183,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       case 'hr':
         return { n: h('hr') };
       case 'f': {
-        const lang = u.lang!;
+        const lang = u.lang;
         const text = fenceText(u, L);
         const wrap = h('div', cls('code'));
         const head = h('div', cls('code-head'));
@@ -200,8 +204,8 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         code.append(document.createTextNode(text));
         pre.append(code);
         wrap.append(head, pre);
-        if (depth > 0) nested?.push([code, text, lang]);
-        else if (u.closed || final) highlight(code, text, lang);
+        if (depth > 0) hl?.push([code, text, lang]);
+        else if (u.closed || settled) highlight(code, text, lang);
         return { n: wrap, code };
       }
       case 'q': {
@@ -212,12 +216,13 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
           depth + 1,
           spec,
           false,
+          hl,
         );
         return { n: el };
       }
       case 'li': {
         const m = LI.exec(L[u.a])!;
-        const body = [m[4] ?? '', ...L.slice(u.a + 1, u.e).map((x) => dedent(x, u.off!))];
+        const body = [m[4] ?? '', ...L.slice(u.a + 1, u.e).map((x) => dedent(x, u.off))];
         const li = h('li');
         const tk = /^\[([ xX])\](?:[ \t]+|$)/.exec(body[0]);
         if (tk) {
@@ -230,7 +235,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
           li.append(box);
           body[0] = body[0].slice(tk[0].length);
         }
-        blocks(body, li, depth + 1, spec, true);
+        blocks(body, li, depth + 1, spec, true, hl);
         return { n: li };
       }
       case 'th': {
@@ -242,7 +247,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         const tr = h('tr');
         cells(L[u.a]).forEach((c, i) => {
           const th = h('th');
-          if (u.al![i]) th.style.textAlign = u.al![i]!;
+          if (u.al[i]) th.style.textAlign = u.al[i] as string;
           inline(th, c, false);
           tr.append(th);
         });
@@ -253,10 +258,10 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         w.append(t);
         return { n: w, body };
       }
-      default: {
+      case 'tr': {
         const tr = h('tr');
         const cs = cells(L[u.a]);
-        u.al!.forEach((a, i) => {
+        u.al.forEach((a, i) => {
           const td = h('td');
           if (a) td.style.textAlign = a;
           inline(td, cs[i] ?? '', spec);
@@ -287,7 +292,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     return { ctx: u.k === 'th' ? { k: 't', el: b.body!, al: u.al } : null };
   }
 
-  function blocks(L: string[], parent: Element, depth: number, spec: boolean, unwrap: boolean) {
+  function blocks(L: string[], parent: Element, depth: number, spec: boolean, unwrap: boolean, hl?: Entry['hl']) {
     if (depth > MAX_DEPTH) {
       const p = h('p');
       inline(p, joinTrim(L), spec);
@@ -299,7 +304,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     U.forEach((u, i) => {
       const sp = spec && i === U.length - 1; // only the last block can still be growing
       if (unwrap && i === 0 && u.k === 'p') return inline(parent, joinTrim(L.slice(u.a, u.e)), sp);
-      ctx = place(parent, ctx, u, build(u, L, sp, depth, true)).ctx;
+      ctx = place(parent, ctx, u, build(u, L, sp, depth, true, hl)).ctx;
     });
   }
 
@@ -308,6 +313,18 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     e.hl = undefined;
   }
 
+  /*
+   * Incremental render. `src` is split into units by scan(), but only from `froz`, the offset of the first line that
+   * is not yet frozen. Rules that keep chunked output identical to whole output:
+   *  1. A unit is frozen (its DOM is never touched again) only when a LATER unit exists that starts on a complete
+   *     line, because only then can nothing the stream adds change how that unit is parsed or rendered.
+   *  2. A tail entry's `key` holds everything that affects its DOM (kind, text, speculative or open state), so an
+   *     unchanged key means the existing node can stay. The first changed key tears down everything after it.
+   *  3. List and table context does not live in the units: `fctx` carries the open list or table across the freeze
+   *     point, and scan() gets the table alignment through its `tbl` argument. A blank line ends a table in both.
+   *  4. An open fence updates its text in place, so the node, scroll position, and selection survive.
+   * test/freeze.test.ts and test/chunk-fuzz.test.ts hold these rules to account.
+   */
   function flush(final: boolean) {
     const text = src.slice(froz);
     const partial = !text.endsWith('\n');
@@ -317,20 +334,20 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     const keys = U.map((u, i) => {
       const spec = !final && i === U.length - 1;
       const t = L.slice(u.a, u.e).join('\n');
-      return u.k === 'f' ? `f${u.closed ? 1 : 0}${t}` : `${u.k}${spec ? '*' : ''}${u.pend ? '?' : ''}${t}`;
+      return u.k === 'f' ? `f${u.closed ? 1 : 0}${t}` : `${u.k}${spec ? '*' : ''}${u.k === 'th' && u.pend ? '?' : ''}${t}`;
     });
     let p = 0;
     while (p < tail.length && p < U.length && tail[p].key === keys[p]) p++;
     const e = tail[p];
-    if (e && p < U.length && e.open && e.code && U[p].k === 'f' && U[p].lang === e.u.lang) {
-      const u = U[p];
+    const u = U[p];
+    if (e?.open && e.code && p < U.length && u.k === 'f' && e.u.k === 'f' && u.lang === e.u.lang) {
       const text2 = fenceText(u, L);
       (e.code.firstChild as Text).data = text2;
       e.key = keys[p];
       e.u = u;
       if (u.closed || final) {
         e.open = false;
-        highlight(e.code, text2, u.lang!);
+        highlight(e.code, text2, u.lang);
       }
       p++;
     }
@@ -341,18 +358,17 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     }
     for (let i = p; i < U.length; i++) {
       const u = U[i];
-      nested = [];
-      const b = build(u, L, !final && i === U.length - 1, 0, final);
+      const hl: Entry['hl'] = [];
+      const b = build(u, L, !final && i === U.length - 1, 0, final, hl);
       const r = place(container, ctx, u, b);
       ctx = r.ctx;
-      tail.push({ key: keys[i], u, node: b.n, made: r.made, ctx, code: b.code, open: u.k === 'f' && !u.closed && !final, hl: nested });
-      nested = undefined;
+      tail.push({ key: keys[i], u, node: b.n, made: r.made, ctx, code: b.code, open: u.k === 'f' && !u.closed && !final, hl });
     }
     if (final)
       for (const t of tail) {
-        if (t.open && t.code) {
+        if (t.open && t.code && t.u.k === 'f') {
           t.open = false;
-          highlight(t.code, t.code.textContent ?? '', t.u.lang!);
+          highlight(t.code, t.code.textContent ?? '', t.u.lang);
         }
         runNested(t);
       }

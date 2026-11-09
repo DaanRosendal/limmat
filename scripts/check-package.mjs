@@ -38,7 +38,15 @@ const notAny: number = speedHighlight();
   writeFileSync(
     join(dir, 'tsconfig.json'),
     JSON.stringify({
-      compilerOptions: { module: 'nodenext', moduleResolution: 'nodenext', strict: true, noEmit: true, skipLibCheck: false, lib: ['ES2022', 'DOM'], types: [] },
+      compilerOptions: {
+        module: 'nodenext',
+        moduleResolution: 'nodenext',
+        strict: true,
+        noEmit: true,
+        skipLibCheck: false,
+        lib: ['ES2022', 'DOM'],
+        types: [],
+      },
       files: ['consumer.ts'],
     }),
   );
