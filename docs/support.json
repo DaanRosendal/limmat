@@ -21,7 +21,7 @@
     "status": "partial",
     "cm": ["Lists", "List items"],
     "tests": [{ "file": "test/regress.test.ts", "title": "list scanning" }],
-    "note": "Common chat lists work. Loose lists render tight, and many edge cases in the spec differ."
+    "note": "Bullet, ordered, and nested lists work. Loose lists render tight, and many edge cases in the spec differ."
   },
   {
     "feature": "Task lists (GFM)",
@@ -48,9 +48,14 @@
     "status": "partial",
     "cm": ["Links"],
     "tests": [{ "file": "test/xss.test.ts", "title": "blocked links keep the label as text" }],
-    "note": "Inline `[text](url)` works. Reference-style links, many title forms, and unsafe URLs render as text (most of the misses)."
+    "note": "Inline `[text](url)` works. Reference-style links, many title forms, and unsafe URLs render as text. These cause most of the misses."
   },
-  { "feature": "Reference links and definitions", "status": "not-yet", "cm": ["Link reference definitions"] },
+  {
+    "feature": "Reference links and definitions",
+    "status": "not-yet",
+    "cm": ["Link reference definitions"],
+    "note": "Render as text. Added if real LLM output needs them."
+  },
   {
     "feature": "Autolinks: `<url>`, bare URLs, `www.`, emails (GFM)",
     "status": "partial",
@@ -95,7 +100,7 @@
     "tests": [{ "file": "test/chunk-fuzz.test.ts", "title": "two-part splits at every index" }]
   },
   { "feature": "Math (`$...$`, `$$...$$`)", "status": "not-yet", "note": "Planned as an opt-in option. Dollar signs render literally today." },
-  { "feature": "Footnotes", "status": "not-yet" },
+  { "feature": "Footnotes", "status": "not-yet", "note": "Render as text. Planned as an opt-in option." },
   { "feature": "Alerts and callouts (`> [!NOTE]`)", "status": "not-yet", "note": "Renders as a normal block quote." },
   { "feature": "Citation chips (`[1]`) and emoji codes", "status": "not-yet", "note": "Planned as opt-in options. Rendered literally today." }
 ]

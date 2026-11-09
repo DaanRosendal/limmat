@@ -1,14 +1,15 @@
 # Roadmap
 
-limmat stays small on purpose. This page is honest about what is missing. The [support table](../README.md#what-is-supported) lists every syntax feature with its status, and this page covers everything else. Open an issue before starting work on anything under "Ideas", so the design can be discussed first.
+limmat stays small on purpose. This page lists what is missing. The [support table](../README.md#what-is-supported) lists every syntax feature with its status, and this page covers everything else. Open an issue before starting work on anything under "Ideas", so the design can be discussed first.
 
 ## Known issues
 
 - `[1]` shows as "1" while its closing bracket is still in flight, then as "[1]" once it is clear that no link follows. Accepted until citation chips exist.
 - `~~x~` stays literal text.
+- `#anchor` links and relative links without a leading slash render as plain text.
 - Loose lists render tight, and a list marker change inside one list does not start a new list unless it switches between bullets and numbers.
 - `throttleMs: 0` makes one very long paragraph quadratic. The default throttle bounds it.
-- Whole CommonMark sections are lower than they could be, mostly lists and links. The failures are listed in [test/fixtures/commonmark-known-failures.json](../test/fixtures/commonmark-known-failures.json) and are good first fixes: each one is a failing example waiting for a test to go green.
+- CommonMark pass rates are lowest for lists and inline links (see the spec examples column in the support table). The failures are listed in [test/fixtures/commonmark-known-failures.json](../test/fixtures/commonmark-known-failures.json) and are good first fixes: each one is a failing example waiting for a test to go green.
 
 ## Ideas (discuss first)
 
