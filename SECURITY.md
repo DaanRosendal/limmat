@@ -1,6 +1,6 @@
 # Security policy
 
-limmat renders untrusted text (LLM output) into the DOM, so security reports are welcome and taken seriously. It is maintained by one person, so the times below are intentions, not a contract.
+limmat renders untrusted text (LLM output) into the DOM, so security reports are welcome. It has one maintainer, so the times below are targets, not a promise.
 
 ## Reporting
 

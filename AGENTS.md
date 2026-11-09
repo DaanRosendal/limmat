@@ -5,7 +5,7 @@ limmat is a tiny, safe, streaming markdown renderer for LLM chat UIs (TypeScript
 ## Commands
 
 - Install with `npm ci --ignore-scripts`. Browsers: `npx playwright install chromium firefox webkit`.
-- `npm run check` runs everything CI runs: typecheck, lint, dash check, unit tests, build, package check, support-table check, size ratchet, and the browser suite in three browsers. Run it before you say a change is done.
+- `npm run check` runs everything CI runs: typecheck, lint, style check, unit tests, build, package check, support-table check, size ratchet, and the browser suite in three browsers. Run it before you say a change is done.
 - One unit test: `npx vitest run test/api.test.ts -t "part of the test name"`. Quick browser run: `npm run build && npm run test:browser:chromium`. Browser tests use `dist/`, so rebuild first.
 - `npm run format` formats with Biome. Do not hand-format or reformat unrelated code.
 - The README support table is generated. Edit `docs/support.json`, then `npm run support`. Never edit the table between the `support:` markers by hand.
