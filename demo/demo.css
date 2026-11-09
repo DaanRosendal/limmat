@@ -302,6 +302,13 @@ textarea {
     background-color: color-mix(in srgb, var(--accent) 25%, transparent);
   }
 }
+/* Browsers indent a quote by 40px, so 13 nested quotes leave no width. Keep nesting visible but cheap. */
+.rendered blockquote,
+.card .result blockquote {
+  margin: 0.25em 0 0.25em 0.25em;
+  padding-left: 0.5em;
+  border-left: 2px solid var(--line);
+}
 .rendered > * {
   margin-top: 0;
 }
@@ -456,6 +463,8 @@ textarea {
   font-size: 14px;
 }
 .card .result {
+  max-height: 12em;
+  overflow: hidden;
   border: 1px dashed var(--line);
   border-radius: 8px;
   padding: 6px 10px;

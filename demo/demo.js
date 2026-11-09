@@ -610,6 +610,10 @@ function buildGallery() {
     for (const k of result.childNodes) dump(k, 0, lines, 14);
     card.append(make('pre', '', lines.join('\n') || '(empty)'), make('p', 'verdict-line', verdict));
     cards.append(card);
+    if (result.scrollHeight > result.clientHeight + 1)
+      result.after(
+        make('p', 'label', `Clipped for display. The real output has ${result.textContent.length.toLocaleString('en')} characters.`),
+      );
   }
   cards.addEventListener('click', (e) => {
     if (e.target.closest?.('a')) e.preventDefault(); // the links are real, but a click must not leave the demo

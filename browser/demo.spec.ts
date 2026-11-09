@@ -246,3 +246,15 @@ for (const [name, setup] of [
     expect(results.violations.map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 90)}`)).toEqual([]);
   });
 }
+
+test('the page and every gallery card stay a sane height, even with 13 nested quotes', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await open(page, '#v=1&stream=reply&c=6&r=1&s=1&t=0&d=400');
+  await page.click('#finish');
+  const heights = await page.evaluate(() => ({
+    page: document.documentElement.scrollHeight,
+    cards: Array.from(document.querySelectorAll<HTMLElement>('#cards .card'), (c) => c.offsetHeight),
+  }));
+  expect(Math.max(...heights.cards)).toBeLessThan(800);
+  expect(heights.page).toBeLessThan(6000);
+});
