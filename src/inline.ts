@@ -147,6 +147,22 @@ function resolve(t: N[], spec: boolean): N[] {
   const stack: N[] = [];
   const bottom: Record<string, number> = {};
   const lit = (z: N): N => ({ k: 't', s: z.ch!.repeat(z.n!) });
+  // The nodes from `from` up to (not including) `to`, with unmatched delimiter runs turned back into text.
+  const between = (from: N | null | undefined, to: N | null) => {
+    const kids: N[] = [];
+    let md = 0;
+    for (let z = from; z && z !== to; z = z.x!) {
+      kids.push(z.k === 'd' ? lit(z) : z);
+      md = Math.max(md, z.d ?? 0);
+    }
+    return { kids, md };
+  };
+  const emphasis = (ch: string, use: number, kids: N[], md: number): N => ({
+    k: 'e',
+    tag: use === 2 ? (ch === '~' ? 'del' : 'strong') : 'em',
+    kids,
+    d: md + 1,
+  });
   for (let cur = head.x; cur; ) {
     if (cur.k !== 'd') {
       cur = cur.x!;
@@ -169,18 +185,13 @@ function resolve(t: N[], spec: boolean): N[] {
           break;
         }
         const op = stack[f];
-        const kids: N[] = [];
-        let md = 0;
-        for (let z = op.x!; z !== cl; z = z.x!) {
-          kids.push(z.k === 'd' ? lit(z) : z);
-          md = Math.max(md, z.d ?? 0);
-        }
+        const { kids, md } = between(op.x, cl);
         if (md >= MAXDEPTH) {
           bottom[key] = stack.length;
           break;
         }
         const use = op.n! >= 2 && cl.n! >= 2 ? 2 : 1;
-        const node: N = { k: 'e', tag: use === 2 ? (cl.ch === '~' ? 'del' : 'strong') : 'em', kids, d: md + 1 };
+        const node = emphasis(cl.ch!, use, kids, md);
         stack.length = f + 1;
         op.n! -= use;
         cl.n! -= use;
@@ -209,15 +220,12 @@ function resolve(t: N[], spec: boolean): N[] {
     closing: for (let j = stack.length - 1; j >= 0; j--) {
       const op = stack[j];
       while (op.n! > 0 && op.x && !(op.ch === '~' && op.n! < 2)) {
-        const kids: N[] = [];
-        let md = 0;
-        for (let z = op.x; z; z = z.x!) {
-          kids.push(z.k === 'd' ? lit(z) : z);
-          md = Math.max(md, z.d ?? 0);
-        }
+        const { kids, md } = between(op.x, null);
         if (md >= MAXDEPTH) break closing;
         const use = op.n! >= 2 ? 2 : 1;
-        const node: N = { k: 'e', tag: use === 2 ? (op.ch === '~' ? 'del' : 'strong') : 'em', kids, d: md + 1, p: op, x: null };
+        const node = emphasis(op.ch!, use, kids, md);
+        node.p = op;
+        node.x = null;
         op.x = node;
         op.n! -= use;
       }
