@@ -19,7 +19,7 @@ limmat is a tiny, safe, streaming markdown renderer for LLM chat UIs (TypeScript
 - Chunked output must equal whole output. Anything that changes parsing needs a case in `test/helpers/cases.ts`, which feeds the chunk-split fuzz and the half-open snapshots.
 - Write the failing test first. A test must assert exact output and must not pass on an unrelated failure. Security-relevant input also goes into the XSS list in `test/helpers/cases.ts`.
 - Do not use regex lookbehind (the module must load on Safari before 16.4) or APIs newer than Chrome 86, Firefox 78, and Safari 14.
-- No em dashes or en dashes anywhere, including comments and commit messages (`npm run check:style`). Biome rewrites `—` style escapes into literal characters, so build such characters from char codes if you must mention them. Use hyphens, commas, and colons, and the Oxford comma.
+- No em dashes or en dashes anywhere, including comments and commit messages (`npm run check:style`). Biome turns unicode escapes for these characters back into the literal characters, so when code must mention them, build them from char codes (see `scripts/check-style.mjs`). Use hyphens, commas, and colons, and the Oxford comma.
 - Write code from scratch. Do not copy source from other markdown libraries (the MIT license must stay clean).
 - Commits follow Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`). One logical change per commit. Name a tool that wrote a meaningful part with an `Assisted-by:` trailer, and use `Co-authored-by:` only for people.
 - `STATUS.md`, if present, is the maintainer's local handoff note and is gitignored. Do not commit it.
