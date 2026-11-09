@@ -55,7 +55,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
-    "@biomejs/biome": "^2.6.6",
+    "@biomejs/biome": "2.6.6",
     "@playwright/test": "^1.65.0",
     "@speed-highlight/core": "^2.1.0",
     "@types/node": "^26.6.6",
