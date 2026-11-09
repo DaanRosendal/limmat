@@ -79,3 +79,10 @@ The browser suite runs on current Chromium, Firefox, and WebKit. From the APIs u
 ## Content-Security-Policy
 
 limmat works under a strict policy such as `default-src 'none'; script-src 'self'; style-src 'self'`. It never uses inline scripts, `eval`, or a `style` attribute written as a string. Table alignment and the Copy fallback use the CSSOM, which `style-src` does not block. A test guards this.
+
+## Known limits
+
+- `throttleMs: 0` re-renders the open block on every write, so one very long paragraph is quadratic in that mode. The default throttle bounds it.
+- `[1]` shows as "1" while its closing bracket is in flight, then as "[1]" once it is clear that no link follows.
+- `~~x~` stays literal, and `#anchor` links and relative links without a leading slash render as plain text.
+- Loose lists render tight, and a list marker change inside one list does not start a new list unless it switches between bullets and numbers.

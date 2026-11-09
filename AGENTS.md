@@ -5,7 +5,7 @@ limmat is a tiny, safe, streaming markdown renderer for LLM chat UIs (TypeScript
 ## Commands
 
 - Install with `npm ci --ignore-scripts`. Browsers: `npx playwright install chromium firefox webkit`.
-- `npm run check` runs everything CI runs: typecheck, lint, style and link checks, unit tests, build, demo build, package check, support-table check, size ratchet, and the browser suite in three browsers. Run it before you say a change is done.
+- `npm run check` runs everything CI runs: typecheck, lint, style check, unit tests, build, demo build, package check, support-table check, size ratchet, and the browser suite in three browsers. Run it before you say a change is done.
 - One unit test: `npx vitest run test/api.test.ts -t "part of the test name"`. Quick browser run: `npm run build && npm run test:browser:chromium`. Browser tests use `dist/`, so rebuild first.
 - `npm run format` formats with Biome. Do not hand-format or reformat unrelated code.
 - The README support table is generated. Edit `docs/support.json`, then `npm run support`. Never edit the table between the `support:` markers by hand.
@@ -22,7 +22,7 @@ limmat is a tiny, safe, streaming markdown renderer for LLM chat UIs (TypeScript
 - Do not use regex lookbehind (the module must load on Safari before 16.4) or APIs newer than Chrome 86, Firefox 78, and Safari 14.
 - No em dashes or en dashes anywhere, including comments and commit messages (`npm run check:style`). When code must mention these characters, build them from char codes (see `scripts/check-style.mjs`), because escapes can be turned into the literal characters on the way into a file. Use hyphens, commas, and colons, and the Oxford comma.
 - Write code from scratch. Do not copy source from other markdown libraries (the MIT license must stay clean).
-- Commits follow Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`). One logical change per commit. Name a tool that wrote a meaningful part with an `Assisted-by:` trailer, and use `Co-authored-by:` only for people.
+- Commits follow Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`). One logical change per commit.
 - `STATUS.md`, if present, is the maintainer's local handoff note and is gitignored. Do not commit it.
 
 ## Do not, without an explicit yes from the maintainer each time
@@ -34,4 +34,3 @@ limmat is a tiny, safe, streaming markdown renderer for LLM chat UIs (TypeScript
 ## Where things are
 
 - `src/`: `block.ts` (block scanner), `inline.ts` (inline parser), `url.ts` (link policy), `index.ts` (renderer), `highlight.ts` (optional adapter), `style.css`.
-- `test/README.md` says which suite guards what. `docs/ROADMAP.md` lists known issues and decisions against, so check it before proposing a feature.

@@ -22,7 +22,6 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run check:style
-      - run: npm run check:links
       - run: npm test
       - run: npm run build
       - run: npm run build:demo

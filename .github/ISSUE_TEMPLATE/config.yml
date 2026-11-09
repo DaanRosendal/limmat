@@ -1,5 +1,0 @@
-blank_issues_enabled: true
-contact_links:
-  - name: Report a security problem
-    url: https://github.com/DaanRosendal/limmat/security/advisories/new
-    about: Private reporting. Please do not file security problems as public issues.

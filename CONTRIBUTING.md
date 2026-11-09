@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping. limmat stays small on purpose, so features need a clear use in chat UIs for LLM output.
+Thanks for helping. limmat stays small on purpose, so features need a clear use for streaming markdown from LLMs.
 
 ## Setup
 
@@ -9,50 +9,19 @@ Use Node 24 (see `.nvmrc`). The dev tools need Node 22.22.2 or newer on 22, 24.1
 ```sh
 npm ci --ignore-scripts
 npx playwright install chromium firefox webkit
-npm run check   # typecheck, lint, style, links, unit tests, build, package check, support table, size, browser tests
+npm run check   # typecheck, lint, style, unit tests, builds, package and support checks, size, browser tests
 ```
 
-Run `npm run format` before committing. Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before changing the scanner or the freeze logic, and [test/README.md](test/README.md) to see which suite guards what.
-
-## Where to start
-
-- Pick a failing example from [test/fixtures/commonmark-known-failures.json](test/fixtures/commonmark-known-failures.json) that real chat output would hit, write the test, and fix it.
-- Add a missing test case to `test/helpers/cases.ts`. A new case runs through the chunk-split fuzz and the half-open snapshots for free.
-- Improve a note in the [support table](README.md#what-is-supported): edit `docs/support.json`, then run `npm run support`.
-- For anything bigger, open an issue first. [docs/ROADMAP.md](docs/ROADMAP.md) lists what is wanted and what was decided against.
+Run `npm run format` before committing. Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before changing the scanner or the freeze logic.
 
 ## Rules
 
 - The DOM is built with `createElement` and text nodes. Never use `innerHTML`, `insertAdjacentHTML`, or `outerHTML` in `src/`.
-- Every fix starts with a failing test. Streaming changes need a case in the chunk-split fuzz corpus (`test/helpers/cases.ts`), and security-relevant input goes into the XSS list in the same file.
-- The size ratchet: `npm run size` fails if the core grows by more than 3%. Size matters, but useful features and clearer code are worth a few percent: if the growth is worth it, run `npm run size -- --update` and say why in the commit message.
-- The package check, `npm run check:package` (after a build), verifies the tarball contents and that a strict NodeNext TypeScript consumer compiles.
-- The conformance ratchet: `test/commonmark.test.ts` fails on a new CommonMark failure and on a stale entry in `test/fixtures/commonmark-known-failures.json`. Regenerate with `UPDATE_CONFORMANCE=1 npx vitest run test/commonmark.test.ts` after an intentional change, and review the diff.
-- One logical change per pull request, and no drive-by reformatting: Biome formats the code, and `npm run format` is the only formatter. If you cannot write an automated test, say how you checked the change.
-- New syntax must say what it shows while it is still open (the speculative render), and must be opt-in if it changes how any text renders today. Add or update its row in `docs/support.json`.
+- Every fix starts with a failing test. Streaming changes need a case in `test/helpers/cases.ts`, which feeds the chunk-split fuzz and the half-open snapshots, and security-relevant input goes into the XSS list in the same file.
+- `npm run size` fails if the core grows by more than 3%. If the growth is worth it, run `npm run size -- --update` and say why in the commit message.
+- `test/commonmark.test.ts` fails on a new CommonMark failure and on a stale entry in `test/fixtures/commonmark-known-failures.json`. Regenerate with `UPDATE_CONFORMANCE=1 npx vitest run test/commonmark.test.ts` after an intentional change, and review the diff.
+- The README support table is generated: edit `docs/support.json`, then run `npm run support`. New syntax must say what it shows while it is still open, and must be opt-in if it changes how any text renders today.
+- One logical change per pull request, and no drive-by reformatting.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `test:`, `docs:`).
-- Writing uses hyphens, commas, and colons, not em or en dashes. Use the Oxford comma.
-- No runtime dependencies. Dev dependencies should stay few and well known.
-- Write the renderer from your own code. Do not copy source from other markdown libraries, so the MIT license stays clean.
-
-## AI-assisted contributions
-
-Using an AI tool is fine. A person must be in the loop: you are responsible for every line, you can explain why it is correct, and you ran the checks yourself. Pull requests that look autonomous or unreviewed will be closed, so please do not point an agent at this repository and let it open pull requests on its own.
-
-- Write the pull request description and your replies yourself. If you quote tool output, put it in a quote block, say so, and add your own comments.
-- Say so when a tool wrote a meaningful part. Name the tool in an `Assisted-by:` trailer. Use `Co-authored-by:` only for people who share responsibility.
-- Bug reports and security reports must include a reproduction we can run, and should say if an AI tool found the problem. Output from a scanner or a chat with no reproduction will be closed.
-- Generated code must be original, not copied from another markdown library.
-- Agents working in this repository should read [AGENTS.md](AGENTS.md).
-
-A change of more than about 500 lines needs an issue first.
-
-## Releasing (maintainer)
-
-1. Enable private vulnerability reporting on the GitHub repository (Settings, Code security), because `SECURITY.md` and the issue chooser link to it.
-2. `npm run check` is green on `master`. Move the `[Unreleased]` entries in `CHANGELOG.md` under the new version and date.
-3. Remove `"private": true` and set the version in `package.json`.
-4. `npm publish --access public` from an interactive terminal (npm asks for browser approval and 2FA).
-5. Tag `vX.Y.Z` and publish the GitHub release with the changelog entry. `prepublishOnly` rebuilds `dist/` and runs the package check, because `dist/` is not in git.
-
-A stable API is deprecated for at least one minor release, with a "Deprecated" entry in the changelog, before it is removed. From 1.0 on, removals happen only in a major version.
+- Use hyphens, commas, and colons, not em or en dashes, and the Oxford comma.
+- No runtime dependencies. Write the renderer from your own code, and do not copy source from other markdown libraries, so the MIT license stays clean.

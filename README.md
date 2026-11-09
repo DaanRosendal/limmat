@@ -1,10 +1,8 @@
 # limmat
 
-limmat renders streaming markdown into the DOM as it arrives. It is about 7 kB gzip, has no dependencies and no framework, and builds DOM nodes instead of HTML strings, so raw HTML in model output shows as text.
+limmat is a tiny, safe markdown renderer for text that arrives in pieces, built for LLM chat. It renders into the DOM as it streams, never builds HTML strings, and has no dependencies. It is about 7 kB gzip, and raw HTML in model output shows as text.
 
-It is built for chat UIs where an LLM streams a reply in chunks of a few characters. Only the open block re-renders, and half-finished markdown never shows raw markers.
-
-Status: 0.x, one maintainer. See [Stability](docs/API.md#stability) and [Project status](#project-status).
+Status: 0.x, so minor releases may still change the API (see [Stability](docs/API.md#stability)).
 
 <p align="center">
   <a href="https://limmat.daanrosendal.com">
@@ -15,7 +13,7 @@ Status: 0.x, one maintainer. See [Stability](docs/API.md#stability) and [Project
   </a>
 </p>
 
-**[Try the demo](https://limmat.daanrosendal.com)**: change the chunking, scrub through a stream, and throw hostile input at it. To run it yourself, clone the repo and use `npm run demo`.
+**[Try the demo](https://limmat.daanrosendal.com)**: change the chunking, scrub through a stream, and throw hostile input at it. It also fits agent and tool output, comments, and live previews. To run it yourself, clone the repo and use `npm run demo`.
 
 ```ts
 import { createRenderer } from 'limmat';
@@ -30,17 +28,6 @@ md.end();
 
 ```sh
 npm install limmat
-```
-
-No bundler? Copy `dist/limmat.min.js` (and optionally `dist/style.css`) into your project and import it as a module:
-
-```html
-<script type="module">
-  import { createRenderer } from './limmat.min.js';
-  const r = createRenderer(document.querySelector('#answer'));
-  r.write('Hello **world**');
-  r.end();
-</script>
 ```
 
 ## Use
@@ -59,24 +46,6 @@ md.end();
 
 With an LLM SDK, call `md.write(delta)` for each text delta and `md.end()` when the stream finishes.
 
-With every option:
-
-```ts
-import { createRenderer } from 'limmat';
-import { speedHighlight } from 'limmat/highlight';
-
-const el = document.querySelector<HTMLElement>('#answer')!;
-const knownPages = new Set(['/research/', '/about/']);
-const md = createRenderer(el, {
-  isInternalPath: (path) => knownPages.has(path),
-  onLinkClick: (href, event) => {
-    if (href.startsWith('/')) { history.pushState({}, '', href); return true; } // handled: limmat calls preventDefault
-  },
-  highlight: speedHighlight(),
-  labels: { copy: 'Kopieren', copied: 'Kopiert' },
-});
-```
-
 Options, methods, code highlighting, styling, and accessibility are in [docs/API.md](docs/API.md).
 
 ## Why limmat
@@ -85,25 +54,13 @@ Options, methods, code highlighting, styling, and accessibility are in [docs/API
 - The DOM is built with `createElement` and text nodes. Links go through a protocol allow-list, and images are never loaded.
 - Headings, emphasis, strikethrough, code with a language label and Copy button, nested and task lists, blockquotes, tables with alignment, links, autolinked URLs and emails, and hard breaks. Optional CSS, and an optional lazy code highlighter.
 
-### Safety in short
-
-- Raw HTML in the input is shown as text.
-- Links need an allowed protocol (`https`, `http`, `mailto` by default). `javascript:`, `data:`, and `vbscript:` are refused even if you list them. External links get `rel="noopener noreferrer"`.
-- Images are never created, so they cannot track or exfiltrate. The alt text is shown.
-- Nesting and work are capped, so hostile input cannot overflow the stack or make parsing quadratic.
-- limmat does not protect you from your own CSS or from what your callbacks do.
-
-The full list is in [docs/SECURITY-MODEL.md](docs/SECURITY-MODEL.md).
+Security model and how to report a problem: [SECURITY.md](SECURITY.md).
 
 ## What is supported
 
 Unsupported syntax renders as literal text, never as markup. Anything not listed here has not been audited. The table is generated from [docs/support.json](docs/support.json) and the CommonMark 0.31.2 results, and CI fails if it drifts, if a row cites a test that does not exist, or if a row says "supported" while most of its spec examples fail.
 
-- **Supported**: works for the cases LLM chat produces, with tests.
-- **Partial**: the common cases work, the notes say what does not.
-- **Not yet**: not implemented, and a candidate for the roadmap.
-- **Will not**: refused on purpose, usually for safety.
-- **Spec examples**: CommonMark examples that pass, out of the examples in that section (including sections we do not aim for). The failures are listed by number in [test/fixtures/commonmark-known-failures.json](test/fixtures/commonmark-known-failures.json).
+Statuses: Supported (works, with tests), Partial (the common cases work, the notes say what does not), Not yet, and Will not (refused on purpose, usually for safety). Spec examples are the CommonMark 0.31.2 examples that pass, out of those in that section. The failures are listed by number in [test/fixtures/commonmark-known-failures.json](test/fixtures/commonmark-known-failures.json).
 
 <!-- support:start (generated by scripts/gen-support.mjs from docs/support.json, do not edit) -->
 | Feature | Status | Spec examples | Notes and proof |
@@ -137,8 +94,6 @@ Unsupported syntax renders as literal text, never as markup. Anything not listed
 | Citation chips (`[1]`) and emoji codes | Not yet |  | Planned as opt-in options. Rendered literally today. |
 <!-- support:end -->
 
-Known issues, ideas, and decisions against, with reasons, are in [docs/ROADMAP.md](docs/ROADMAP.md).
-
 ## Compared with streaming-markdown
 
 Checked against streaming-markdown 0.2.15 with its default renderer, in November 2026.
@@ -158,14 +113,10 @@ limmat's output is DOM nodes, and WebAssembly cannot touch the DOM, so a Rust pa
 
 ## Tested
 
-`npm run check` runs typecheck, lint, a style check, unit tests, a build, a package check, a support-table check, a size check, and the browser suite in Chromium, Firefox, and WebKit. That covers 54 XSS inputs run in real browsers, a malicious-input fuzz, a chunk-split fuzz (any chunking gives the same DOM as one write), half-open snapshots for every construct, 331 of 471 in-scope CommonMark examples, performance budgets, a memory test, and accessibility checks with axe. [test/README.md](test/README.md) says which suite guards what.
-
-## Project status
-
-limmat is a small project with one maintainer. Only the latest minor release is supported, and no release schedule is promised. Report bugs in [issues](https://github.com/DaanRosendal/limmat/issues) and security problems as described in [SECURITY.md](SECURITY.md). Contributions are welcome: start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [roadmap](docs/ROADMAP.md).
-
-Docs: [API](docs/API.md), [security model](docs/SECURITY-MODEL.md), [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), [changelog](CHANGELOG.md).
+`npm run check` runs typecheck, lint, unit tests, the support-table check, a size ratchet, and a browser suite in Chromium, Firefox, and WebKit, including 54 XSS inputs, chunk-split fuzzing, and accessibility checks.
 
 ## License
 
 MIT, Copyright (c) 2026 Daan Rosendal. Named after the river through Zurich.
+
+To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
