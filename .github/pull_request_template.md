@@ -9,4 +9,5 @@
 - [ ] Size change noted if the core moved by more than about 1% (`npm run size`).
 - [ ] CHANGELOG line added if users can see the change.
 - [ ] `docs/support.json` updated if a support row changed (`npm run support`).
+- [ ] If a tool wrote part of this, I say so below and name it in an `Assisted-by:` trailer.
 - [ ] I can explain every line of this change, including any that a tool wrote.

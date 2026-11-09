@@ -35,7 +35,15 @@ Run `npm run format` before committing. Read [docs/ARCHITECTURE.md](docs/ARCHITE
 
 ## AI-assisted contributions
 
-Using an AI tool is fine. Submitting something you cannot explain is not: you are responsible for every line, you should be able to say why it is correct, and you must have run the checks yourself. Do not paste tool output as a bug report or a security report: include a reproduction we can run. Add an `Assisted-by:` line to the commit message when a tool wrote a meaningful part. Generated code must be original, not copied from another markdown library. Pull requests that look unreviewed will be closed.
+Using an AI tool is fine. A person must be in the loop: you are responsible for every line, you can explain why it is correct, and you ran the checks yourself. Pull requests that look autonomous or unreviewed will be closed, so please do not point an agent at this repository and let it open pull requests on its own.
+
+- Write the pull request description and your replies yourself. If you quote tool output, put it in a quote block, say so, and add your own comments.
+- Say so when a tool wrote a meaningful part. Name the tool in an `Assisted-by:` trailer. Use `Co-authored-by:` only for people who share responsibility.
+- Bug reports and security reports must include a reproduction we can run, and should say if an AI tool found the problem. Output from a scanner or a chat with no reproduction will be closed.
+- Generated code must be original, not copied from another markdown library.
+- Agents working in this repository should read [AGENTS.md](AGENTS.md).
+
+A change of more than about 500 lines needs an issue first.
 
 ## Releasing (maintainer)
 
