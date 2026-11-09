@@ -1,0 +1,33 @@
+name: Bug report
+description: Something renders wrong, throws, or is slow
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For a security problem (script execution, a disallowed link or load, a crash or hang on hostile input), do not file a public issue. See SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: limmat version
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version, or jsdom
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: Exact markdown input and how it was chunked
+      description: A string we can paste, and the chunk sizes (or "one write").
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual DOM
+      description: Check the support table in the README first, because unsupported syntax is shown as text on purpose.
+    validations:
+      required: true
