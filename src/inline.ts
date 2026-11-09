@@ -1,21 +1,34 @@
 // Inline markdown to a small tree. Tokenizing is one pass, emphasis uses the CommonMark delimiter stack (linear),
 // and `spec` closes unfinished constructs speculatively so a half-streamed reply never shows raw markers.
 
-export interface N {
-  k: string; // t text, c code, br, e emphasis, l link or image, a autolink, d delimiter, [ bracket, h list head
-  s?: string;
-  tag?: string;
-  kids?: N[];
-  href?: string;
-  img?: boolean;
-  d?: number;
-  ch?: string;
-  n?: number;
-  o?: boolean;
-  c?: boolean;
-  orig?: number;
-  p?: N | null;
-  x?: N | null;
+/** What parseInline returns: a finished tree, ready to turn into DOM. Only these shapes ever leave this module. */
+export type Inline =
+  | { k: 't'; s: string } // text
+  | { k: 'c'; s: string } // inline code
+  | { k: 'br' }
+  | { k: 'e'; tag: 'em' | 'strong' | 'del'; kids: Inline[] }
+  | { k: 'l'; href: string; img: boolean; kids: Inline[] } // link, or image (img: rendered as its alt text)
+  | { k: 'a'; s: string; href: string }; // autolink, the text is the URL or email
+
+/**
+ * Working node used while parsing. One loose shape (rather than a union) because delimiter nodes are rewritten in
+ * place as the CommonMark delimiter stack resolves, and esbuild does not mangle property names, so keep them short.
+ */
+interface N {
+  k: 't' | 'c' | 'br' | 'e' | 'l' | 'a' | 'd' | '[' | 'h'; // text, code, break, emphasis, link, autolink, delimiter run, open bracket, list head
+  s?: string; // text, code, or autolink text
+  tag?: string; // emphasis element name
+  kids?: N[]; // children of emphasis and links
+  href?: string; // link or autolink target, not yet checked by safeUrl
+  img?: boolean; // image rather than link
+  d?: number; // nesting depth of this node's subtree, capped at MAXDEPTH
+  ch?: string; // delimiter character (* _ ~)
+  n?: number; // delimiter run length still unmatched
+  o?: boolean; // delimiter can open emphasis
+  c?: boolean; // delimiter can close emphasis
+  orig?: number; // delimiter run length when first seen (rule of 3)
+  p?: N | null; // previous node in the delimiter list
+  x?: N | null; // next node in the delimiter list
 }
 
 const PUNCT = /[\p{P}\p{S}]/u;
@@ -218,7 +231,7 @@ function resolve(t: N[], spec: boolean): N[] {
   return merge(out);
 }
 
-export function parseInline(s: string, spec: boolean): N[] {
+export function parseInline(s: string, spec: boolean): Inline[] {
   const out: N[] = [];
   const brk: number[] = [];
   const n = s.length;
@@ -391,5 +404,5 @@ export function parseInline(s: string, spec: boolean): N[] {
     if (x.k !== '[') fin.push(x);
     else if (!spec) fin.push({ k: 't', s: x.img ? '![' : '[' });
   }
-  return resolve(fin, spec);
+  return resolve(fin, spec) as unknown as Inline[]; // no delimiter or bracket nodes survive resolve()
 }
