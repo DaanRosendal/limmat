@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { CORPUS, REPLY, XSS } from '../test/helpers/cases';
 import { expect, test } from './fixture';
@@ -112,6 +113,25 @@ test('the highlight adapter highlights once the fence closes and keeps the text'
   });
   await expect(page.locator('code span[class*="shj-"]').first()).toBeVisible({ timeout: 5000 });
   expect(await page.locator('code').textContent()).toBe('const a: number = 1;');
+});
+
+test('a speed-highlight theme does not add a second frame inside the code block', async ({ page }) => {
+  await page.addStyleTag({ content: readFileSync('node_modules/@speed-highlight/core/dist/themes/default.css', 'utf8') });
+  await page.addStyleTag({ path: 'dist/style.css' });
+  await page.evaluate(() => {
+    const root = document.getElementById('root')!;
+    root.replaceChildren();
+    const lim = (window as any).limmat;
+    const r = lim.createRenderer(root, { highlight: lim.speedHighlight() });
+    r.write('```ts\nconst a: number = 1;\n```');
+    r.end();
+  });
+  await expect(page.locator('code span[class*="shj-"]').first()).toBeVisible({ timeout: 5000 });
+  const css = await page.locator('code').evaluate((el) => {
+    const c = getComputedStyle(el);
+    return { border: c.borderTopWidth, padding: c.paddingTop, margin: c.marginTop, bg: c.backgroundColor };
+  });
+  expect(css).toEqual({ border: '0px', padding: '0px', margin: '0px', bg: 'rgba(0, 0, 0, 0)' });
 });
 
 for (const [name, opts] of [

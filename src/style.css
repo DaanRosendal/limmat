@@ -80,6 +80,16 @@
 .limmat-code code {
   font: inherit;
 }
+/* A @speed-highlight/core theme styles <code> as a standalone block. Keep limmat's frame and let the theme set colors only. */
+.limmat-code code[class*="shj-lang-"] {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  max-width: none;
+  font: inherit;
+}
 .limmat-table-wrap {
   margin: 0.75em 0;
   overflow-x: auto;
