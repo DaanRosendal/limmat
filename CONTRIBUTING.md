@@ -21,7 +21,7 @@ Run `npm run format` before committing. Read [docs/ARCHITECTURE.md](docs/ARCHITE
 
 ## Rules
 
-- **Safety first.** The DOM is built with `createElement` and text nodes. Never use `innerHTML`, `insertAdjacentHTML` or `outerHTML` in `src/`.
+- **Safety first.** The DOM is built with `createElement` and text nodes. Never use `innerHTML`, `insertAdjacentHTML`, or `outerHTML` in `src/`.
 - **Tests first.** Every fix starts with a failing test. Streaming changes need a case in the chunk-split fuzz corpus (`test/helpers/cases.ts`), and security-relevant input goes into the XSS list in the same file.
 - **Size ratchet.** `npm run size` fails if the core grows by more than 3%. Size matters, but useful features and clearer code are worth a few percent: if the growth is worth it, run `npm run size -- --update` and say why in the commit message.
 - **Package check.** `npm run check:package` (after a build) verifies the tarball contents and that a strict NodeNext TypeScript consumer compiles.
@@ -47,9 +47,10 @@ A change of more than about 500 lines needs an issue first.
 
 ## Releasing (maintainer)
 
-1. `npm run check` is green on `main`, and `CHANGELOG.md` has the version and date.
-2. Remove `"private": true` and set the version in `package.json`.
-3. `npm publish --access public` from an interactive terminal (npm asks for browser approval and 2FA).
-4. Tag the release and publish the GitHub release with the changelog entry.
+1. Enable private vulnerability reporting on the GitHub repository (Settings, Code security), because `SECURITY.md` and the issue chooser link to it.
+2. `npm run check` is green on `main`. Move the `[Unreleased]` entries in `CHANGELOG.md` under the new version and date.
+3. Remove `"private": true` and set the version in `package.json`.
+4. `npm publish --access public` from an interactive terminal (npm asks for browser approval and 2FA).
+5. Tag `vX.Y.Z` and publish the GitHub release with the changelog entry. `prepublishOnly` rebuilds `dist/` and runs the package check, because `dist/` is not in git.
 
 A stable API is deprecated for at least one minor release, with a "Deprecated" entry in the changelog, before it is removed. From 1.0 on, removals happen only in a major version.

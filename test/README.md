@@ -10,7 +10,7 @@
 | `fuzz-malicious.test.ts`      | Generated hostile input: no throw, bounded time, a safe DOM.                         |
 | `chunk-fuzz.test.ts`          | Any chunking renders the same DOM as one write.                                      |
 | `half-open.test.ts`           | A cut-off construct never shows raw markers.                                         |
-| `freeze.test.ts`              | Frozen units are never touched again (mutation-checked).                             |
+| `freeze.test.ts`              | Frozen units are never touched again (deterministic).                                |
 | `golden.test.ts`              | Exact output for a few documents (`fixtures/golden.json`).                           |
 | `conformance.test.ts`         | Hand-written CommonMark-style cases.                                                 |
 | `commonmark.test.ts`          | The CommonMark 0.31.2 examples, with a ratchet for known failures.                   |
