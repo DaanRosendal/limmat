@@ -37,8 +37,24 @@ export function renderOpen(md: string, options: Options = {}) {
 /** innerHTML without class attributes, to keep expectations short. */
 export const html = (el: Element) => el.innerHTML.replace(/ class="[^"]*"/g, '');
 
-const TAGS = new Set('P H1 H2 H3 H4 H5 H6 HR BLOCKQUOTE UL OL LI DIV SPAN BUTTON PRE CODE TABLE THEAD TBODY TR TH TD A EM STRONG DEL BR INPUT'.split(' '));
-const ATTRS = new Set(['class', 'href', 'target', 'rel', 'tabindex', 'role', 'aria-label', 'aria-hidden', 'type', 'disabled', 'checked', 'start', 'style']);
+const TAGS = new Set(
+  'P H1 H2 H3 H4 H5 H6 HR BLOCKQUOTE UL OL LI DIV SPAN BUTTON PRE CODE TABLE THEAD TBODY TR TH TD A EM STRONG DEL BR INPUT'.split(' '),
+);
+const ATTRS = new Set([
+  'class',
+  'href',
+  'target',
+  'rel',
+  'tabindex',
+  'role',
+  'aria-label',
+  'aria-hidden',
+  'type',
+  'disabled',
+  'checked',
+  'start',
+  'style',
+]);
 const SAFE_HREF = /^(https?:\/\/[^/?#\s]|mailto:[^\s]|\/(?![/\\]))/i;
 
 /** Returns a list of problems found in the DOM. Empty means safe. */
@@ -53,10 +69,16 @@ export function audit(root: Element): string[] {
       if (!ATTRS.has(a.name)) bad.push(`attr ${a.name}`);
       if (a.name.startsWith('on')) bad.push(`handler ${a.name}`);
       if (a.name === 'href' && (tag !== 'A' || !SAFE_HREF.test(a.value))) bad.push(`href ${a.value}`);
-      if (a.name === 'style' && !(['TH', 'TD'].includes(tag) && /^text-align: ?(left|center|right);?$/.test(a.value))) bad.push(`style ${a.value}`);
+      if (a.name === 'style' && !(['TH', 'TD'].includes(tag) && /^text-align: ?(left|center|right);?$/.test(a.value)))
+        bad.push(`style ${a.value}`);
       if (a.name === 'class' && /[\s"'<>]/.test(a.value.replace(/ /g, ''))) bad.push('class chars');
     }
-    if (tag === 'A' && /^https?:/i.test(e.getAttribute('href') ?? '') && (e.getAttribute('target') !== '_blank' || e.getAttribute('rel') !== 'noopener noreferrer')) bad.push('external link rel');
+    if (
+      tag === 'A' &&
+      /^https?:/i.test(e.getAttribute('href') ?? '') &&
+      (e.getAttribute('target') !== '_blank' || e.getAttribute('rel') !== 'noopener noreferrer')
+    )
+      bad.push('external link rel');
   }
   return bad;
 }

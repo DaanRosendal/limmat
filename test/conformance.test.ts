@@ -88,7 +88,10 @@ describe('conformance, own cases for the supported subset', () => {
   it('task lists', () => {
     const li = render('- [x] done\n- [ ] todo').querySelectorAll('li');
     const boxes = Array.from(li).map((l) => l.querySelector('input') as HTMLInputElement);
-    expect(boxes.map((b) => [b.type, b.disabled, b.defaultChecked])).toEqual([['checkbox', true, true], ['checkbox', true, false]]);
+    expect(boxes.map((b) => [b.type, b.disabled, b.defaultChecked])).toEqual([
+      ['checkbox', true, true],
+      ['checkbox', true, false],
+    ]);
     expect(li[0].textContent).toBe('done');
   });
 

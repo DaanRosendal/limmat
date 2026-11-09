@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { audit, render } from './helpers/util';
 import { XSS } from './helpers/cases';
+import { audit, render } from './helpers/util';
 
 describe('xss battery', () => {
   it('has at least 50 cases', () => expect(XSS.length).toBeGreaterThanOrEqual(50));

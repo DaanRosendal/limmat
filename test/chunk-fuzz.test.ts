@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { render, rng, type Split } from './helpers/util';
 import { CORPUS, XSS } from './helpers/cases';
+import { render, rng, type Split } from './helpers/util';
 
 const docs = [...CORPUS, ...XSS.map(([, md]) => md)];
 
@@ -35,7 +35,11 @@ describe('chunked output equals whole output', () => {
       const root = document.createElement('div');
       const r = createRenderer(root, { throttleMs: 50 });
       const rand = rng(3);
-      for (let i = 0; i < md.length; ) { const n = 1 + Math.floor(rand() * 8); r.write(md.slice(i, i + n)); i += n; }
+      for (let i = 0; i < md.length; ) {
+        const n = 1 + Math.floor(rand() * 8);
+        r.write(md.slice(i, i + n));
+        i += n;
+      }
       r.end();
       expect(root.innerHTML).toBe(render(md).innerHTML);
     }

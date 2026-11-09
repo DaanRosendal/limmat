@@ -1,7 +1,7 @@
-import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { gzipSync, brotliCompressSync } from 'node:zlib';
+import { brotliCompressSync, gzipSync } from 'node:zlib';
+import { build } from 'esbuild';
 
 rmSync('dist', { recursive: true, force: true });
 mkdirSync('dist');

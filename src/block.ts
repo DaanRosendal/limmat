@@ -33,7 +33,8 @@ export function cells(l: string): string[] {
   if (l.endsWith('|') && !l.endsWith('\\|')) l = l.slice(0, -1);
   return l.split(/(?<!\\)\|/).map((c) => c.trim().replace(/\\\|/g, '|'));
 }
-const aligns = (l: string): Al => cells(l).map((c) => (c[0] === ':' ? (c.endsWith(':') ? 'center' : 'left') : c.endsWith(':') ? 'right' : null));
+const aligns = (l: string): Al =>
+  cells(l).map((c) => (c[0] === ':' ? (c.endsWith(':') ? 'center' : 'left') : c.endsWith(':') ? 'right' : null));
 
 const fence = (l: string) => {
   const m = FENCE.exec(l);
@@ -59,17 +60,26 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       continue;
     }
     if (tbl) {
-      if (!interrupts(l, true)) { U.push({ k: 'tr', a: i, e: i + 1, b: i + 1, al: tbl }); i++; continue; }
+      if (!interrupts(l, true)) {
+        U.push({ k: 'tr', a: i, e: i + 1, b: i + 1, al: tbl });
+        i++;
+        continue;
+      }
       tbl = null;
     }
     let m: RegExpExecArray | null;
     if ((m = fence(l))) {
-      const ch = m[2][0], len = m[2].length;
+      const ch = m[2][0],
+        len = m[2].length;
       const close = new RegExp(`^ {0,3}${ch}{${len},}[ \\t]*$`);
       let j = i + 1;
       let closed = false;
       while (j < n) {
-        if (close.test(L[j])) { closed = true; j++; break; }
+        if (close.test(L[j])) {
+          closed = true;
+          j++;
+          break;
+        }
         j++;
       }
       const hide = !closed && !final && partial && j === n && j - 1 > i && PARTIAL_CLOSE.test(L[n - 1]);
@@ -99,11 +109,17 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       for (; j < n; j++) {
         const x = L[j];
         if (fe) {
-          if (fe.test(x)) { fe = null; text = false; }
+          if (fe.test(x)) {
+            fe = null;
+            text = false;
+          }
           last = j + 1;
           continue;
         }
-        if (!x.trim()) { blank = true; continue; }
+        if (!x.trim()) {
+          blank = true;
+          continue;
+        }
         const xi = spaces(x);
         if (xi >= 2) {
           const f = fence(x.slice(Math.min(xi, off)));
