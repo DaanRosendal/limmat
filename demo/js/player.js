@@ -154,7 +154,7 @@ export function scrub(target) {
   emitPhase();
 }
 
-/** The visitor typed in the editor: the text becomes "Yours", and limmat renders it as an open stream, not a finished one. */
+/** The visitor typed in the editor: the text becomes "Custom", and limmat renders it as an open stream, not a finished one. */
 export function edit(text) {
   if (s.playing) pause();
   clearTimeout(s.timer);

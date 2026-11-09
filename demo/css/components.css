@@ -79,16 +79,6 @@ h3 {
   background: var(--accent);
   color: var(--accent-ink);
 }
-.ghost {
-  padding: 6px 8px;
-  color: var(--muted);
-  font-weight: 500;
-  text-decoration: none;
-  border-radius: 8px;
-}
-.ghost:hover {
-  color: var(--fg);
-}
 .pill {
   display: inline-flex;
   align-items: center;
@@ -171,6 +161,16 @@ h3 {
 .btn.primary:hover {
   background: var(--accent);
   filter: brightness(1.08);
+}
+#share .i-check {
+  display: none;
+}
+#share[data-done] .i-link {
+  display: none;
+}
+#share[data-done] .i-check {
+  display: block;
+  color: var(--ok);
 }
 #play .i-pause {
   display: none;
@@ -480,7 +480,6 @@ input[type="range"] {
     animation: none;
   }
   .seg::before,
-  .menu,
   .btn,
   .icon-btn,
   .pill,

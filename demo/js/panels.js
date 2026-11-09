@@ -1,4 +1,4 @@
-// Panels laid over the panes (chunking check, attack, support, paste) and the small header menu.
+// Panels laid over the panes (support and paste).
 import { $, $$ } from './dom.js';
 
 const panes = $$('.pane');
@@ -21,7 +21,6 @@ export function closePanel(returnFocus = true) {
 }
 
 export function openPanel(name, from = document.activeElement) {
-  closeMenu();
   if (current === name) return;
   const sameOpener = current !== null;
   if (current) closePanel(false);
@@ -35,34 +34,10 @@ export function openPanel(name, from = document.activeElement) {
   (name === 'paste' ? $('#custom-text') : $('.close', panel)).focus({ preventScroll: true });
 }
 
-const menu = $('#menu');
-const menuBtn = $('#menu-btn');
-function closeMenu() {
-  menu.classList.remove('open');
-  menu.inert = true;
-  menuBtn.setAttribute('aria-expanded', 'false');
-}
-function toggleMenu() {
-  const open = !menu.classList.contains('open');
-  menu.classList.toggle('open', open);
-  menu.inert = !open;
-  menuBtn.setAttribute('aria-expanded', String(open));
-  if (open) $('button', menu).focus();
-}
-
 export function initPanels() {
   for (const t of tabs) t.addEventListener('click', () => (current === t.dataset.panel ? closePanel() : openPanel(t.dataset.panel, t)));
   for (const b of $$('[data-close]')) b.addEventListener('click', () => closePanel());
-  menuBtn.addEventListener('click', toggleMenu);
-  $('#paste-open').addEventListener('click', () => openPanel('paste', menuBtn));
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.menu-wrap')) closeMenu();
-  });
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    if (menu.classList.contains('open')) {
-      closeMenu();
-      menuBtn.focus();
-    } else closePanel();
+    if (e.key === 'Escape') closePanel();
   });
 }

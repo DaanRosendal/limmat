@@ -1,4 +1,4 @@
-/* The panels over the panes (support, paste) and the header menu. */
+/* The panels over the panes (support, paste). */
 /* ---------------------------------------------------------------- panels */
 .grid {
   width: 100%;
@@ -109,58 +109,4 @@
 }
 .paste .btn {
   align-self: flex-start;
-}
-
-/* ---------------------------------------------------------------- menu */
-.menu-wrap {
-  position: relative;
-}
-.menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  min-width: 250px;
-  padding: 6px;
-  border: 1px solid var(--line-strong);
-  border-radius: 14px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-6px);
-  transition:
-    opacity var(--fast) var(--ease),
-    transform var(--fast) var(--ease),
-    visibility 0s var(--fast);
-}
-.menu.open {
-  opacity: 1;
-  visibility: visible;
-  transform: none;
-  transition-delay: 0s;
-}
-.menu a,
-.menu button {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border: 0;
-  border-radius: 9px;
-  background: transparent;
-  font-size: 14px;
-  color: inherit;
-  text-decoration: none;
-  text-align: left;
-  cursor: pointer;
-}
-.menu a:hover,
-.menu button:hover {
-  background: var(--surface-2);
-}
-.menu .ico {
-  color: var(--muted);
 }

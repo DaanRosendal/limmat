@@ -37,7 +37,13 @@ const lines = rows.map((r) => {
   return `| ${r.feature} | ${DOT[r.status]} ${LABEL[r.status]} | ${cm} | ${notes} |`;
 });
 
-const table = [START, '| Feature | Status | Spec examples | Notes and proof |', '|---|---|---|---|', ...lines, END].join('\n');
+const table = [
+  START,
+  '| Feature | Status | [CommonMark spec](https://spec.commonmark.org/0.31.2/) examples | Notes and proof |',
+  '|---|---|---|---|',
+  ...lines,
+  END,
+].join('\n');
 const readme = readFileSync('README.md', 'utf8');
 const a = readme.indexOf('<!-- support:start');
 const b = readme.indexOf(END);

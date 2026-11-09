@@ -60,11 +60,16 @@ export function readHash() {
   }
 }
 
+let doneTimer = 0;
 export async function copyLink() {
   writeHash();
   try {
     await navigator.clipboard.writeText(location.href);
-    notice('Link copied');
+    notice('Link copied: it opens this exact run');
+    const btn = document.querySelector('#share');
+    btn.dataset.done = '';
+    clearTimeout(doneTimer);
+    doneTimer = setTimeout(() => btn.removeAttribute('data-done'), 1800);
   } catch {
     notice('Copying is blocked here. The address bar holds the link.');
   }

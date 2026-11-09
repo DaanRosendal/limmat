@@ -67,7 +67,7 @@ export const STREAMS = {
   'link-split': { label: 'Link', chunks: ['See [the pa', 'per](https://exa', 'mple.com/a) now.'] },
   list: { label: 'List', chunks: ['- a\n', '  - b\n', '    - c\n', '  - d\n'] },
   hostile: { label: 'Attack', text: HOSTILE },
-  custom: { label: 'Yours', text: '' },
+  custom: { label: 'Custom', text: '' },
 };
 export const textOf = (st) => (st.chunks ? st.chunks.join('') : st.text);
 

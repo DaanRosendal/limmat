@@ -253,18 +253,25 @@ test('panels open over the output, close with Escape, and give focus back', asyn
   ).toBe(false);
 });
 
-test('the menu offers paste and share, and the theme toggle switches the theme', async ({ page }) => {
+test('the share button copies the run link and says so, and the theme toggle switches the theme', async ({ page }) => {
   await open(page);
   await page.emulateMedia({ colorScheme: 'light' });
-  await page.click('#menu-btn');
-  await expect(page.locator('#menu')).toHaveClass(/open/);
-  await page.click('#paste-open');
-  await expect(page.locator('#panel-paste')).toHaveClass(/open/);
-  await page.keyboard.press('Escape');
+  await page.click('#share');
+  await expect(page.locator('#notice')).toContainText(/Link copied|Copying is blocked/);
+  expect(page.url()).toContain('stream=reply');
   await page.click('#theme');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.click('#theme');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+});
+
+test('the header links to GitHub and the support table links to the CommonMark spec', async ({ page }) => {
+  await open(page);
+  await expect(page.locator('a[aria-label="limmat on GitHub"]')).toHaveAttribute('href', 'https://github.com/DaanRosendal/limmat');
+  await openTab(page, 'support');
+  const spec = page.locator('#support-table th a');
+  await expect(spec).toHaveAttribute('href', 'https://spec.commonmark.org/0.31.2/');
+  await expect(spec).toHaveAttribute('rel', /noopener/);
 });
 
 test('the controls work from the keyboard alone', async ({ page, browserName }) => {
@@ -321,8 +328,7 @@ for (const [name, setup] of [
       await page.keyboard.press('Escape');
       await settle(page);
     }
-    await page.click('#menu-btn');
-    await page.click('#paste-open');
+    await pick(page, 'stream', 'custom');
     await settle(page);
     await scan('paste');
   });
@@ -352,7 +358,7 @@ test('a phone-width screen has no sideways scroll and keeps every control reacha
   await page.setViewportSize({ width: 390, height: 844 });
   await open(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
-  for (const sel of ['#play', '.tab[data-panel="support"]', '#menu-btn', 'input[name="stream"][value="custom"]']) {
+  for (const sel of ['#play', '.tab[data-panel="support"]', '#share', 'input[name="stream"][value="custom"]']) {
     await page.locator(sel).scrollIntoViewIfNeeded();
     await expect(page.locator(sel)).toBeVisible();
   }
@@ -387,7 +393,7 @@ test('once a stream is done the raw pane is an editor, and typing renders as a l
   await expect(page.locator('#open-readout')).toContainText('Open');
   await editor.fill('Typing **bold** now');
   await expect(page.locator('#out strong')).toHaveText('bold');
-  // The edit became "Yours" and ends up in the link.
+  // The edit became "Custom" and ends up in the link.
   await expect(page.locator('input[name="stream"][value="custom"]')).toBeChecked();
   await expect.poll(() => page.url()).toContain('stream=custom');
   // Replay streams the edited text, and the editor steps aside while it plays.

@@ -23,11 +23,11 @@ export function syncControls() {
 export const canPlay = () => s.stream !== 'custom' || !!STREAMS.custom.text;
 
 function apply(name, value) {
-  // The editor belongs to Yours, so choosing anything else in the dock puts it away.
+  // The editor belongs to Custom, so choosing anything else in the dock puts it away.
   if (openName() === 'paste' && !(name === 'stream' && value === 'custom')) closePanel(false);
   if (name === 'stream') {
     s.stream = value;
-    if (value === 'custom') openPanel('paste'); // Yours always opens the editor, so the text can be changed
+    if (value === 'custom') openPanel('paste'); // Custom always opens the editor, so the text can be changed
   } else if (name === 'size') {
     if (value === 'random') {
       if (s.random) s.seed += 1; // clicking Random again reshuffles the cuts
