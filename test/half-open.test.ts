@@ -42,7 +42,8 @@ describe('half-open constructs show no raw markers', () => {
     return import('../src/index').then(({ createRenderer }) => {
       const r = createRenderer(root, { throttleMs: 0 });
       r.write('# Head\n\nfirst paragraph\n\nsecond par');
-      const first = root.children[0], second = root.children[1];
+      const first = root.children[0],
+        second = root.children[1];
       r.write('agraph continues\n\nthird');
       expect(root.children[0]).toBe(first);
       expect(root.children[1]).toBe(second);

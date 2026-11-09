@@ -64,7 +64,10 @@ function parseDest(s: string, j: number): { end: number; href: string } | 'p' | 
     while (k < n) {
       const c = s.charCodeAt(k);
       if (c <= 32 || c === 127) break;
-      if (c === 92 && k + 1 < n) { k += 2; continue; }
+      if (c === 92 && k + 1 < n) {
+        k += 2;
+        continue;
+      }
       if (c === 40) depth++;
       else if (c === 41 && !depth--) break;
       if (++k - j > MAXDEST) return null;
@@ -73,7 +76,9 @@ function parseDest(s: string, j: number): { end: number; href: string } | 'p' | 
     dest = s.slice(j, k);
     j = k;
   }
-  const skip = () => { while (s[j] === ' ' || s[j] === '\t' || s[j] === '\n') j++; };
+  const skip = () => {
+    while (s[j] === ' ' || s[j] === '\t' || s[j] === '\n') j++;
+  };
   const href = () => dest.replace(/\\([!-/:-@[-`{-~])/g, '$1');
   skip();
   if (j >= n) return 'p';
@@ -92,13 +97,16 @@ function parseDest(s: string, j: number): { end: number; href: string } | 'p' | 
 }
 
 function trimUrl(u: string): string {
-  let o = 0, c = 0;
+  let o = 0,
+    c = 0;
   for (const ch of u) ch === '(' ? o++ : ch === ')' && c++;
   for (;;) {
     const l = u[u.length - 1];
     if (/[?!.,:;*_~'"]/.test(l)) u = u.slice(0, -1);
-    else if (l === ')' && c > o) { u = u.slice(0, -1); c--; }
-    else return u;
+    else if (l === ')' && c > o) {
+      u = u.slice(0, -1);
+      c--;
+    } else return u;
   }
 }
 
@@ -107,12 +115,20 @@ function resolve(t: N[], spec: boolean): N[] {
   if (!t.some((x) => x.k === 'd')) return merge(t);
   const head: N = { k: 'h', x: null };
   let prev = head;
-  for (const x of t) { prev.x = x; x.p = prev; x.x = null; prev = x; }
+  for (const x of t) {
+    prev.x = x;
+    x.p = prev;
+    x.x = null;
+    prev = x;
+  }
   const stack: N[] = [];
   const bottom: Record<string, number> = {};
   const lit = (z: N): N => ({ k: 't', s: z.ch!.repeat(z.n!) });
   for (let cur = head.x; cur; ) {
-    if (cur.k !== 'd') { cur = cur.x!; continue; }
+    if (cur.k !== 'd') {
+      cur = cur.x!;
+      continue;
+    }
     const cl = cur;
     if (cl.c) {
       const key = cl.ch! + (cl.o ? 1 : 0) + (cl.orig! % 3);
@@ -125,20 +141,39 @@ function resolve(t: N[], spec: boolean): N[] {
           f = j;
           break;
         }
-        if (f < 0) { bottom[key] = stack.length; break; }
+        if (f < 0) {
+          bottom[key] = stack.length;
+          break;
+        }
         const op = stack[f];
         const kids: N[] = [];
         let md = 0;
-        for (let z = op.x!; z !== cl; z = z.x!) { kids.push(z.k === 'd' ? lit(z) : z); md = Math.max(md, z.d ?? 0); }
-        if (md >= MAXDEPTH) { bottom[key] = stack.length; break; }
+        for (let z = op.x!; z !== cl; z = z.x!) {
+          kids.push(z.k === 'd' ? lit(z) : z);
+          md = Math.max(md, z.d ?? 0);
+        }
+        if (md >= MAXDEPTH) {
+          bottom[key] = stack.length;
+          break;
+        }
         const use = op.n! >= 2 && cl.n! >= 2 ? 2 : 1;
         const node: N = { k: 'e', tag: use === 2 ? (cl.ch === '~' ? 'del' : 'strong') : 'em', kids, d: md + 1 };
         stack.length = f + 1;
         op.n! -= use;
         cl.n! -= use;
-        node.p = op; node.x = cl; op.x = node; cl.p = node;
-        if (op.n === 0) { op.p!.x = node; node.p = op.p; stack.pop(); }
-        if (cl.n === 0) { node.x = cl.x; if (cl.x) cl.x.p = node; }
+        node.p = op;
+        node.x = cl;
+        op.x = node;
+        cl.p = node;
+        if (op.n === 0) {
+          op.p!.x = node;
+          node.p = op.p;
+          stack.pop();
+        }
+        if (cl.n === 0) {
+          node.x = cl.x;
+          if (cl.x) cl.x.p = node;
+        }
       }
       if (cl.n! > 0 && cl.o) stack.push(cl);
     } else stack.push(cl);
@@ -153,7 +188,10 @@ function resolve(t: N[], spec: boolean): N[] {
       while (op.n! > 0 && op.x && !(op.ch === '~' && op.n! < 2)) {
         const kids: N[] = [];
         let md = 0;
-        for (let z = op.x; z; z = z.x!) { kids.push(z.k === 'd' ? lit(z) : z); md = Math.max(md, z.d ?? 0); }
+        for (let z = op.x; z; z = z.x!) {
+          kids.push(z.k === 'd' ? lit(z) : z);
+          md = Math.max(md, z.d ?? 0);
+        }
         if (md >= MAXDEPTH) break;
         const use = op.n! >= 2 ? 2 : 1;
         const node: N = { k: 'e', tag: use === 2 ? (op.ch === '~' ? 'del' : 'strong') : 'em', kids, d: md + 1, p: op, x: null };
@@ -178,14 +216,28 @@ export function parseInline(s: string, spec: boolean): N[] {
   let i = 0;
   let runs: Map<number, number[]> | undefined;
   const ptr = new Map<number, number>();
-  const text = (to: number) => { if (to > ts) out.push({ k: 't', s: s.slice(ts, to) }); };
+  const text = (to: number) => {
+    if (to > ts) out.push({ k: 't', s: s.slice(ts, to) });
+  };
 
   while (i < n) {
     const c = s[i];
     if (c === '\\') {
       const nx = s[i + 1];
-      if (nx === '\n') { text(i); out.push({ k: 'br' }); i += 2; ts = i; continue; }
-      if (nx && ESC.test(nx)) { text(i); out.push({ k: 't', s: nx }); i += 2; ts = i; continue; }
+      if (nx === '\n') {
+        text(i);
+        out.push({ k: 'br' });
+        i += 2;
+        ts = i;
+        continue;
+      }
+      if (nx && ESC.test(nx)) {
+        text(i);
+        out.push({ k: 't', s: nx });
+        i += 2;
+        ts = i;
+        continue;
+      }
       i++;
     } else if (c === '`') {
       let e = i;
@@ -215,16 +267,28 @@ export function parseInline(s: string, spec: boolean): N[] {
       let e = i;
       while (s[e] === c) e++;
       const len = e - i;
-      if (c === '~' && len < 2) { i = e; continue; }
+      if (c === '~' && len < 2) {
+        i = e;
+        continue;
+      }
       const before = i ? lastCp(s, i) : ' ';
       const after = e < n ? firstCp(s, e) : ' ';
-      const bw = WS.test(before), aw = WS.test(after), bp = PUNCT.test(before), ap = PUNCT.test(after);
+      const bw = WS.test(before),
+        aw = WS.test(after),
+        bp = PUNCT.test(before),
+        ap = PUNCT.test(after);
       const lf = !aw && (!ap || bw || bp);
       const rf = !bw && (!bp || aw || ap);
       const o = c === '_' ? lf && (!rf || bp) : lf;
       const cl = c === '_' ? rf && (!lf || ap) : rf;
-      if (o || cl) { text(i); out.push({ k: 'd', ch: c, n: len, orig: len, o, c: cl }); ts = e; }
-      else if (spec && e === n) { text(i); ts = e; }
+      if (o || cl) {
+        text(i);
+        out.push({ k: 'd', ch: c, n: len, orig: len, o, c: cl });
+        ts = e;
+      } else if (spec && e === n) {
+        text(i);
+        ts = e;
+      }
       i = e;
     } else if (c === '[' || (c === '!' && s[i + 1] === '[')) {
       text(i);
@@ -234,7 +298,10 @@ export function parseInline(s: string, spec: boolean): N[] {
       ts = i;
     } else if (c === ']') {
       const bi = brk.pop();
-      if (bi === undefined) { i++; continue; }
+      if (bi === undefined) {
+        i++;
+        continue;
+      }
       const open = out[bi];
       const r = s[i + 1] === '(' ? parseDest(s, i + 1) : null;
       if (r && r !== 'p') {
@@ -260,8 +327,12 @@ export function parseInline(s: string, spec: boolean): N[] {
       BR.lastIndex = i;
       AUTO.lastIndex = i;
       let m: RegExpExecArray | null;
-      if (BR.test(s)) { text(i); out.push({ k: 'br' }); i = BR.lastIndex; ts = i; }
-      else if ((m = AUTO.exec(s))) {
+      if (BR.test(s)) {
+        text(i);
+        out.push({ k: 'br' });
+        i = BR.lastIndex;
+        ts = i;
+      } else if ((m = AUTO.exec(s))) {
         text(i);
         const u = m[1];
         out.push({ k: 'a', s: u, href: !u.includes(':') ? 'mailto:' + u : u });

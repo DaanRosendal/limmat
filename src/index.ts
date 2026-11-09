@@ -1,5 +1,5 @@
-import { ATX, LI, cells, scan, spaces, type Al, type Unit } from './block';
-import { parseInline, type N } from './inline';
+import { type Al, ATX, cells, LI, scan, spaces, type Unit } from './block';
+import { type N, parseInline } from './inline';
 import { safeUrl } from './url';
 
 export interface Options {
@@ -15,7 +15,7 @@ export interface Options {
   throttleMs?: number;
   /** Prefix for every generated class. Default 'limmat'. */
   classPrefix?: string;
-  labels?: { copy?: string; copied?: string; table?: string };
+  labels?: { copy?: string; copied?: string; table?: string; done?: string; todo?: string };
 }
 
 export interface Renderer {
@@ -26,8 +26,21 @@ export interface Renderer {
 }
 
 type Ctx = { k: 'l' | 't'; el: Element; ord?: boolean; al?: Al } | null;
-interface Entry { key: string; u: Unit; node: Element; made?: Element; ctx: Ctx; code?: HTMLElement; open?: boolean }
-interface Built { n: Element; body?: Element; code?: HTMLElement; text?: string }
+interface Entry {
+  key: string;
+  u: Unit;
+  node: Element;
+  made?: Element;
+  ctx: Ctx;
+  code?: HTMLElement;
+  open?: boolean;
+}
+interface Built {
+  n: Element;
+  body?: Element;
+  code?: HTMLElement;
+  text?: string;
+}
 
 const MAX_DEPTH = 12;
 
@@ -37,7 +50,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   const internal = o.isInternalPath ?? (() => true);
   const throttle = o.throttleMs ?? 50;
   const px = o.classPrefix ?? 'limmat';
-  const label = { copy: 'Copy', copied: 'Copied', table: 'Table', ...o.labels };
+  const label = { copy: 'Copy', copied: 'Copied', table: 'Table', done: 'Completed', todo: 'Not completed', ...o.labels };
   const cls = (name: string) => `${px}-${name}`;
   const timers = new Set<ReturnType<typeof setTimeout>>();
 
@@ -61,7 +74,10 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     const st: { nodes: N[]; i: number; el: Element; il: boolean }[] = [{ nodes: parseInline(s, spec), i: 0, el: parent, il: false }];
     while (st.length) {
       const f = st[st.length - 1];
-      if (f.i >= f.nodes.length) { st.pop(); continue; }
+      if (f.i >= f.nodes.length) {
+        st.pop();
+        continue;
+      }
       const x = f.nodes[f.i++];
       if (x.k === 't') f.el.append(x.s!);
       else if (x.k === 'c') f.el.append(h('code', '', x.s));
@@ -78,7 +94,10 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         } else {
           const a = h('a', cls('link'));
           a.setAttribute('href', href);
-          if (/^https?:/i.test(href)) { a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener noreferrer'); }
+          if (/^https?:/i.test(href)) {
+            a.setAttribute('target', '_blank');
+            a.setAttribute('rel', 'noopener noreferrer');
+          }
           f.el.append(a);
           if (x.k === 'a') a.append(x.s!);
           else st.push({ nodes: x.kids!, i: 0, el: a, il: true });
@@ -98,10 +117,16 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   }
 
   const dedent = (x: string, k: number) => x.slice(Math.min(spaces(x), k));
-  const joinTrim = (ls: string[]) => ls.map((x) => x.trimStart()).join('\n').trimEnd();
+  const joinTrim = (ls: string[]) =>
+    ls
+      .map((x) => x.trimStart())
+      .join('\n')
+      .trimEnd();
 
   function fenceText(u: Unit, L: string[]) {
-    return L.slice(u.a + 1, u.closed ? u.e - 1 : u.e).map((x) => dedent(x, u.ind!)).join('\n');
+    return L.slice(u.a + 1, u.closed ? u.e - 1 : u.e)
+      .map((x) => dedent(x, u.ind!))
+      .join('\n');
   }
 
   function build(u: Unit, L: string[], spec: boolean, depth: number, final: boolean): Built {
@@ -123,7 +148,11 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         const text = fenceText(u, L);
         const wrap = h('div', cls('code'));
         const head = h('div', cls('code-head'));
-        if (lang) { const l = h('span', cls('lang'), lang); l.setAttribute('aria-hidden', 'true'); head.append(l); }
+        if (lang) {
+          const l = h('span', cls('lang'), lang);
+          l.setAttribute('aria-hidden', 'true');
+          head.append(l);
+        }
         const btn = h('button', cls('copy'), label.copy);
         btn.setAttribute('type', 'button');
         btn.setAttribute('aria-label', `${label.copy} ${lang || 'code'}`);
@@ -141,7 +170,13 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       }
       case 'q': {
         const el = h('blockquote');
-        blocks(L.slice(u.a, u.e).map((x) => x.replace(/^ {0,3}> ?/, '')), el, depth + 1, spec, false);
+        blocks(
+          L.slice(u.a, u.e).map((x) => x.replace(/^ {0,3}> ?/, '')),
+          el,
+          depth + 1,
+          spec,
+          false,
+        );
         return { n: el };
       }
       case 'li': {
@@ -154,6 +189,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
           box.type = 'checkbox';
           box.disabled = true;
           box.defaultChecked = tk[1] !== ' ';
+          box.setAttribute('aria-label', tk[1] === ' ' ? label.todo : label.done);
           li.append(box);
           body[0] = body[0].slice(tk[0].length);
         }
@@ -196,14 +232,20 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
 
   function place(root: Element, ctx: Ctx, u: Unit, b: Built): { ctx: Ctx; made?: Element } {
     if (u.k === 'li') {
-      if (ctx && ctx.k === 'l' && ctx.ord === u.ord) { ctx.el.append(b.n); return { ctx }; }
+      if (ctx && ctx.k === 'l' && ctx.ord === u.ord) {
+        ctx.el.append(b.n);
+        return { ctx };
+      }
       const l = h(u.ord ? 'ol' : 'ul', cls('list'));
       if (u.ord && u.num !== 1) l.setAttribute('start', String(u.num));
       l.append(b.n);
       root.append(l);
       return { ctx: { k: 'l', el: l, ord: u.ord }, made: l };
     }
-    if (u.k === 'tr') { ctx!.el.append(b.n); return { ctx }; }
+    if (u.k === 'tr') {
+      ctx!.el.append(b.n);
+      return { ctx };
+    }
     root.append(b.n);
     return { ctx: u.k === 'th' ? { k: 't', el: b.body!, al: u.al } : null };
   }
@@ -242,11 +284,17 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       (e.code.firstChild as Text).data = text2;
       e.key = keys[p];
       e.u = u;
-      if (u.closed || final) { e.open = false; highlight(e.code, text2, u.lang!); }
+      if (u.closed || final) {
+        e.open = false;
+        highlight(e.code, text2, u.lang!);
+      }
       p++;
     }
     let ctx: Ctx = p > 0 ? tail[p - 1].ctx : fctx;
-    for (const old of tail.splice(p)) { old.node.remove(); old.made?.remove(); }
+    for (const old of tail.splice(p)) {
+      old.node.remove();
+      old.made?.remove();
+    }
     for (let i = p; i < U.length; i++) {
       const u = U[i];
       const b = build(u, L, !final && i === U.length - 1, 0, final);
@@ -254,7 +302,12 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       ctx = r.ctx;
       tail.push({ key: keys[i], u, node: b.n, made: r.made, ctx, code: b.code, open: u.k === 'f' && !u.closed && !final });
     }
-    if (final) for (const t of tail) if (t.open && t.code) { t.open = false; highlight(t.code, t.code.textContent ?? '', t.u.lang!); }
+    if (final)
+      for (const t of tail)
+        if (t.open && t.code) {
+          t.open = false;
+          highlight(t.code, t.code.textContent ?? '', t.u.lang!);
+        }
     let k = Math.max(U.length - 1, 0);
     if (partial && k > 0 && U[k].a === L.length - 1) k--;
     if (!final && k > 0) {
@@ -271,8 +324,15 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     if (throttle <= 0) return flush(false);
     if (timer !== undefined) return;
     const wait = lastRun + throttle - Date.now();
-    if (wait <= 0) { lastRun = Date.now(); flush(false); }
-    else timer = setTimeout(() => { timer = undefined; lastRun = Date.now(); flush(false); }, wait);
+    if (wait <= 0) {
+      lastRun = Date.now();
+      flush(false);
+    } else
+      timer = setTimeout(() => {
+        timer = undefined;
+        lastRun = Date.now();
+        flush(false);
+      }, wait);
   }
 
   const stop = () => {
@@ -282,6 +342,28 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     timers.clear();
   };
 
+  // The async Clipboard API needs a secure context, so fall back to execCommand on plain http.
+  async function copy(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      const ta = h('textarea') as HTMLTextAreaElement;
+      ta.value = text;
+      ta.setAttribute('style', 'position:fixed;opacity:0');
+      document.body.append(ta);
+      ta.select();
+      let ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch {
+        /* not allowed */
+      }
+      ta.remove();
+      return ok;
+    }
+  }
+
   function onClick(ev: MouseEvent) {
     const t = (ev.target as Element | null)?.closest?.('a,button');
     if (!t || !container.contains(t)) return;
@@ -290,19 +372,17 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     } else if (t.classList.contains(cls('copy'))) {
       const code = t.closest('.' + cls('code'))?.querySelector('code');
       const status = t.parentElement?.querySelector('.' + cls('status'));
-      Promise.resolve(navigator.clipboard?.writeText(code?.textContent ?? '')).then(
-        () => {
-          t.textContent = label.copied;
-          if (status) status.textContent = label.copied;
-          const id = setTimeout(() => {
-            timers.delete(id);
-            t.textContent = label.copy;
-            if (status) status.textContent = '';
-          }, 2000);
-          timers.add(id);
-        },
-        () => {},
-      );
+      copy(code?.textContent ?? '').then((ok) => {
+        if (!ok) return;
+        t.textContent = label.copied;
+        if (status) status.textContent = label.copied;
+        const id = setTimeout(() => {
+          timers.delete(id);
+          t.textContent = label.copy;
+          if (status) status.textContent = '';
+        }, 2000);
+        timers.add(id);
+      });
     }
   }
   container.addEventListener('click', onClick);
