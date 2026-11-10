@@ -89,19 +89,6 @@ Statuses: Supported (works, with tests), Partial (the common cases work, the not
 | Citation chips (`[1]`) and emoji codes | ⚪ Not yet |  | Planned as opt-in options. Rendered literally today. |
 <!-- support:end -->
 
-## Compared with streaming-markdown
-
-Checked against streaming-markdown 0.2.15 with its default renderer, in November 2026.
-
-| | limmat | streaming-markdown |
-|---|---|---|
-| Size (gzip) | about 7 kB, including the Copy button | about 3.5 kB, parser and renderer only |
-| Link and image URLs | allow-listed, images never load | not sanitized by the default renderer (`javascript:` and `//host` links pass, any image loads) |
-| `snake_case_words` | stay text | become italic |
-| `1)` lists, table alignment, `www.` links, bare emails | supported | not supported |
-| Punctuation after a bare URL (`see https://a.com.`) | trimmed | kept in the link |
-| `)` inside a URL | handled | ends the link |
-
 ## Why TypeScript, not Rust
 
 Parsing is only about a fifth of the work (measured in Chromium, rendering on every write). The rest is building the page's elements, and WebAssembly cannot do that, so JavaScript would still do it. WebAssembly would also make limmat much bigger: the streaming renderers we measured are 29 to 105 kB gzip, against about 7 kB here. A Rust parser fits better on a server or for huge documents.
