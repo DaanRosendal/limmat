@@ -72,10 +72,10 @@
   },
   {
     "feature": "Raw HTML and HTML blocks",
-    "status": "wont",
+    "status": "not-yet",
     "cm": ["HTML blocks", "Raw HTML"],
     "tests": [{ "file": "test/conformance.test.ts", "title": "unsupported things degrade to text" }],
-    "note": "Shown as text, because raw HTML can run code. Only `<br>` is understood. A hook for your own sanitizer is possible if asked."
+    "note": "Shown as text, because raw HTML can run code. Only `<br>` is understood. Planned as an opt-in list of safe tags such as `kbd`, `sub`, and `details`, with no attributes. Other HTML stays text."
   },
   { "feature": "HTML entities (`&amp;`)", "status": "not-yet", "cm": ["Entity and numeric character references"], "note": "Shown literally. Planned: numeric entities and a few common names. The full table is too big." },
   { "feature": "Backslash escapes", "status": "partial", "cm": ["Backslash escapes"] },
