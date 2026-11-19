@@ -5,7 +5,7 @@ import { build } from 'esbuild';
 
 rmSync('dist', { recursive: true, force: true });
 mkdirSync('dist');
-const common = { bundle: true, format: 'esm', target: 'es2022', logLevel: 'error', legalComments: 'none' };
+const common = { bundle: true, format: 'esm', target: ['chrome86', 'firefox78', 'safari14.1'], logLevel: 'error', legalComments: 'none' };
 // Readable ESM for npm, plus a minified single file that can be vendored as is.
 await build({ ...common, entryPoints: ['src/index.ts'], outfile: 'dist/index.js' });
 await build({ ...common, entryPoints: ['src/index.ts'], outfile: 'dist/limmat.min.js', minify: true });

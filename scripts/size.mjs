@@ -8,7 +8,7 @@ const r = await build({
   entryPoints: ['src/index.ts'],
   bundle: true,
   format: 'esm',
-  target: 'es2022',
+  target: ['chrome86', 'firefox78', 'safari14.1'],
   minify: true,
   write: false,
   legalComments: 'none',
