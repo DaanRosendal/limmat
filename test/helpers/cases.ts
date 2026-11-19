@@ -1,8 +1,8 @@
-export const REPLY = `## Daan's research
+export const REPLY = `## Ada's research
 
-Daan wrote a **federated learning** paper, see [the paper](/research/federated-learning-paper/) and [Wikipedia](https://en.wikipedia.org/wiki/Federated_learning). It used \`FedAvg\` with *non-IID* data.
+Ada wrote a **federated learning** paper, see [the paper](/research/federated-learning-paper/) and [Wikipedia](https://en.wikipedia.org/wiki/Federated_learning). It used \`FedAvg\` with *non-IID* data.
 
-### What he built
+### What was built
 
 - A VS Code extension with \`fast\` startup
 - *Cloud* tooling at **Acme**
@@ -34,7 +34,7 @@ function add(a: number, b: number): number {
 
 > Federated learning keeps data on device.
 
-That is **all** for now, see https://daanrosendal.com for more.
+That is **all** for now, see https://example.com for more.
 `;
 
 export const XSS: [string, string][] = [
