@@ -21,6 +21,8 @@ const cases: [string, string, string][] = [
   ['underscore opener then a bold run is hidden', 'a _**', '<p>a </p>'],
   ['three delimiter runs at the end are hidden', 'a **~~_', '<p>a </p>'],
   ['a delimiter run after text still closes the open span', 'a **b *', '<p>a <strong>b </strong></p>'],
+  ['a lone high surrogate waits for its other half', 'hi \ud83d', '<p>hi</p>'],
+  ['a whole emoji is kept', 'hi \ud83d\ude00', '<p>hi \ud83d\ude00</p>'],
   ['open inline code', 'use `fo', '<p>use <code>fo</code></p>'],
   ['open link text', 'see [the pap', '<p>see the pap</p>'],
   ['label closed, no paren yet', 'see [the paper]', '<p>see the paper</p>'],

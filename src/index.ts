@@ -139,7 +139,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   const opened = new WeakSet<Element>(); // <details> elements limmat opened itself: the author wrote `open`, or the block never closed
   let src = '';
   let froz = 0;
-  let held = ''; // a trailing CR waits for the next chunk, in case it is the first half of CRLF
+  let held = ''; // a trailing CR or high surrogate waits for the next chunk, in case it is the first half of CRLF or of an emoji
   let ended = false;
   let dead = false;
   let epoch = 0; // bumped by reset(), so a copy that finishes late can tell its message is gone
@@ -609,8 +609,9 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       if (dead || ended || !chunk) return;
       chunk = held + chunk;
       held = '';
-      if (chunk.endsWith('\r')) {
-        held = '\r';
+      const c = chunk.charCodeAt(chunk.length - 1);
+      if (c === 13 || (c >= 0xd800 && c < 0xdc00)) {
+        held = chunk[chunk.length - 1];
         chunk = chunk.slice(0, -1);
       }
       chunk = chunk.replace(/\r\n?/g, '\n');
@@ -622,7 +623,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       if (dead || ended) return;
       ended = true;
       stop();
-      if (held) src += '\n';
+      if (held) src += held === '\r' ? '\n' : held;
       held = '';
       flush(true);
     },
