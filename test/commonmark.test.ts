@@ -113,3 +113,21 @@ describe('CommonMark spec examples for the supported subset', () => {
     expect(known.filter((n) => results.get(n) === true)).toEqual([]);
   });
 });
+
+describe('CommonMark examples written in chunks', () => {
+  // The spec is only checked whole above. Streaming must give the same DOM for every example, passing or not.
+  it('render the same when streamed one character, a few characters, or at random sizes at a time', () => {
+    const bad: string[] = [];
+    for (const ex of spec) {
+      const whole = render(ex.markdown).innerHTML;
+      for (const split of ['char', 3, 'random'] as const) {
+        const got = render(ex.markdown, split, {}, ex.example).innerHTML;
+        if (got !== whole) {
+          bad.push(`example ${ex.example} (${split}): ${JSON.stringify(ex.markdown)}`);
+          break;
+        }
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+});
