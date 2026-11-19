@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { html, renderOpen } from './helpers/util';
 
+// What a table whose delimiter row is still arriving shows: the header cells and no rows.
+const TABLE_HEAD =
+  '<div tabindex="0" role="region" aria-label="Table"><table><thead><tr><th>a</th><th>b</th><th>c</th></tr></thead><tbody></tbody></table></div>';
+
 const cases: [string, string, string][] = [
   ['open bold', 'wrote a **federated lear', '<p>wrote a <strong>federated lear</strong></p>'],
   ['open italic', 'a *b c', '<p>a <em>b c</em></p>'],
@@ -34,6 +38,11 @@ const cases: [string, string, string][] = [
   ['lone bracket pair stays literal after more text', 'a [1] b', '<p>a [1] b</p>'],
   ['heading', '## Titl', '<h2>Titl</h2>'],
   ['hash without space is text', '#hashtag', '<p>#hashtag</p>'],
+  ['pipeless table, delimiter row half typed', 'a | b | c\n--|---', TABLE_HEAD],
+  ['pipeless table, delimiter row only dashes so far', 'a | b | c\n--', TABLE_HEAD],
+  ['pipeless table, delimiter row with a colon', 'a | b | c\n:--|', TABLE_HEAD],
+  ['a pipe in prose before a list stays a paragraph', 'a | b\n- i', '<p>a | b</p><ul><li>i</li></ul>'],
+  ['a pipe in prose before a lone dash stays a paragraph', 'a | b\n-', '<p>a | b</p>'],
   ['open list item', '- one\n- tw', '<ul><li>one</li><li>tw</li></ul>'],
   ['open nested list', '- a\n  - b\n  - c', '<ul><li>a<ul><li>b</li><li>c</li></ul></li></ul>'],
   ['open blockquote', '> quote *it', '<blockquote><p>quote <em>it</em></p></blockquote>'],
@@ -41,6 +50,11 @@ const cases: [string, string, string][] = [
 
 describe('half-open constructs show no raw markers', () => {
   for (const [name, md, expected] of cases) it(name, () => expect(html(renderOpen(md))).toBe(expected));
+
+  it('typing a table without outer pipes one character at a time never shows the delimiter row', () => {
+    const table = 'a | b | c\n--|---|---\n1 | 2 | 3\n';
+    for (let i = 1; i <= table.length; i++) expect(renderOpen(table.slice(0, i)).textContent, table.slice(0, i)).not.toContain('--');
+  });
 
   it('typing a strike and an autolink one character at a time never shows a stray tilde or angle bracket', () => {
     const strike = 'It was ~~struck out~~ here.';

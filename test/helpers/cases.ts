@@ -91,4 +91,6 @@ export const CORPUS: string[] = [
   '- item\n  <details>\n  <summary>In a list</summary>\n  text\n  </details>\n\n> <details>\n> <summary>In a quote</summary>\n> text\n> </details>',
   'Press <KBD>Ctrl</KBD>+<kbd>C</kbd> to copy, H<sub>2</sub>O and x<sup>2</sup>, <mark>this</mark> and <b>bold *nested* <u>under</u></b>, then a stray </i> or a <kb or a < b.',
   'Struck ~~out~~ and ~~half~ and ~one~ tilde, <https://auto.link/x> and <me@example.com> and <ftp://x.example/y> and a < b.',
+  'Nesting: **bold ~~and _all_~~** then **~~_x_~~** and *_y_*, and an emoji \ud83d\ude00 right here.',
+  'Name | Role | Team\n--|---|:-:\nAda | Engineer | Core\nLin | Writer | Docs\n\nA pipe | in prose\n- stays a list\n\nx | y\n---\n\nDone.',
 ];
