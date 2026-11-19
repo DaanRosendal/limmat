@@ -231,6 +231,14 @@ describe('edge cases', () => {
   it('urls only autolink at a word boundary', () => {
     expect(render('xhttp://a.com and Xwww.a.com').querySelectorAll('a').length).toBe(0);
   });
+  it('an angle-bracket autolink that is refused keeps its brackets', () => {
+    expect(html(render('Run on <host:port> now'))).toBe('<p>Run on &lt;host:port&gt; now</p>');
+    expect(html(render('<user:name>'))).toBe('<p>&lt;user:name&gt;</p>');
+    expect(html(render('<javascript:alert(1)>'))).toBe('<p>&lt;javascript:alert(1)&gt;</p>');
+    expect(html(render('<a@b.co>', 'whole', { allowedProtocols: ['https'] }))).toBe('<p>&lt;a@b.co&gt;</p>');
+    expect(html(render('[x <host:port>](https://a.com)'))).toBe(`<p>${EXT.replace('https://x.com', 'https://a.com')}x &lt;host:port&gt;</a></p>`);
+    expect(html(render('<https://a.com>'))).toContain('<a href="https://a.com"');
+  });
   it('emphasis next to an astral emoji', () => {
     expect(html(render('\u{1F600}**a**'))).toBe('<p>\u{1F600}<strong>a</strong></p>');
     expect(html(render('**a**\u{1F600}'))).toBe('<p><strong>a</strong>\u{1F600}</p>');

@@ -191,7 +191,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         }
         const href = isImg ? null : safeUrl(x.href, protocols, internal);
         if (!href || f.il) {
-          if (x.k === 'a') f.el.append(x.s);
+          if (x.k === 'a') f.el.append(x.ang && !href ? `<${x.s}>` : x.s);
           else st.push({ nodes: x.kids, i: 0, el: f.el, il: true });
         } else {
           const a = h('a', cls('link'));

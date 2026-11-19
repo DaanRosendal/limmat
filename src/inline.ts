@@ -12,7 +12,7 @@ export type Inline =
   | { k: 'br' }
   | { k: 'e'; tag: 'em' | 'strong' | 'del' | (typeof HTML_TAGS)[number]; kids: Inline[] }
   | { k: 'l'; href: string; img: boolean; kids: Inline[] } // link, or image (img: rendered as its alt text)
-  | { k: 'a'; s: string; href: string }; // autolink, the text is the URL or email
+  | { k: 'a'; s: string; href: string; ang?: true }; // autolink, the text is the URL or email (`ang`: written in angle brackets)
 
 /**
  * Working node used while parsing. One loose shape (rather than a union) because delimiter nodes are rewritten in
@@ -24,6 +24,7 @@ interface N {
   tag?: string; // emphasis or HTML element name
   kids?: N[]; // children of emphasis and links
   href?: string; // link or autolink target, not yet checked by safeUrl
+  ang?: true; // autolink written in angle brackets
   img?: boolean; // image rather than link
   d?: number; // nesting depth of this node's subtree, capped at MAXDEPTH
   ch?: string; // delimiter character (* _ ~)
@@ -441,7 +442,7 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
       } else if ((m = AUTO.exec(s))) {
         text(i);
         const u = m[1];
-        out.push({ k: 'a', s: u, href: !u.includes(':') ? 'mailto:' + u : u });
+        out.push({ k: 'a', s: u, href: !u.includes(':') ? 'mailto:' + u : u, ang: true });
         i += m[0].length;
         ts = i;
       } else if (tags.size && (TAG.lastIndex = i) >= 0 && (m = TAG.exec(s)) && tags.has(m[2].toLowerCase())) {
