@@ -6,7 +6,7 @@ export interface Options {
   /** Called when a rendered link is clicked. Return true if you handled it: limmat then calls preventDefault. If it throws, the error reaches window.onerror and the link behaves normally. */
   // biome-ignore lint/suspicious/noConfusingVoidType: a callback that returns nothing must type-check
   onLinkClick?: (href: string, event: MouseEvent) => boolean | void;
-  /** Site-relative paths ('/research/x/') become links only if this returns true. Default: every path is a link. A throw counts as false. */
+  /** Site-relative paths ('/research/x/') become links only if this returns true. Default: every path is a link. A throw counts as false. It gets the raw path including any query and hash, and may be called more than once per link while the reply streams. Check the whole path, not just a prefix: '/research/../admin' starts with '/research/'. */
   isInternalPath?: (path: string) => boolean;
   /** Protocols that may become links, with or without the colon and in any case. Default ['https', 'http', 'mailto']. Everything else renders as plain text. */
   allowedProtocols?: string[];
@@ -75,7 +75,10 @@ interface Built {
 const MAX_DEPTH = 12;
 
 /**
- * Render streaming markdown into `container`.
+ * Render streaming markdown into `container`. Use one renderer per message, and call `destroy()` when the element goes away.
+ * The container has no live region, because announcing every chunk is noisy: to have the finished reply announced, set
+ * `aria-busy` on your own element while streaming, or announce once after `end()`. The Copy button names the language,
+ * tables and code blocks are keyboard-scrollable, task checkboxes have names, and the copy result goes to a polite status element.
  * @example
  * const r = createRenderer(el);
  * for await (const chunk of stream) r.write(chunk);

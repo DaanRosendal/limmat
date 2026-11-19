@@ -1,4 +1,18 @@
-/* Optional styles for limmat. Override the variables, or ignore this file and style the classes yourself. */
+/* Optional styles for limmat. Override the variables, or ignore this file and style the classes yourself.
+   It follows prefers-color-scheme and supports forced colors. The variables are --limmat-link, --limmat-border,
+   --limmat-code-bg, --limmat-radius, --limmat-font-mono, --limmat-muted, and --limmat-focus.
+   The generated structure (classes may be added, never removed or renamed):
+     p, h1-h6, hr, blockquote, ul.limmat-list, ol.limmat-list, li, li.limmat-task (task items)
+     div.limmat-code
+       div.limmat-code-head > span.limmat-lang[aria-hidden], button.limmat-copy, span.limmat-status[role=status]
+       pre[tabindex=0] > code.limmat-lang-ts
+     div.limmat-table-wrap[tabindex=0][role=region] > table
+     a.limmat-link
+     details.limmat-details[open] > summary.limmat-summary, then the content blocks
+     kbd.limmat-kbd, b, strong, i, em, u, s, del, ins, mark, small, sub, sup (from the HTML tags, no attributes)
+     img.limmat-image[loading=lazy][decoding=async][referrerpolicy=no-referrer]
+     code.limmat-inline-code (inline code)
+*/
 :root {
   --limmat-code-bg: rgba(128, 128, 128, 0.1);
   --limmat-border: rgba(128, 128, 128, 0.4);
