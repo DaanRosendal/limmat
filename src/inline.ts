@@ -39,7 +39,7 @@ const BR = /<br\s*\/?>/iy;
 const AUTO = /<([A-Za-z][A-Za-z0-9+.-]*:[^\s<>]*|[\w.+-]+@[\w-]+(?:\.[\w-]+)+)>/y;
 const URLRE = /(?:https?:\/\/|www\.)[^\s<\]]+/iy;
 const DOMAIN = /[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/y;
-const MAXDEST = 1500;
+const MAXDEST = 8192; // most servers refuse longer request lines (Apache 8190, nginx 8 KB), so a longer link would be dead anyway
 const MAXDEPTH = 30;
 
 const lastCp = (s: string, i: number) => {

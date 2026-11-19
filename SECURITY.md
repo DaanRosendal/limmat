@@ -22,7 +22,7 @@ Any input that makes limmat create an element or attribute outside its documente
 - External links get `target="_blank"` and `rel="noopener noreferrer"` unless you pass `externalLinksNewTab: false`, which adds neither.
 - Images are on by default, and each `<img>` source passes the same checks as a link, limited to `https`, `http`, and site paths. `javascript:`, `data:`, `blob:`, and `file:` never load. Every image has `referrerpolicy="no-referrer"`, `loading="lazy"`, and no other attribute from the input.
 - The code fence language becomes a class name only if it matches `[A-Za-z0-9_+#-]{1,20}`.
-- Nesting is capped (about 12 block levels and 30 inline levels), link destinations are length-limited, and each paragraph has a work budget proportional to its length for scanning them, so hostile input cannot overflow the stack or make parsing quadratic.
+- Nesting is capped (about 12 block levels and 30 inline levels), link destinations are limited to 8192 characters, and each paragraph has a work budget proportional to its length for scanning them, so hostile input cannot overflow the stack or make parsing quadratic.
 - The `highlight` callback receives the `<code>` element and the raw language string from the fence (not sanitized, unlike the class name), and is trusted code. Pick a highlighter that escapes its input, as `@speed-highlight/core` does.
 
 ## What limmat does not guarantee by default

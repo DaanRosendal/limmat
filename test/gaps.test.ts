@@ -383,3 +383,26 @@ describe('more gaps found by mutation', () => {
     expect(html(render('1.      a\n        b'))).toBe('<ol><li>a\nb</li></ol>');
   });
 });
+
+describe('link destination length', () => {
+  const url = (n: number) => `https://e.com/${'a'.repeat(n - 14)}`;
+  it('a destination up to 8192 characters is a link with the label as its text, in both forms', () => {
+    for (const md of [`[x](${url(8000)})`, `[x](<${url(8000)}>)`]) {
+      const root = render(md);
+      expect(root.textContent).toBe('x');
+      expect(root.querySelector('a')!.getAttribute('href')).toBe(url(8000));
+    }
+  });
+  it('a longer destination is not a link: the markup stays as text', () => {
+    for (const md of [`[x](${url(9000)})`, `[x](<${url(9000)}>)`]) {
+      expect(render(md).textContent?.startsWith('[x](')).toBe(true);
+    }
+  });
+  it('a long image source works too', () => {
+    expect(
+      render(`![x](${url(8000)})`)
+        .querySelector('img')!
+        .getAttribute('src'),
+    ).toBe(url(8000));
+  });
+});
