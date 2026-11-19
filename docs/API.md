@@ -171,5 +171,6 @@ limmat works under a strict policy such as `default-src 'none'; script-src 'self
 
 - `throttleMs: 0` re-renders the open block on every write, so one very long paragraph is quadratic in that mode. The default throttle bounds it.
 - `[1]` shows as "1" while its closing bracket is in flight, then as "[1]" once it is clear that no link follows.
-- `~~x~` stays literal, and `#anchor` links and relative links without a leading slash render as plain text.
+- A `<` before the `@` of an `<email@example.com>` autolink shows until the `@` arrives, because until then it looks like any other text. A `<https://...>` autolink is held back from the start.
+- `#anchor` links and relative links without a leading slash render as plain text.
 - Loose lists render tight, and a list marker change inside one list does not start a new list unless it switches between bullets and numbers.

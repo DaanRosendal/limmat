@@ -42,6 +42,8 @@ const WORD = /[A-Za-z0-9_]/;
 const BR = /<br\s*\/?>/iy;
 const TAG = /<(\/?)([A-Za-z]+)>/y;
 const AUTO = /<([A-Za-z][A-Za-z0-9+.-]*:[^\s<>]*|[\w.+-]+@[\w-]+(?:\.[\w-]+)+)>/y;
+// A `<` to the end of the text that is already an autolink in the making (a scheme and colon, or a name and @), held back while streaming.
+const PARTIAL_AUTO = /<(?:[A-Za-z][\w.+-]*:[^\s<>]*|[\w.+-]+@[\w.-]*)$/y;
 const URLRE = /(?:https?:\/\/|www\.)[^\s<\]]+/iy;
 const DOMAIN = /[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/y;
 const MAXDEST = 8192; // most servers refuse longer request lines (Apache 8190, nginx 8 KB), so a longer link would be dead anyway
@@ -289,9 +291,14 @@ function resolve(t: N[], spec: boolean): N[] {
 /** True if `r` (the text from a `<` to the end) could still become one of the tags, so it is held back while streaming. */
 function partialTag(r: string, tags: ReadonlySet<string>): boolean {
   r = r.toLowerCase();
-  const full = ['<br>', '<br/>', '<br />'];
+  const full = ['<br>', '<br/>', '<br />', '<http:', '<https:', '<mailto:']; // the last three start an autolink
   for (const t of tags) full.push(`<${t}>`, `</${t}>`);
   return full.some((f) => f.length > r.length && f.startsWith(r));
+}
+
+function partialAuto(s: string, i: number): boolean {
+  PARTIAL_AUTO.lastIndex = i;
+  return PARTIAL_AUTO.test(s);
 }
 
 export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> = DEFAULT_TAGS): Inline[] {
@@ -355,6 +362,11 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
       while (s[e] === c) e++;
       const len = e - i;
       if (c === '~' && len < 2) {
+        // A lone ~ at the very end may be half of a ~~, so it waits (like a trailing * does) until the next character.
+        if (spec && e === n) {
+          text(i);
+          ts = e;
+        }
         i = e;
         continue;
       }
@@ -433,7 +445,7 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
         out.push({ k: 'g', tag: m[2].toLowerCase(), o: !m[1], s: m[0] });
         i += m[0].length;
         ts = i;
-      } else if (spec && n - i <= 9 && partialTag(s.slice(i), tags)) {
+      } else if (spec && ((n - i <= 9 && partialTag(s.slice(i), tags)) || partialAuto(s, i))) {
         text(i);
         i = n;
         ts = n;

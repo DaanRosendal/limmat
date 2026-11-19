@@ -5,6 +5,13 @@ const cases: [string, string, string][] = [
   ['open bold', 'wrote a **federated lear', '<p>wrote a <strong>federated lear</strong></p>'],
   ['open italic', 'a *b c', '<p>a <em>b c</em></p>'],
   ['open strike', 'a ~~b', '<p>a <del>b</del></p>'],
+  ['open strike with one closing tilde', 'a ~~struck~', '<p>a <del>struck</del></p>'],
+  ['a lone trailing tilde waits for a possible second one', 'about ~', '<p>about </p>'],
+  ['a tilde followed by text is text', 'about ~5', '<p>about ~5</p>'],
+  ['open autolink', 'see <https://exa', '<p>see </p>'],
+  ['open autolink, scheme not finished', 'see <http', '<p>see </p>'],
+  ['open email autolink', 'mail <me@ex', '<p>mail </p>'],
+  ['a less-than sign before a space is text', 'a < b', '<p>a &lt; b</p>'],
   ['open nested', 'a **b *c', '<p>a <strong>b <em>c</em></strong></p>'],
   ['trailing delimiter hidden', 'a **', '<p>a </p>'],
   ['open inline code', 'use `fo', '<p>use <code>fo</code></p>'],
@@ -26,6 +33,16 @@ const cases: [string, string, string][] = [
 describe('half-open constructs show no raw markers', () => {
   for (const [name, md, expected] of cases) it(name, () => expect(html(renderOpen(md))).toBe(expected));
 
+  it('typing a strike and an autolink one character at a time never shows a stray tilde or angle bracket', () => {
+    const strike = 'It was ~~struck out~~ here.';
+    for (let i = 1; i <= strike.length; i++) expect(renderOpen(strike.slice(0, i)).textContent, strike.slice(0, i)).not.toContain('~');
+    const link = 'Go to <https://example.com/a> now.';
+    for (let i = 1; i <= link.length; i++) expect(renderOpen(link.slice(0, i)).textContent, link.slice(0, i)).not.toContain('<');
+    // Before its @ an email address is a name after a <, which looks like any other text, so it shows from the @ on.
+    const mail = 'Write <hi@example.com> now.';
+    for (let i = mail.indexOf('@') + 1; i <= mail.length; i++)
+      expect(renderOpen(mail.slice(0, i)).textContent, mail.slice(0, i)).not.toContain('<');
+  });
   it('open fence shows code immediately', () => {
     const root = renderOpen('```ts\nfunction add(a: number, b');
     expect(root.querySelector('code')!.textContent).toBe('function add(a: number, b');

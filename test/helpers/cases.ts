@@ -90,4 +90,5 @@ export const CORPUS: string[] = [
   '<details><summary>One line summary</summary>\nbody\n</details>\nplain\n\n</details>\n\n<details>\nnever closed, with *open emphasis',
   '- item\n  <details>\n  <summary>In a list</summary>\n  text\n  </details>\n\n> <details>\n> <summary>In a quote</summary>\n> text\n> </details>',
   'Press <KBD>Ctrl</KBD>+<kbd>C</kbd> to copy, H<sub>2</sub>O and x<sup>2</sup>, <mark>this</mark> and <b>bold *nested* <u>under</u></b>, then a stray </i> or a <kb or a < b.',
+  'Struck ~~out~~ and ~~half~ and ~one~ tilde, <https://auto.link/x> and <me@example.com> and <ftp://x.example/y> and a < b.',
 ];
