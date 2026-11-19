@@ -41,3 +41,15 @@ describe('src/ safety policy', () => {
     });
   }
 });
+
+describe('browser support guards', () => {
+  const src = (f: string) => readFileSync(join(process.cwd(), f), 'utf8');
+  it('no regex lookbehind in the source: Safari before 16.4 cannot even parse it', () => {
+    for (const f of ['src/block.ts', 'src/inline.ts', 'src/index.ts', 'src/url.ts']) expect(src(f), f).not.toMatch(/\(\?<[!=]/);
+  });
+  it('the stylesheet has plain fallbacks before the color-mix upgrade', () => {
+    const css = src('src/style.css');
+    expect(css).toMatch(/--limmat-border:\s*rgba?\(/);
+    expect(css).toMatch(/@supports \(color: color-mix/);
+  });
+});

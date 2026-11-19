@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { parseInline } from '../src/inline';
 import { audit, render, rng } from './helpers/util';
 
 const budget = (name: string, md: string, split: 'whole' | number = 'whole') =>
@@ -101,5 +102,48 @@ describe('malicious input never throws or hangs', () => {
       expect(audit(whole)).toEqual([]);
       expect(render(s, 'random', {}, n).innerHTML).toBe(whole.innerHTML);
     }
+  });
+});
+
+const CEILING = 1500; // ms, far above normal runtime (a few ms) and far below a quadratic blow-up
+const timed = (fn: () => void) => {
+  const t = performance.now();
+  fn();
+  return performance.now() - t;
+};
+const depth = (root: Element) => {
+  let max = 0;
+  const stack: [Element, number][] = [[root, 0]];
+  while (stack.length) {
+    const [e, d] = stack.pop()!;
+    max = Math.max(max, d);
+    for (const c of Array.from(e.children)) stack.push([c, d + 1]);
+  }
+  return max;
+};
+
+describe('hostile input stays bounded', () => {
+  it('deeply nested links inside emphasis do not build a deep DOM', () => {
+    let root!: HTMLElement;
+    const ms = timed(() => {
+      root = render('*['.repeat(20000) + 'x' + '](x:)*'.repeat(20000), 'whole', { throttleMs: 0 });
+    });
+    expect(ms).toBeLessThan(5000);
+    expect(depth(root)).toBeLessThan(45);
+  });
+  it('lines with unusual line terminators do not trigger regex backtracking', () => {
+    for (const nl of ['\u2028', '\u2029', '\r']) {
+      expect(timed(() => render(`# ${' '.repeat(1500)}${nl}`))).toBeLessThan(CEILING);
+      expect(timed(() => render(`${'`'.repeat(30000)}${nl}`))).toBeLessThan(CEILING);
+    }
+  });
+  it('speculative closing of many openers is linear', () => {
+    expect(timed(() => parseInline('*a '.repeat(10000), true))).toBeLessThan(CEILING);
+    expect(timed(() => parseInline('~~a '.repeat(10000), true))).toBeLessThan(CEILING);
+  });
+  it('link destinations and titles cannot cause quadratic scanning', () => {
+    expect(timed(() => render('[](a ('.repeat(40000)))).toBeLessThan(CEILING);
+    expect(timed(() => render('[]('.repeat(100000)))).toBeLessThan(CEILING);
+    expect(timed(() => render('[a](b "'.repeat(30000)))).toBeLessThan(CEILING);
   });
 });
