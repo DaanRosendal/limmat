@@ -23,6 +23,21 @@ describe('xss battery', () => {
     expect(a[0].getAttribute('target')).toBe('_blank');
     expect(a[1].getAttribute('target')).toBeNull();
   });
+  it('externalLinksNewTab: false leaves external links without target and rel', () => {
+    const a = render('[x](https://e.com) [y](http://e.com) [z](/p/) [m](mailto:a@b.c)', 'whole', {
+      externalLinksNewTab: false,
+    }).querySelectorAll('a');
+    expect(a.length).toBe(4);
+    for (const el of Array.from(a)) {
+      expect(el.hasAttribute('target')).toBe(false);
+      expect(el.hasAttribute('rel')).toBe(false);
+    }
+  });
+  it('externalLinksNewTab: true is the default behavior', () => {
+    const a = render('[x](https://e.com)', 'whole', { externalLinksNewTab: true }).querySelector('a')!;
+    expect(a.getAttribute('target')).toBe('_blank');
+    expect(a.getAttribute('rel')).toBe('noopener noreferrer');
+  });
   it('allowedProtocols and isInternalPath are honored', () => {
     expect(render('[x](mailto:a@b.c)', 'whole', { allowedProtocols: ['https:'] }).querySelector('a')).toBeNull();
     const root = render('[x](/no/) [y](/yes/)', 'whole', { isInternalPath: (p) => p === '/yes/' });

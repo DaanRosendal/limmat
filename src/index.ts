@@ -10,6 +10,8 @@ export interface Options {
   isInternalPath?: (path: string) => boolean;
   /** Protocols that may become links, with or without the colon and in any case. Default ['https', 'http', 'mailto']. Everything else renders as plain text. */
   allowedProtocols?: string[];
+  /** Open http and https links in a new tab with rel="noopener noreferrer". Default true. false adds neither attribute, so links open in the same tab. */
+  externalLinksNewTab?: boolean;
   /**
    * Images. Default true: `![alt](url)` becomes an <img> when the URL passes the same checks as a link, limited to http, https, and site paths.
    * An array of origins ('https://cdn.example.com') loads only from those, and site paths still work. false renders the alt text only.
@@ -95,6 +97,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     const s = safeUrl(href, imgProtocols, internal);
     return s && (!imgOrigins || s[0] === '/' || imgOrigins.has(originOf(s))) ? s : null;
   };
+  const newTab = o.externalLinksNewTab !== false;
   const throttle = Number.isFinite(o.throttleMs) ? (o.throttleMs as number) : 50;
   const px = o.classPrefix ?? 'limmat';
   const lb = o.labels ?? {};
@@ -168,7 +171,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         } else {
           const a = h('a', cls('link'));
           a.setAttribute('href', href);
-          if (/^https?:/i.test(href)) {
+          if (newTab && /^https?:/i.test(href)) {
             a.setAttribute('target', '_blank');
             a.setAttribute('rel', 'noopener noreferrer');
           }
