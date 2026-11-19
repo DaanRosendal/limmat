@@ -37,7 +37,7 @@ limmat is a tiny, safe, streaming markdown renderer for LLM chat UIs (TypeScript
 
 - The npm package page renders `README.md` from the tarball, and only `dist/`, the README, and the LICENSE are in the package, so relative paths do not resolve there. Keep every link and image in the README an absolute URL (`https://github.com/DaanRosendal/limmat/blob/master/...`, and `raw.githubusercontent.com` for the GIFs).
 - The maintainer runs `npm publish` from their own terminal (login and 2FA). `prepublishOnly` builds and runs `check:package`. After a release, rename `[Unreleased]` in `CHANGELOG.md` and bump the version with `npm version <x.y.z> --no-git-tag-version`.
-- The repo is public and private vulnerability reporting is on (`SECURITY.md` points to it).
+- `SECURITY.md` points to GitHub's private vulnerability reporting, so keep it enabled on the repository.
 - `.github/workflows/deploy-demo.yml` runs with the Cloudflare secrets, so it must never run code from a fork: keep its `if:` limited to pushes in this repository.
 
 ## How it works
