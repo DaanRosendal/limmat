@@ -1,5 +1,5 @@
+import { audit } from '../test/helpers/audit';
 import { XSS } from '../test/helpers/cases';
-import { audit } from './audit';
 import { expect, test } from './fixture';
 
 test.describe('xss in a real browser: nothing executes, nothing loads, nothing dangerous is in the DOM', () => {
