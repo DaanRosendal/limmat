@@ -137,8 +137,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   const timers = new Set<ReturnType<typeof setTimeout>>();
 
   const opened = new WeakSet<Element>(); // <details> elements limmat opened itself: the author wrote `open`, or the block never closed
-  let src = '';
-  let froz = 0;
+  let src = ''; // the text from the first line that is not frozen yet
   let held = ''; // a trailing CR or high surrogate waits for the next chunk, in case it is the first half of CRLF or of an emoji
   let ended = false;
   let dead = false;
@@ -403,8 +402,8 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   const hkey = (u: Extract<Unit, { k: 'd' }>, L: string[]) => `${L[u.a]}\n${u.sum}\n${u.bs - u.a}`;
 
   /*
-   * Incremental render. `src` is split into units by scan(), but only from `froz`, the offset of the first line that
-   * is not yet frozen. Rules that keep chunked output identical to whole output:
+   * Incremental render. `src` (only the lines that are not frozen yet) is split into units by scan(). Rules that
+   * keep chunked output identical to whole output:
    *  1. A unit is frozen (its DOM is never touched again) only when a LATER unit exists that starts on a complete
    *     line, because only then can nothing the stream adds change how that unit is parsed or rendered.
    *  2. A tail entry's `key` holds everything that affects its DOM (kind, text, speculative or open state), so an
@@ -524,12 +523,13 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   }
 
   function flush(final: boolean) {
-    const text = src.slice(froz);
-    const partial = !text.endsWith('\n');
-    const L = text.split('\n');
+    const partial = !src.endsWith('\n');
+    const L = src.split('\n');
     if (!partial) L.pop();
     const drop = sync(top, container, L, partial, final, 0, null);
-    for (let x = 0; x < drop; x++) froz += L[x].length + 1;
+    let cut = 0;
+    for (let x = 0; x < drop; x++) cut += L[x].length + 1;
+    src = src.slice(cut);
   }
 
   function schedule() {
@@ -635,7 +635,6 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       container.replaceChildren();
       src = '';
       held = '';
-      froz = 0;
       top = mkSt();
       ended = false;
       lastRun = -Infinity;
