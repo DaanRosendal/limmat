@@ -427,7 +427,10 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     const u = U[p];
     if (e?.open && e.code && p < U.length && u.k === 'f' && e.u.k === 'f' && u.lang === e.u.lang) {
       const text2 = fenceText(u, L);
-      (e.code.firstChild as Text).data = text2;
+      const node = e.code.firstChild as Text;
+      // appendData keeps a selection in the text, assigning to `data` collapses it.
+      if (text2.startsWith(node.data)) node.appendData(text2.slice(node.data.length));
+      else node.data = text2;
       e.key = keys[p];
       e.u = u;
       if (u.closed || final) {

@@ -340,6 +340,20 @@ describe('code blocks', () => {
     expect(root.querySelector('pre')).toBe(pre);
     expect(root.querySelector('code')!.textContent).toBe('ab\nc');
   });
+  it('a text selection inside an open fence survives the next chunk', () => {
+    const { root, r } = mk();
+    r.write('```\nalpha beta');
+    const text = root.querySelector('code')!.firstChild!;
+    const range = document.createRange();
+    range.setStart(text, 0);
+    range.setEnd(text, 5);
+    const sel = getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+    r.write(' gamma');
+    expect(root.querySelector('code')!.firstChild).toBe(text);
+    expect(sel.toString()).toBe('alpha');
+  });
   it('the highlight adapter skips very large code', async () => {
     const highlightElement = vi.fn();
     vi.doMock('@speed-highlight/core', () => ({ highlightElement }));
