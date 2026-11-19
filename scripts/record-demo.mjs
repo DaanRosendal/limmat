@@ -5,7 +5,7 @@
 //
 // The recording is reproducible: the page runs on Playwright's virtual clock, so every timer, throttle, and animation
 // frame advances by exactly one frame interval between screenshots, and the chunk cuts come from the seed in the URL.
-// Two runs give the same frames, apart from now and then a single pixel on a rounded corner.
+// Two runs give nearly the same frames: the async highlighter and rounded corners can differ by a few pixels.
 // It needs ffmpeg on the PATH, and it fails if the page makes an off-site request, breaks its CSP, or throws.
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
