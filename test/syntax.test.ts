@@ -123,7 +123,7 @@ describe('conformance, own cases for the supported subset', () => {
     const root = render('| A | B | C |\n|:--|:-:|--:|\n| 1 | 2 | 3 |\n| x | y |');
     const wrap = root.firstElementChild!;
     expect(wrap.getAttribute('tabindex')).toBe('0');
-    expect(wrap.getAttribute('role')).toBe('region');
+    expect(wrap.getAttribute('role')).toBe('group');
     const al = (e: Element) => (e as HTMLElement).style.textAlign;
     expect(Array.from(root.querySelectorAll('th')).map(al)).toEqual(['left', 'center', 'right']);
     expect(root.querySelectorAll('tbody tr').length).toBe(2);

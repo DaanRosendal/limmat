@@ -3,7 +3,7 @@ import { html, renderOpen } from './helpers/util';
 
 // What a table whose delimiter row is still arriving shows: the header cells and no rows.
 const TABLE_HEAD =
-  '<div tabindex="0" role="region" aria-label="Table"><table><thead><tr><th>a</th><th>b</th><th>c</th></tr></thead><tbody></tbody></table></div>';
+  '<div tabindex="0" role="group" aria-label="Table"><table><thead><tr><th>a</th><th>b</th><th>c</th></tr></thead><tbody></tbody></table></div>';
 
 const cases: [string, string, string][] = [
   ['open bold', 'wrote a **federated lear', '<p>wrote a <strong>federated lear</strong></p>'],
@@ -47,12 +47,12 @@ const cases: [string, string, string][] = [
   [
     'an open bold in a header cell that is still arriving',
     '| a | **b',
-    '<div tabindex="0" role="region" aria-label="Table"><table><thead><tr><th>a</th><th><strong>b</strong></th></tr></thead><tbody></tbody></table></div>',
+    '<div tabindex="0" role="group" aria-label="Table"><table><thead><tr><th>a</th><th><strong>b</strong></th></tr></thead><tbody></tbody></table></div>',
   ],
   [
     'a lone marker in a header cell that is still arriving',
     '| a | *',
-    '<div tabindex="0" role="region" aria-label="Table"><table><thead><tr><th>a</th><th></th></tr></thead><tbody></tbody></table></div>',
+    '<div tabindex="0" role="group" aria-label="Table"><table><thead><tr><th>a</th><th></th></tr></thead><tbody></tbody></table></div>',
   ],
   ['a star bullet whose bold marker is still arriving is not a rule', '* **Fast**: yes\n* **', '<ul><li><strong>Fast</strong>: yes</li></ul>'],
   ['a star bullet whose bold marker is still arriving, as the first item', '* **', ''],

@@ -552,7 +552,7 @@ describe('options', () => {
     expect(Array.from(root.querySelectorAll('input')).map((i) => i.getAttribute('aria-label'))).toEqual(['D', 'TD']);
     expect(root.querySelector('button')!.textContent).toBe('C');
     expect(root.querySelector('button')!.getAttribute('aria-label')).toBe('C code');
-    expect(root.querySelector('[role=region]')!.getAttribute('aria-label')).toBe('T');
+    expect(root.querySelector('[role=group]')!.getAttribute('aria-label')).toBe('T');
   });
   it('partial labels keep defaults for the rest', () => {
     const { root, r } = mk({ labels: { copy: 'C' } });

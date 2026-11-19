@@ -101,7 +101,7 @@ test('keyboard users can reach the copy button, the code, and a wide table', asy
       }),
     );
   }
-  expect(seen).toEqual(['BUTTON:Copy js', 'PRE:', 'DIV:region']);
+  expect(seen).toEqual(['BUTTON:Copy js', 'PRE:', 'DIV:group']);
 });
 
 test('the highlight adapter highlights once the fence closes and keeps the text', async ({ page }) => {

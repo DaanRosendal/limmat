@@ -6,7 +6,7 @@
      div.limmat-code
        div.limmat-code-head > span.limmat-lang[aria-hidden], button.limmat-copy, span.limmat-status[role=status]
        pre[tabindex=0] > code.limmat-lang-ts
-     div.limmat-table-wrap[tabindex=0][role=region] > table
+     div.limmat-table-wrap[tabindex=0][role=group] > table
      a.limmat-link
      details.limmat-details[open] > summary.limmat-summary, then the content blocks
      kbd.limmat-kbd, b, strong, i, em, u, s, del, ins, mark, small, sub, sup (from the HTML tags, no attributes)

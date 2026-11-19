@@ -325,7 +325,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       case 'th': {
         const w = h('div', cls('table-wrap'));
         w.setAttribute('tabindex', '0');
-        w.setAttribute('role', 'region');
+        w.setAttribute('role', 'group');
         w.setAttribute('aria-label', label.table);
         const t = h('table');
         const tr = h('tr');
