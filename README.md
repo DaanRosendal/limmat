@@ -34,7 +34,7 @@ for await (const chunk of stream) md.write(chunk); // any source of text chunks
 md.end();
 ```
 
-Use one renderer per message: `write` takes only the new text. In a framework, give it an empty element and call `destroy()` when it unmounts. The options are `throttleMs`, `html`, `images`, `highlight`, `onLinkClick`, `isInternalPath`, `allowedProtocols`, `externalLinksNewTab`, `classPrefix`, and `labels`, each documented in the types.
+Use one renderer per message: `write` takes only the new text. In a framework, give it an empty element and call `destroy()` when it unmounts. Options are listed [below](#options).
 
 For colored code, add the optional highlighter (it needs `@speed-highlight/core`, plus one of its theme stylesheets):
 
@@ -92,7 +92,38 @@ limmat follows the [CommonMark spec](https://spec.commonmark.org/0.31.2/) where 
 | Citations (`[1]`) and emoji codes | ⚪&nbsp;Not&nbsp;yet | Shown literally. Will be opt-in. |
 <!-- support:end -->
 
-Known limits:
+## Options
+
+Pass options as the second argument to `createRenderer`. All are optional.
+
+| Option | Default | What it does |
+|---|---|---|
+| `throttleMs` | `50` | Minimum ms between re-renders of the open block. `0` renders on every write. |
+| `images` | `true` | Allowed image origins, like `['https://cdn.example.com']`, or `false` for alt text only. See [Safety](#safety). |
+| `html` | `true` | Which safe tags become elements, like `<kbd>` and `<details>`. A list keeps only those, `false` shows all as text. |
+| `highlight` | none | `(el, code, lang) => void`, called once per finished code block. `limmat/highlight` provides one. |
+| `onLinkClick` | none | `(href, event) => boolean`. Return `true` to handle the click yourself. |
+| `isInternalPath` | every path | `(path) => boolean`. Site paths like `/docs/x` become links only if this returns `true`. Check the whole path. |
+| `allowedProtocols` | `['https', 'http', 'mailto']` | Protocols that become links. Others show as text. |
+| `externalLinksNewTab` | `true` | `false` opens links in the same tab. |
+| `classPrefix` | `'limmat'` | Prefix for generated classes. The bundled CSS only styles the default. |
+| `labels` | English | Text for the Copy button and screen readers: `copy`, `copied`, `table`, `done`, `todo`. |
+
+```ts
+createRenderer(el, {
+  images: ['https://cdn.example.com'],
+  html: ['kbd', 'sub', 'sup'], // no <details>
+  highlight: speedHighlight(),
+  onLinkClick: (href) => {
+    if (!href.startsWith('/docs/')) return false;
+    router.push(href); // your router
+    return true;
+  },
+  labels: { copy: 'Kopieren', copied: 'Kopiert' },
+});
+```
+
+## Known limits
 
 - `throttleMs: 0` re-renders the open block on every write, so one very long paragraph gets slow. The default throttle (`throttleMs: 50`) prevents that.
 - `[1]` shows as `1` until its closing bracket arrives, and the `<` of an `<email@example.com>` autolink shows until the `@` arrives.
