@@ -1,12 +1,16 @@
 // Inline markdown to a small tree. Tokenizing is one pass, emphasis uses the CommonMark delimiter stack (linear),
 // and `spec` closes unfinished constructs speculatively so a half-streamed reply never shows raw markers.
 
+/** The HTML tags that become elements, only when written without attributes. An `html` option can narrow this list but never extend it. */
+export const HTML_TAGS = ['b', 'strong', 'i', 'em', 'u', 's', 'del', 'ins', 'mark', 'small', 'kbd', 'sub', 'sup'] as const;
+const DEFAULT_TAGS: ReadonlySet<string> = new Set(HTML_TAGS);
+
 /** What parseInline returns: a finished tree, ready to turn into DOM. Only these shapes ever leave this module. */
 export type Inline =
   | { k: 't'; s: string } // text
   | { k: 'c'; s: string } // inline code
   | { k: 'br' }
-  | { k: 'e'; tag: 'em' | 'strong' | 'del'; kids: Inline[] }
+  | { k: 'e'; tag: 'em' | 'strong' | 'del' | (typeof HTML_TAGS)[number]; kids: Inline[] }
   | { k: 'l'; href: string; img: boolean; kids: Inline[] } // link, or image (img: rendered as its alt text)
   | { k: 'a'; s: string; href: string }; // autolink, the text is the URL or email
 
@@ -15,16 +19,16 @@ export type Inline =
  * place as the CommonMark delimiter stack resolves, and esbuild does not mangle property names, so keep them short.
  */
 interface N {
-  k: 't' | 'c' | 'br' | 'e' | 'l' | 'a' | 'd' | '[' | 'h'; // text, code, break, emphasis, link, autolink, delimiter run, open bracket, list head
-  s?: string; // text, code, or autolink text
-  tag?: string; // emphasis element name
+  k: 't' | 'c' | 'br' | 'e' | 'l' | 'a' | 'd' | '[' | 'h' | 'g'; // text, code, break, emphasis, link, autolink, delimiter run, open bracket, list head, HTML tag token
+  s?: string; // text, code, or autolink text, or the source text of an HTML tag token
+  tag?: string; // emphasis or HTML element name
   kids?: N[]; // children of emphasis and links
   href?: string; // link or autolink target, not yet checked by safeUrl
   img?: boolean; // image rather than link
   d?: number; // nesting depth of this node's subtree, capped at MAXDEPTH
   ch?: string; // delimiter character (* _ ~)
   n?: number; // delimiter run length still unmatched
-  o?: boolean; // delimiter can open emphasis
+  o?: boolean; // delimiter can open emphasis, or the HTML tag token is an opening tag
   c?: boolean; // delimiter can close emphasis
   orig?: number; // delimiter run length when first seen (rule of 3)
   p?: N | null; // previous node in the delimiter list
@@ -36,6 +40,7 @@ const WS = /\s/;
 const ESC = /[!-/:-@[-`{-~]/;
 const WORD = /[A-Za-z0-9_]/;
 const BR = /<br\s*\/?>/iy;
+const TAG = /<(\/?)([A-Za-z]+)>/y;
 const AUTO = /<([A-Za-z][A-Za-z0-9+.-]*:[^\s<>]*|[\w.+-]+@[\w-]+(?:\.[\w-]+)+)>/y;
 const URLRE = /(?:https?:\/\/|www\.)[^\s<\]]+/iy;
 const DOMAIN = /[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/y;
@@ -133,8 +138,50 @@ function trimUrl(u: string): string {
   }
 }
 
+/**
+ * Match HTML tag tokens into elements. A closing tag matches the nearest open tag of the same name, and open tags
+ * between them are left as text. At most MAXDEPTH tags can be open at once, which also bounds the work. While
+ * streaming (`spec`), tags still open at the end are closed so the raw tag never shows; at the end of the message
+ * they stay text. Each element's content is resolved on its own, so emphasis never crosses a tag boundary.
+ */
+function pairTags(t: N[], spec: boolean): N[] {
+  if (!t.some((x) => x.k === 'g')) return t;
+  const out: N[] = [];
+  const open: number[] = []; // positions in `out` of opening tags that have not found their closing tag
+  const text = (x: N): N => ({ k: 't', s: x.s });
+  const wrap = (at: number, sp: boolean) => {
+    const kids = resolve(out.slice(at + 1), sp);
+    let md = 0;
+    for (const z of kids) md = Math.max(md, z.d ?? 0);
+    const tag = out[at].tag;
+    out.length = at;
+    out.push({ k: 'e', tag, kids, d: md + 1 });
+  };
+  for (const x of t) {
+    if (x.k !== 'g') out.push(x);
+    else if (x.o) {
+      if (open.length < MAXDEPTH) {
+        open.push(out.length);
+        out.push(x);
+      } else out.push(text(x));
+    } else {
+      let j = open.length - 1;
+      while (j >= 0 && out[open[j]].tag !== x.tag) j--;
+      if (j < 0) out.push(text(x));
+      else {
+        const at = open[j];
+        open.length = j;
+        wrap(at, false);
+      }
+    }
+  }
+  if (spec) while (open.length) wrap(open.pop()!, true);
+  return out.map((z) => (z.k === 'g' ? text(z) : z));
+}
+
 /** Resolve emphasis among tokens (delimiter stack, linear). Returns final nodes. */
 function resolve(t: N[], spec: boolean): N[] {
+  t = pairTags(t, spec);
   if (!t.some((x) => x.k === 'd')) return merge(t);
   const head: N = { k: 'h', x: null };
   let prev = head;
@@ -239,7 +286,15 @@ function resolve(t: N[], spec: boolean): N[] {
   return merge(out);
 }
 
-export function parseInline(s: string, spec: boolean): Inline[] {
+/** True if `r` (the text from a `<` to the end) could still become one of the tags, so it is held back while streaming. */
+function partialTag(r: string, tags: ReadonlySet<string>): boolean {
+  r = r.toLowerCase();
+  const full = ['<br>', '<br/>', '<br />'];
+  for (const t of tags) full.push(`<${t}>`, `</${t}>`);
+  return full.some((f) => f.length > r.length && f.startsWith(r));
+}
+
+export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> = DEFAULT_TAGS): Inline[] {
   const out: N[] = [];
   const brk: number[] = [];
   const n = s.length;
@@ -373,6 +428,15 @@ export function parseInline(s: string, spec: boolean): Inline[] {
         out.push({ k: 'a', s: u, href: !u.includes(':') ? 'mailto:' + u : u });
         i += m[0].length;
         ts = i;
+      } else if (tags.size && (TAG.lastIndex = i) >= 0 && (m = TAG.exec(s)) && tags.has(m[2].toLowerCase())) {
+        text(i);
+        out.push({ k: 'g', tag: m[2].toLowerCase(), o: !m[1], s: m[0] });
+        i += m[0].length;
+        ts = i;
+      } else if (spec && n - i <= 9 && partialTag(s.slice(i), tags)) {
+        text(i);
+        i = n;
+        ts = n;
       } else i++;
     } else if (c === '\n') {
       if (s[i - 1] === ' ' && s[i - 2] === ' ') {

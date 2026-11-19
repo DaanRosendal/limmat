@@ -11,7 +11,7 @@ write(chunk) --> src (string) --> flush() --> scan() --> units --> build() --> D
 | File | Job |
 |---|---|
 | `src/block.ts` | `scan(lines, ...)` splits lines into `Unit`s (paragraph, heading, fence, quote, list item, table header, table row). Forward-only: a unit followed by a unit that starts on a complete line is final. |
-| `src/inline.ts` | `parseInline(text, spec)` turns one block's text into an `Inline` tree. CommonMark's delimiter-stack algorithm for emphasis, a bracket stack for links, linear time, depth and work caps. |
+| `src/inline.ts` | `parseInline(text, spec)` turns one block's text into an `Inline` tree. CommonMark's delimiter-stack algorithm for emphasis, a bracket stack for links, `pairTags()` for the allowed HTML tags, linear time, depth and work caps. |
 | `src/url.ts` | `safeUrl()`: the only gate between parsed link text and an `href`. |
 | `src/index.ts` | `createRenderer()`: the buffer, throttle, `flush()` (diff and freeze), `build()` and `place()` (DOM), the Copy button, and the click listener. |
 | `src/highlight.ts` | Optional adapter for `@speed-highlight/core`, shipped as `limmat/highlight`. |
@@ -33,6 +33,7 @@ Rules that must hold (they are also written above `flush()`):
 ## Safety invariants
 
 - No `innerHTML`, `insertAdjacentHTML`, or `outerHTML` in `src/`. Only `createElement`, `textContent`, and text nodes.
+- HTML tags become elements only from the fixed `HTML_TAGS` list, only when written with no attributes, and the `html` option can only narrow that list. Anything else stays text.
 - Every `href` and every image `src` comes from `safeUrl()`, and an image also passes the `images` origin list. An `<img>` is created only from a parsed image node, with fixed attributes plus `alt` and `src`.
 - Classes and attributes that come from the input (the fence language) are checked against a strict pattern first.
 

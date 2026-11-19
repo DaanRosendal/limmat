@@ -45,7 +45,7 @@
     "scope": "in"
   },
   "HTML blocks": {
-    "pass": 0,
+    "pass": 1,
     "total": 44,
     "scope": "out"
   },

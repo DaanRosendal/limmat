@@ -3,8 +3,8 @@
 **Streaming markdown for LLM chat that never shows a half-finished marker.**
 
 - **Clean streaming:** a half-typed `**` or `[link](` never flashes on screen, and the result is the same however the text is split.
-- **Safe by default:** it builds DOM nodes, never HTML strings. Raw HTML shows as text and links are allow-listed. Images load, which can leak data to a hostile server, so use `images: ['https://your-cdn.example']` or `images: false` if that matters ([details](docs/API.md#images-and-privacy)).
-- **Tiny:** about 7 kB gzip, no dependencies.
+- **Safe by default:** it builds DOM nodes, never HTML strings. Raw HTML shows as text, except a few attribute-free formatting tags like `<kbd>` and `<sub>`, and links are allow-listed. Images load, which can leak data to a hostile server, so use `images: ['https://your-cdn.example']` or `images: false` if that matters ([details](docs/API.md#images-and-privacy)).
+- **Tiny:** about 8 kB gzip, no dependencies.
 - **Fast:** only the open block re-renders, so a 100 KB reply takes about 10 ms in Chromium with the default 50 ms throttle.
 
 It suits any text that arrives in pieces: LLM replies, agent and tool output, comments, and live previews. The name is that of the [Limmat](https://en.wikipedia.org/wiki/Limmat), the river through Zurich, because the text arrives as a stream.
@@ -76,11 +76,11 @@ Statuses: Supported (works, with tests), Partial (the common cases work, the not
 | Inline links | 🟡 Partial | 23/90 | Inline `[text](url)` works. Reference-style links, many title forms, and unsafe URLs render as text. Titles and URL encoding are planned. These cause most of the misses. Test: `blocked links keep the label as text` in [xss.test.ts](test/xss.test.ts). |
 | Autolinks: `<url>`, bare URLs, `www.`, emails (GFM) | 🟡 Partial | 9/19 | Only allowed protocols become links, so spec examples with other schemes differ by design. Test: `urls only autolink at a word boundary` in [gaps.test.ts](test/gaps.test.ts). |
 | Images | 🟡 Partial | 6/22 | On by default, with the same URL checks as links. Images load without a click, so a hostile reply can send data to its own server: pass `images: ['https://your-cdn.example']` or `images: false` to limit that. Reference-style images and sources without a leading slash (`train.jpg`) render the alt text. Titles are ignored. Test: `![alt](https-url) becomes an img with the alt text and a restrictive set of attributes` in [images.test.ts](test/images.test.ts). |
+| Raw HTML and HTML blocks | 🟡 Partial | 8/64 | Shown as text, because raw HTML can run code, except attribute-free `br`, `b`, `strong`, `i`, `em`, `u`, `s`, `del`, `ins`, `mark`, `small`, `kbd`, `sub`, and `sup`, which become elements. A tag with any attribute, every other tag, and HTML blocks stay text. Narrow the list or turn it off with the `html` option. `details` and `summary` are planned. Test: `tags with attributes, unknown tags, and unbalanced tags stay text` in [html.test.ts](test/html.test.ts). |
 | Backslash escapes | 🟡 Partial | 9/13 |  |
 | Setext headings (`Title` over `---`) | ⚪ Not yet | 12/27 | The underline renders as a rule (`---`) or as text (`===`). Planned. |
 | Indented code blocks | ⚪ Not yet | 1/12 | Use fences. Planned. |
 | Reference links and definitions | ⚪ Not yet | 5/27 | Render as text. Planned for definitions that come before the link. Definitions that come after will not work, because they would rewrite text that is already final. |
-| Raw HTML and HTML blocks | ⚪ Not yet | 7/64 | Shown as text, because raw HTML can run code. Only `<br>` is understood. Planned as an opt-in list of safe tags such as `kbd`, `sub`, and `details`, with no attributes. Other HTML stays text. Test: `unsupported things degrade to text` in [conformance.test.ts](test/conformance.test.ts). |
 | HTML entities (`&amp;`) | ⚪ Not yet | 5/17 | Shown literally. Planned: numeric entities and a few common names. The full table is too big. |
 | Tabs for indentation | ⚪ Not yet | 2/11 |  |
 | Math (`$...$`, `$$...$$`) | ⚪ Not yet |  | Planned as an opt-in hook that you supply, so limmat bundles no math library. Dollar signs render literally today. |

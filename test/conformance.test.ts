@@ -44,7 +44,7 @@ const cases: [string, string][] = [
   ['a\\\nb', '<p>a<br>b</p>'],
   ['a<br>b<br/>c', '<p>a<br>b<br>c</p>'],
   ['a\nb', '<p>a\nb</p>'],
-  ['<b>x</b>', '<p>&lt;b&gt;x&lt;/b&gt;</p>'],
+  ['<div>x</div>', '<p>&lt;div&gt;x&lt;/div&gt;</p>'],
   ['a < b && c > d', '<p>a &lt; b &amp;&amp; c &gt; d</p>'],
   ['# H', '<h1>H</h1>'],
   ['###### H', '<h6>H</h6>'],

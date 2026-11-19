@@ -17,7 +17,7 @@ Any input that makes limmat create an element or attribute outside its documente
 
 ## What limmat guarantees
 
-- Text always goes through text nodes. Raw HTML in the input is shown as text.
+- Text always goes through text nodes. Raw HTML in the input is shown as text, with one exception: a fixed list of formatting tags (`b`, `strong`, `i`, `em`, `u`, `s`, `del`, `ins`, `mark`, `small`, `kbd`, `sub`, `sup`, and `br`) written with no attributes becomes an element with no attributes. A tag with any attribute, and every other tag, stays text. The `html` option can only narrow that list, never extend it.
 - Links must use an allowed protocol (`https`, `http`, `mailto` by default) or be a site path you approve, and must parse as a URL. Anything else is refused, including `//host`, backslashes, and whitespace, control, zero-width, bidi, and no-break characters, and the label renders as plain text. `javascript:`, `data:`, and `vbscript:` are refused even if you list them in `allowedProtocols`.
 - External links get `target="_blank"` and `rel="noopener noreferrer"` unless you pass `externalLinksNewTab: false`, which adds neither.
 - Images are on by default, and each `<img>` source passes the same checks as a link, limited to `https`, `http`, and site paths. `javascript:`, `data:`, `blob:`, and `file:` never load. Every image has `referrerpolicy="no-referrer"`, `loading="lazy"`, and no other attribute from the input.

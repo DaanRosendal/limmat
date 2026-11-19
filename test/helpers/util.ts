@@ -45,7 +45,9 @@ export function renderOpen(md: string, options: Options = {}) {
 export const html = (el: Element) => el.innerHTML.replace(/ class="[^"]*"/g, '');
 
 const TAGS = new Set(
-  'P H1 H2 H3 H4 H5 H6 HR BLOCKQUOTE UL OL LI DIV SPAN BUTTON PRE CODE TABLE THEAD TBODY TR TH TD A EM STRONG DEL BR INPUT IMG'.split(' '),
+  'P H1 H2 H3 H4 H5 H6 HR BLOCKQUOTE UL OL LI DIV SPAN BUTTON PRE CODE TABLE THEAD TBODY TR TH TD A EM STRONG DEL BR INPUT IMG B I U S INS MARK SMALL KBD SUB SUP'.split(
+    ' ',
+  ),
 );
 const ATTRS = new Set([
   'class',

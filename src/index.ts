@@ -1,5 +1,5 @@
 import { type Al, atx, cells, LI, scan, spaces, type Unit } from './block';
-import { type Inline, parseInline } from './inline';
+import { HTML_TAGS, type Inline, parseInline } from './inline';
 import { safeUrl } from './url';
 
 export interface Options {
@@ -12,6 +12,11 @@ export interface Options {
   allowedProtocols?: string[];
   /** Open http and https links in a new tab with rel="noopener noreferrer". Default true. false adds neither attribute, so links open in the same tab. */
   externalLinksNewTab?: boolean;
+  /**
+   * Safe HTML tags written without attributes (b, strong, i, em, u, s, del, ins, mark, small, kbd, sub, sup) become elements. Default true.
+   * false shows them as text. An array narrows the list; names outside the built-in list are ignored. A tag with any attribute, and every other tag, stays text. <br> always works.
+   */
+  html?: boolean | string[];
   /**
    * Images. Default true: `![alt](url)` becomes an <img> when the URL passes the same checks as a link, limited to http, https, and site paths.
    * An array of origins ('https://cdn.example.com') loads only from those, and site paths still work. false renders the alt text only.
@@ -98,6 +103,13 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     return s && (!imgOrigins || s[0] === '/' || imgOrigins.has(originOf(s))) ? s : null;
   };
   const newTab = o.externalLinksNewTab !== false;
+  const tags: ReadonlySet<string> = new Set(
+    o.html === false
+      ? []
+      : Array.isArray(o.html)
+        ? o.html.map((x) => `${x}`.toLowerCase()).filter((x) => (HTML_TAGS as readonly string[]).includes(x))
+        : HTML_TAGS,
+  );
   const throttle = Number.isFinite(o.throttleMs) ? (o.throttleMs as number) : 50;
   const px = o.classPrefix ?? 'limmat';
   const lb = o.labels ?? {};
@@ -133,7 +145,9 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     ns.map((n) => (n.k === 't' || n.k === 'c' || n.k === 'a' ? n.s : n.k === 'br' ? ' ' : plain(n.kids))).join('');
 
   function inline(parent: Element, s: string, spec: boolean) {
-    const st: { nodes: Inline[]; i: number; el: Element; il: boolean }[] = [{ nodes: parseInline(s, spec), i: 0, el: parent, il: false }];
+    const st: { nodes: Inline[]; i: number; el: Element; il: boolean }[] = [
+      { nodes: parseInline(s, spec, tags), i: 0, el: parent, il: false },
+    ];
     while (st.length) {
       const f = st[st.length - 1];
       if (f.i >= f.nodes.length) {
@@ -145,7 +159,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       else if (x.k === 'c') f.el.append(h('code', cls('inline-code'), x.s));
       else if (x.k === 'br') f.el.append(h('br'));
       else if (x.k === 'e') {
-        const el = h(x.tag);
+        const el = h(x.tag, x.tag === 'kbd' ? cls('kbd') : undefined);
         f.el.append(el);
         st.push({ nodes: x.kids, i: 0, el, il: f.il });
       } else {
