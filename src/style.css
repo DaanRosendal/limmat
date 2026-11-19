@@ -166,7 +166,8 @@
 .limmat-task > input[type="checkbox"]:first-child {
   margin-right: 0.5em;
 }
-:where(.limmat-code pre, .limmat-table-wrap):focus-visible,
+.limmat-code pre:focus-visible,
+.limmat-table-wrap:focus-visible,
 .limmat-copy:focus-visible,
 .limmat-summary:focus-visible,
 .limmat-link:focus-visible {
