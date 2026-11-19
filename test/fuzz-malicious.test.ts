@@ -56,6 +56,12 @@ describe('malicious input never throws or hangs', () => {
   budget('1 MB text', 'word '.repeat(200_000));
   budget('1 MB text in 5 char chunks', 'word '.repeat(200_000), 5);
 
+  it('a table delimiter row with trailing spaces takes linear time', () => {
+    const t = performance.now();
+    render('a|b\n|-' + ' '.repeat(100_000) + 'x');
+    expect(performance.now() - t).toBeLessThan(2000);
+  });
+
   it('random bytes and random markdown tokens', () => {
     const r = rng(42);
     const toks = [

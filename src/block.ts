@@ -27,7 +27,7 @@ const BARE = /^ {0,3}(?:[-*+]|\d{1,9}[.)])$/;
 const HR = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
 const BQ = /^ {0,3}>/;
 const PIPE = /^ {0,3}\|/;
-const DELIM = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$/;
+const DELIM = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*(?:\|[ \t]*)?$/;
 const PREFIX = /^[ \t|:-]*$/;
 // `<details>` or `<details open>`, alone on its line or followed by `<summary>text</summary>`. No other attribute, spacing, or text.
 const OPEN = /^ {0,3}<details( open)?>(?:<summary>((?:(?!<\/summary>)[^\n])*)<\/summary>)?[ \t]*$/i;
@@ -86,7 +86,9 @@ function tagPrefix(l: string, sum: boolean): boolean {
   while (k < 4 && l[k] === ' ') k++;
   if (k > 3) return false;
   const r = l.slice(k).toLowerCase();
-  const t = r.replace(/[ \t]+$/, '');
+  let e = r.length;
+  while (e > 0 && (r[e - 1] === ' ' || r[e - 1] === '\t')) e--; // a regex here backtracks quadratically on a long run of spaces
+  const t = r.slice(0, e);
   if (TAGS.some((x) => x.startsWith(r) || (t.length < r.length && x === t))) return true;
   const o = /^<details( open)?>/.exec(r);
   if (o) {
