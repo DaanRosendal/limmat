@@ -92,7 +92,7 @@ Statuses: Supported (works, with tests), Partial (the common cases work, the not
 
 ## Why TypeScript, not Rust
 
-Parsing is only about a fifth of the work (measured in Chromium, rendering on every write). The rest is building the page's elements, and WebAssembly cannot do that, so JavaScript would still do it. WebAssembly would also make limmat much bigger: the streaming renderers we measured are 29 to 105 kB gzip, against about 7 kB here. A Rust parser fits better on a server or for huge documents.
+Parsing is only about a fifth of the work (measured in Chromium, rendering on every write). The rest is building the page's elements, and WebAssembly cannot do that, so JavaScript would still do it. WebAssembly would also make limmat much bigger: the streaming renderers we measured are 29 to 105 kB gzip, against about 9 kB here. A Rust parser fits better on a server or for huge documents.
 
 ## License
 
