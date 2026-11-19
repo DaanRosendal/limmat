@@ -12,6 +12,13 @@ import { STREAMS } from './streams.js';
 export function syncControls() {
   for (const i of $$('input[name="stream"]')) i.checked = i.value === s.stream;
   syncSliders();
+  syncMarks();
+}
+
+/** Make the Chunks button and the raw pane show whether the chunks are tinted. */
+function syncMarks() {
+  el.marks.setAttribute('aria-pressed', String(s.marks));
+  el.raw.classList.toggle('plain', !s.marks);
 }
 
 export const canPlay = () => s.stream !== 'custom' || !!STREAMS.custom.text;
@@ -29,6 +36,11 @@ export function initControls() {
   // Radios fire click for arrow keys too, and when the checked one is clicked again.
   for (const i of $$('input[name="stream"]')) i.addEventListener('click', () => pickStream(i.value));
   initSliders(() => reset(canPlay()));
+  el.marks.addEventListener('click', () => {
+    s.marks = !s.marks;
+    syncMarks();
+    writeHash();
+  });
   el.play.addEventListener('click', () => (s.playing ? pause() : play()));
   el.step.addEventListener('click', step);
   el.finish.addEventListener('click', finish);

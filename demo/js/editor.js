@@ -10,6 +10,7 @@ function show(on) {
   el.raw.hidden = on;
   el.rawEdit.hidden = !on;
   el.editHint.hidden = !on;
+  el.marks.hidden = on;
   if (on) {
     el.rawEdit.value = s.chunks.join('');
     el.rawEdit.scrollTop = el.rawEdit.scrollHeight;

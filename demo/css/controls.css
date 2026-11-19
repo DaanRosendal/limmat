@@ -166,9 +166,8 @@
   stroke: var(--accent);
   stroke-width: 2;
 }
-.rand {
-  align-self: flex-start;
-  margin-top: 1px;
+.rand,
+.tg {
   height: 30px;
   padding: 0 12px;
   border: 1px solid var(--line-strong);
@@ -183,10 +182,16 @@
     color var(--fast),
     border-color var(--fast);
 }
-.rand:hover {
+.rand {
+  align-self: flex-start;
+  margin-top: 1px;
+}
+.rand:hover,
+.tg:hover {
   color: var(--fg);
 }
-.rand[aria-pressed="true"] {
+.rand[aria-pressed="true"],
+.tg[aria-pressed="true"] {
   border-color: transparent;
   background: var(--accent-soft);
   color: var(--accent);

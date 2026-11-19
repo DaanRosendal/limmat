@@ -431,14 +431,32 @@ input[type="range"] {
 .pane-head .edit-hint {
   margin-left: auto;
 }
+.pane-head .tg {
+  height: 26px;
+  margin-left: auto;
+  padding: 0 11px;
+  font-size: 12px;
+}
+.tg[hidden] {
+  display: none;
+}
 .chip[hidden] {
   display: none;
+}
+.raw span {
+  transition: background-color var(--med) var(--ease);
 }
 .raw .c1 {
   background: color-mix(in srgb, var(--fg) 7%, transparent);
 }
 .raw .new {
   animation: tint 700ms ease-out;
+}
+.raw.plain .c1 {
+  background: transparent;
+}
+.raw.plain .new {
+  animation: none;
 }
 .raw::after {
   content: "";
@@ -479,6 +497,7 @@ input[type="range"] {
   .state[data-state="open"]::before {
     animation: none;
   }
+  .raw span,
   .seg::before,
   .btn,
   .icon-btn,

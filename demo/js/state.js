@@ -6,6 +6,7 @@ export const s = {
   stream: DEFAULT_STREAM,
   size: 12,
   random: true,
+  marks: true, // tint the chunks in the raw pane
   seed: 1,
   speed: 60,
   throttle: 50,

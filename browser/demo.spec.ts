@@ -286,6 +286,37 @@ test('a remote image in the output still turns the chip red, and an event handle
   await expect(page.locator('#chip-attacks')).toHaveClass(/safe/);
 });
 
+test('the Chunks button tints the raw chunks, is on by default, and a link remembers it', async ({ page }) => {
+  await open(page, '#v=1&stream=reply&c=6&r=0&s=1&t=0&d=400');
+  const button = page.locator('#marks');
+  const tint = () =>
+    page
+      .locator('#raw .c1')
+      .first()
+      .evaluate((e) => getComputedStyle(e).backgroundColor);
+  await page.fill('#pos', '40'); // mid-stream and paused, with the raw pane showing the chunks
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  expect(await tint()).not.toBe('rgba(0, 0, 0, 0)');
+  await button.click();
+  await expect(button).toHaveAttribute('aria-pressed', 'false');
+  await expect.poll(tint).toBe('rgba(0, 0, 0, 0)');
+  expect(page.url()).toContain('k=0');
+  await button.click();
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(tint).not.toBe('rgba(0, 0, 0, 0)');
+  expect(page.url()).toContain('k=1');
+  // A link with k=0 opens with the tint off (a fresh page load, because a changed hash alone does not reload).
+  await page.goto('about:blank');
+  await open(page, '#v=1&stream=reply&c=6&r=0&s=1&t=0&d=400&k=0');
+  await expect(button).toHaveAttribute('aria-pressed', 'false');
+  await page.fill('#pos', '40');
+  expect(await tint()).toBe('rgba(0, 0, 0, 0)');
+  // Once the stream is done the raw pane is the editor, which has no chunks, so the button steps aside.
+  await page.click('#finish');
+  await expect(page.locator('#raw-edit')).toBeVisible();
+  await expect(button).toBeHidden();
+});
+
 test('a shared link restores the settings and plays the same chunks', async ({ page }) => {
   await open(page, '#v=1&stream=table&c=3&r=0&s=7&t=0&d=10');
   await expect(page.locator('input[name="stream"][value="table"]')).toBeChecked();

@@ -5,6 +5,7 @@ export const el = {
   out: $('#out'),
   raw: $('#raw'),
   rawEdit: $('#raw-edit'),
+  marks: $('#marks'),
   editHint: $('#edit-hint'),
   play: $('#play'),
   step: $('#step'),
