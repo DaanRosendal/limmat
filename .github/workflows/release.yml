@@ -1,0 +1,36 @@
+name: Release
+# Publishes limmat to npm when a version tag is pushed (git tag -a v0.1.0 && git push origin v0.1.0), with provenance.
+# It uses npm trusted publishing, so there is no npm token. One-time setup on npmjs.com: add this repository, the workflow
+# file release.yml, and the environment npm as a trusted publisher of the package. The environment `npm` should require
+# the maintainer's approval (Settings > Environments). Tag only a commit whose CI run is green.
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts
+      - name: The tag matches the version in package.json
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run check:style
+      - run: npm test
+      # prepublishOnly builds and runs check:package
+      - run: npm publish
