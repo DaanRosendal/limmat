@@ -10,7 +10,6 @@
       "demo/**/*.css",
       "*.ts",
       "*.json",
-      "!test/helpers/proto-data.mjs",
       "!**/*.md",
       "!demo/out"
     ]
