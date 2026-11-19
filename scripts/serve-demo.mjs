@@ -2,16 +2,9 @@
 //   npm run demo            build, then serve on http://localhost:4173
 import { readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { extname, join, normalize } from 'node:path';
+import { join, normalize } from 'node:path';
+import { headers, ROOT, typeOf } from './demo-files.mjs';
 
-const ROOT = new URL('../demo/out/', import.meta.url).pathname;
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' };
-const headers = Object.fromEntries(
-  readFileSync(`${ROOT}_headers`, 'utf8')
-    .split('\n')
-    .filter((l) => /^\s+[\w-]+:/.test(l))
-    .map((l) => [l.slice(0, l.indexOf(':')).trim(), l.slice(l.indexOf(':') + 1).trim()]),
-);
 const port = Number(process.env.PORT) || 4173;
 
 createServer((req, res) => {
@@ -19,7 +12,7 @@ createServer((req, res) => {
   const file = join(ROOT, path === '/' || path === '.' ? 'index.html' : path);
   try {
     if (!file.startsWith(ROOT)) throw new Error('outside root');
-    res.writeHead(200, { ...headers, 'Content-Type': TYPES[extname(file)] ?? 'application/octet-stream' });
+    res.writeHead(200, { ...headers, 'Content-Type': typeOf(file) });
     res.end(readFileSync(file));
   } catch {
     res.writeHead(404, headers).end('not found');

@@ -10,8 +10,9 @@
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, extname, join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { chromium } from '@playwright/test';
+import { headers, ROOT, typeOf } from './demo-files.mjs';
 
 const opt = Object.fromEntries(process.argv.slice(2).map((a) => a.split('=')));
 
@@ -44,8 +45,6 @@ if (spawnSync('ffmpeg', ['-version']).status !== 0) {
   process.exit(1);
 }
 
-const ROOT = new URL('../demo/out/', import.meta.url).pathname;
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' };
 const problems = [];
 
 const browser = await chromium.launch();
@@ -62,13 +61,8 @@ await page.route('https://limmat.test/**', (route) => {
   const file = path === '/' ? 'index.html' : path.slice(1);
   try {
     return route.fulfill({
-      contentType: TYPES[extname(file)] ?? 'application/octet-stream',
-      headers: Object.fromEntries(
-        readFileSync(`${ROOT}_headers`, 'utf8')
-          .split('\n')
-          .filter((l) => /^\s+[\w-]+:/.test(l))
-          .map((l) => [l.slice(0, l.indexOf(':')).trim(), l.slice(l.indexOf(':') + 1).trim()]),
-      ),
+      contentType: typeOf(file),
+      headers,
       body: readFileSync(ROOT + file),
     });
   } catch {
