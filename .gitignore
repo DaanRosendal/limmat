@@ -8,3 +8,4 @@ playwright-report/
 # Local handoff notes for the maintainer session, not part of the project
 STATUS.md
 demo/out/
+.wrangler/

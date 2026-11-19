@@ -1,0 +1,9 @@
+// Deploys the demo (demo/out/) as a static-assets Worker. `npm run deploy:demo` and .github/workflows/deploy-demo.yml run it.
+{
+  "name": "limmat-demo",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "./demo/out" },
+  "routes": [{ "pattern": "limmat.daanrosendal.com", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false
+}

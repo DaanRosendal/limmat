@@ -1,0 +1,32 @@
+name: Deploy demo
+# Runs after CI passes on master, and deploys demo/out/ to https://limmat.daanrosendal.com (see wrangler.jsonc).
+# Needs two repository secrets: CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_API_TOKEN (an account API token made from the "Edit Cloudflare Workers" template, scoped to this account and the daanrosendal.com zone).
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deploy-demo
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run deploy:demo
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
