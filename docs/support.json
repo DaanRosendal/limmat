@@ -11,7 +11,7 @@
   {"feature": "Bold and italic", "status": "supported", "cm": ["Emphasis and strong emphasis"], "note": "`snake_case_words` stay text."},
   {"feature": "Strikethrough (`~~text~~`)", "status": "supported", "tests": [{"file": "test/syntax.test.ts", "title": "single tilde is literal"}], "note": "Needs two tildes."},
   {"feature": "Inline code", "status": "supported", "cm": ["Code spans"]},
-  {"feature": "Links", "status": "partial", "cm": ["Links"], "tests": [{"file": "test/xss.test.ts", "title": "blocked links keep the label as text"}], "note": "`[text](url)` only. Titles and unsafe URLs show as text."},
+  {"feature": "Links", "status": "partial", "cm": ["Links"], "tests": [{"file": "test/xss.test.ts", "title": "blocked links keep the label as text"}], "note": "`[text](url)` only. A title is dropped, and unsafe URLs show as text."},
   {"feature": "Reference links (`[a][1]`)", "status": "not-yet", "cm": ["Link reference definitions"], "note": "Shown as text."},
   {"feature": "Autolinks (bare URLs, `www.`, emails)", "status": "partial", "cm": ["Autolinks"], "tests": [{"file": "test/syntax.test.ts", "title": "urls only autolink at a word boundary"}], "note": "Only http, https, and mailto."},
   {"feature": "Images", "status": "partial", "cm": ["Images"], "tests": [{"file": "test/images.test.ts", "title": "![alt](https-url) becomes an img with the alt text and a restrictive set of attributes"}], "note": "On by default and loaded without a click, so limit them with `images`. No titles."},

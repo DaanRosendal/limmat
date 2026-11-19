@@ -34,7 +34,7 @@ for await (const chunk of stream) md.write(chunk); // any source of text chunks
 md.end();
 ```
 
-Use one renderer per message: `write` takes only the new text. In a framework, give it an empty element and call `destroy()` when it unmounts. Options are listed [below](#options).
+Use one renderer per message: `write` takes only the new text. In a framework, give it an empty element and call `destroy()` when it unmounts. Options are listed [below](#options). limmat ships as an ES module.
 
 For colored code, add the optional highlighter (it needs `@speed-highlight/core`, plus one of its theme stylesheets):
 
@@ -76,7 +76,7 @@ limmat follows the [CommonMark spec](https://spec.commonmark.org/0.31.2/) where 
 | Half-typed markers hidden while streaming | 🟢&nbsp;Supported | One exception: the `<` of an email autolink. |
 | Same output however the text is chunked | 🟢&nbsp;Supported |  |
 | Lists | 🟡&nbsp;Partial | Nesting works. Loose lists render tight. |
-| Links | 🟡&nbsp;Partial | `[text](url)` only. Titles and unsafe URLs show as text. |
+| Links | 🟡&nbsp;Partial | `[text](url)` only. A title is dropped, and unsafe URLs show as text. |
 | Autolinks (bare URLs, `www.`, emails) | 🟡&nbsp;Partial | Only http, https, and mailto. |
 | Images | 🟡&nbsp;Partial | On by default and loaded without a click, so limit them with `images`. No titles. |
 | Raw HTML | 🟡&nbsp;Partial | Shown as text, except a few tags like `<kbd>` and `<sub>`. |
