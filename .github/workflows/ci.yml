@@ -11,6 +11,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -33,21 +34,61 @@ jobs:
       - run: npm run size
   browsers:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         browser: [chromium, firefox, webkit]
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # Docs-only changes cannot affect the browser tests, so the steps below are skipped for them. Anything that is not
+      # listed here (including docs/support.json, which the demo reads) runs the tests, and so does any diff that fails.
+      - name: Skip the browser tests for docs-only changes
+        id: changes
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then base="$PR_BASE"; else base="$BEFORE"; fi
+          files=$(git diff --name-only "$base" "$GITHUB_SHA" 2>/dev/null) || files=""
+          code=true
+          if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qvE '^(README|CHANGELOG|SECURITY|CONTRIBUTING|AGENTS|CLAUDE)\.md$|^docs/[^/]+\.(md|png|gif|mp4|webm)$'; then
+            code=false
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "browser tests needed: $code"
       - uses: actions/setup-node@v7
+        if: steps.changes.outputs.code == 'true'
         with:
           node-version: 26
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npx playwright install --with-deps ${{ matrix.browser }}
+        if: steps.changes.outputs.code == 'true'
+      # The Ubuntu mirror has stalled for minutes before (one run took 12 minutes to install the WebKit packages). Let apt
+      # retry and give up on a silent connection, and cap the install, with one more try, instead of waiting it out.
+      - name: Make apt retry stalled downloads
+        if: steps.changes.outputs.code == 'true'
+        run: printf 'Acquire::Retries "5";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/80-ci-retries > /dev/null
+      - name: Install the browser
+        id: install
+        if: steps.changes.outputs.code == 'true'
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+        timeout-minutes: 4
+        continue-on-error: true
+      - name: Install the browser (second try)
+        if: steps.changes.outputs.code == 'true' && steps.install.outcome != 'success'
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+        timeout-minutes: 6
       - run: npm run build
+        if: steps.changes.outputs.code == 'true'
       - run: npm run build:demo
-      - run: npx playwright test --project=${{ matrix.browser }}
+        if: steps.changes.outputs.code == 'true'
+      # Chromium keeps one worker because the timing budgets need a quiet machine (they only run there).
+      - run: npx playwright test --project=${{ matrix.browser }} --workers=${{ matrix.browser == 'chromium' && 1 || 2 }}
+        if: steps.changes.outputs.code == 'true'
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
