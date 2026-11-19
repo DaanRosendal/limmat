@@ -81,6 +81,13 @@
     "chat",
     "dom",
     "xss",
-    "safe"
+    "safe",
+    "markdown-renderer",
+    "streaming-markdown",
+    "ai",
+    "chatgpt",
+    "typescript",
+    "sanitize",
+    "zero-dependency"
   ]
 }
