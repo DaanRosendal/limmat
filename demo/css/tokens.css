@@ -16,7 +16,6 @@
   --ok-soft: rgb(22 101 52 / 0.1);
   --bad: #b91c1c;
   --radius: 16px;
-  --radius-sm: 10px;
   --shadow: 0 1px 2px rgb(15 15 30 / 0.04), 0 10px 30px rgb(15 15 30 / 0.06);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --fast: 150ms;

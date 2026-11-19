@@ -88,7 +88,7 @@ export function pause() {
 
 export function reset(autoplay) {
   clearTimeout(s.timer);
-  Object.assign(s, { playing: false, ended: false, i: 0, scrubbed: false, lastSpan: null });
+  Object.assign(s, { playing: false, ended: false, i: 0, lastSpan: null });
   el.raw.replaceChildren();
   newRenderer();
   rebuildChunks();
@@ -129,7 +129,7 @@ export function finish() {
 export function scrub(target) {
   if (s.playing) pause();
   clearTimeout(s.timer);
-  Object.assign(s, { ended: false, scrubbed: true, lastSpan: null });
+  Object.assign(s, { ended: false, lastSpan: null });
   setLabel('stopped', 'Play');
   el.raw.replaceChildren();
   newRenderer();
@@ -157,7 +157,6 @@ export function edit(text) {
   Object.assign(s, {
     i: s.chunks.length,
     ended: false,
-    scrubbed: true,
   });
   el.pos.max = String(s.chunks.length);
   setLabel('stopped', 'Replay');

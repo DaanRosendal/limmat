@@ -19,7 +19,7 @@ const HEADERS = Object.fromEntries(
     .map((l) => [l.slice(0, l.indexOf(':')).trim(), l.slice(l.indexOf(':') + 1).trim()]),
 );
 
-export interface Seen {
+interface Seen {
   errors: string[];
   requests: string[];
 }

@@ -18,7 +18,6 @@ export const s = {
   r: null,
   customText: '',
   hl: null,
-  scrubbed: false,
   lastSpan: null,
   rendered: null, // the text in the live renderer while the visitor edits, null otherwise
 };

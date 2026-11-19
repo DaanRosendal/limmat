@@ -39,7 +39,7 @@ const HANDLER =
   /\bon(?:error|load|click|dblclick|focus|blur|toggle|submit|change|input|key[a-z]+|mouse[a-z]+|pointer[a-z]+|touch[a-z]+|animation[a-z]+|transition[a-z]+)\s*=/gi;
 
 /** Unsafe patterns in the text, by pattern. This reads the input, so it never trusts limmat's own output. */
-export function attacksIn(text) {
+function attacksIn(text) {
   const count = (re) => text.match(re)?.length ?? 0;
   return (
     count(/<script/gi) +

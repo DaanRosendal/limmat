@@ -20,4 +20,3 @@ These parts are the public contract: `createRenderer` and the four `Renderer` me
 - `externalLinksNewTab` option (default `true`): `false` leaves `http` and `https` links without `target` and `rel`.
 - Images: `![alt](url)` renders an `<img>` by default, with the link URL checks, `loading="lazy"`, and `referrerpolicy="no-referrer"`. The `images` option takes an origin list or `false`. Images load without a click, so see "What limmat does not guarantee by default" in SECURITY.md.
 - `limmat/highlight` adapter for `@speed-highlight/core` and optional `limmat/style.css`.
-- Test suite: unit tests, chunk-split fuzz, XSS battery, CommonMark examples, and a Chromium, Firefox, and WebKit suite for security, performance, accessibility, and behavior.

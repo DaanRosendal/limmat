@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 
 const pack = JSON.parse(execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { encoding: 'utf8' }))[0];
 const files = pack.files.map((f) => f.path).sort();
-const bad = files.filter((f) => !/^(dist\/[\w.-]+|package\.json|README\.md|LICENSE|CHANGELOG\.md)$/.test(f));
+const bad = files.filter((f) => !/^(dist\/[\w.-]+|package\.json|README\.md|LICENSE)$/.test(f));
 const need = ['dist/index.js', 'dist/index.d.ts', 'dist/highlight.js', 'dist/highlight.d.ts', 'dist/style.css', 'dist/limmat.min.js'];
 const missing = need.filter((f) => !files.includes(f));
 if (bad.length || missing.length) {

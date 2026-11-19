@@ -81,7 +81,7 @@ function opener(l: string): RegExpExecArray | null {
   return m && (m[2] === undefined || m[2].trim()) ? m : null;
 }
 /** Could the unfinished line `l` still become a details opener, closer, or (if `sum`) summary line? Then it is held back while streaming. */
-export function tagPrefix(l: string, sum: boolean): boolean {
+function tagPrefix(l: string, sum: boolean): boolean {
   let k = 0;
   while (k < 4 && l[k] === ' ') k++;
   if (k > 3) return false;
