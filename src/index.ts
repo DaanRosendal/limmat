@@ -384,7 +384,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       return;
     }
     let ctx: Ctx = null;
-    const U = scan(L, null, false, true, details ? (spec ? 1 : 2) : 0, part);
+    const U = scan(L, null, part, !part, details ? (spec ? 1 : 2) : 0, part);
     U.forEach((u, i) => {
       const sp = spec && i === U.length - 1; // only the last block can still be growing
       if (unwrap && i === 0 && u.k === 'p') return inline(parent, joinTrim(L.slice(u.a, u.e)), sp);

@@ -54,6 +54,14 @@ const cases: [string, string, string][] = [
     '| a | *',
     '<div tabindex="0" role="region" aria-label="Table"><table><thead><tr><th>a</th><th></th></tr></thead><tbody></tbody></table></div>',
   ],
+  ['a star bullet whose bold marker is still arriving is not a rule', '* **Fast**: yes\n* **', '<ul><li><strong>Fast</strong>: yes</li></ul>'],
+  ['a star bullet whose bold marker is still arriving, as the first item', '* **', ''],
+  ['a bare bullet marker in a list item waits', '1. Item\n   -', '<ol><li>Item</li></ol>'],
+  ['a bare number marker in a list item waits', '1. Item\n   1.', '<ol><li>Item</li></ol>'],
+  ['a bare number marker in a quote waits', '> a\n> 1.', '<blockquote><p>a</p></blockquote>'],
+  ['a bare bullet marker in a quote waits', '> -', '<blockquote></blockquote>'],
+  ['a trailing backslash waits for the next character', 'a\\', '<p>a</p>'],
+  ['a trailing backslash in a list item waits', '- a\n  b\\', '<ul><li>a\nb</li></ul>'],
   ['open list item', '- one\n- tw', '<ul><li>one</li><li>tw</li></ul>'],
   ['open nested list', '- a\n  - b\n  - c', '<ul><li>a<ul><li>b</li><li>c</li></ul></li></ul>'],
   ['open blockquote', '> quote *it', '<blockquote><p>quote <em>it</em></p></blockquote>'],
@@ -85,6 +93,13 @@ describe('half-open constructs show no raw markers', () => {
     const mail = 'Write <hi@example.com> now.';
     for (let i = mail.indexOf('@') + 1; i <= mail.length; i++)
       expect(renderOpen(mail.slice(0, i)).textContent, mail.slice(0, i)).not.toContain('<');
+  });
+  it('a closing fence that is still arriving is hidden at the top level, in a list item, and in a quote', () => {
+    const code = (md: string) => renderOpen(md).querySelector('code')!.textContent;
+    expect(code('```\nx\n``')).toBe('x');
+    expect(code('1. Step\n\n   ```sh\n   run\n   `')).toBe('run');
+    expect(code('1. Step\n\n   ```sh\n   run\n   ``')).toBe('run');
+    expect(code('> ```\n> x\n> `')).toBe('x');
   });
   it('open fence shows code immediately', () => {
     const root = renderOpen('```ts\nfunction add(a: number, b');

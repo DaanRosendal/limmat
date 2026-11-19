@@ -23,6 +23,7 @@ export type Unit = Span &
 const ATXRE = /^ {0,3}(#{1,6})(?:[ \t]([^\n]*))?$/;
 export const LI = /^( *)([-*+]|\d{1,9}[.)])(?:( +)([^\n]*)|$)/;
 const FENCE = /^( {0,3})(`{3,}|~{3,})([^\n]*)$/;
+const STAR_BOLD = /^ {0,3}\*[ \t]+\*{2,}$/;
 const BARE = /^ {0,3}(?:[-*+]|\d{1,9}[.)])$/;
 const HR = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
 const BQ = /^ {0,3}>/;
@@ -261,6 +262,10 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       U.push({ k: 'h', a: i, e: i + 1, b: i + 1, lv: h[0] });
       i++;
     } else if (HR.test(l)) {
+      if (!final && partial && i === n - 1 && STAR_BOLD.test(l)) {
+        i++; // `* **` can still become a bullet that starts with bold text
+        continue;
+      }
       U.push({ k: 'hr', a: i, e: i + 1, b: i + 1 });
       i++;
     } else if (BQ.test(l)) {

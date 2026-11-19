@@ -337,6 +337,12 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
         ts = i;
         continue;
       }
+      if (spec && nx === undefined) {
+        text(i); // a backslash at the end may still escape the next character
+        i++;
+        ts = i;
+        continue;
+      }
       i++;
     } else if (c === '`') {
       let e = i;
