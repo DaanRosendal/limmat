@@ -230,8 +230,8 @@ h3 {
   border-radius: 12px;
   background: var(--surface-2);
 }
-.seg.n8 {
-  --n: 8;
+.seg.n9 {
+  --n: 9;
 }
 .seg::before {
   content: "";
@@ -267,6 +267,9 @@ h3 {
 }
 .seg:has(> label:nth-child(8) > input:checked) {
   --i: 7;
+}
+.seg:has(> label:nth-child(9) > input:checked) {
+  --i: 8;
 }
 .seg label {
   position: relative;

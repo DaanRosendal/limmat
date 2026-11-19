@@ -1,4 +1,6 @@
 // The streams on offer and the seeded chunker.
+import { SHOWCASE } from './showcase.js';
+
 const REPLY = `## Debouncing a search box
 
 A **debounce** waits until typing *pauses* before it runs your handler. The plan:
@@ -123,6 +125,7 @@ const LIST = `Packing list:
 
 // Keys match the stream radio values in index.html and the share links, so keep them stable.
 export const STREAMS = {
+  showcase: { label: 'Showcase', text: SHOWCASE },
   reply: { label: 'Reply', text: REPLY },
   'mid-marker': { label: 'Marker', text: MARKER },
   table: { label: 'Table', text: TABLE },

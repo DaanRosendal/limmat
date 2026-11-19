@@ -21,6 +21,17 @@ const openTab = async (page: Page, name: string) => {
   await settle(page);
 };
 
+test('the Showcase plays first, and it is the stream that is checked in the dock', async ({ page }) => {
+  await open(page);
+  await expect(page.locator('input[name="stream"][value="showcase"]')).toBeChecked();
+  await page.click('#finish');
+  await expect(page.locator('#out img[src="/limmat-mark.svg"]')).toBeVisible();
+  await expect(page.locator('#out details[open] details')).toHaveCount(1);
+  await expect(page.locator('#chip-attacks')).toHaveText('Nothing unsafe got through');
+  await expect(page.locator('#chip-attacks')).toHaveClass(/safe/);
+  await expect(page.locator('#open-readout')).toContainText('Done');
+});
+
 test('loads with no errors, no CSP violations, and only same-origin requests', async ({ page, seen }) => {
   await open(page);
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Streaming markdown');
@@ -233,7 +244,7 @@ test('the Attack stream runs nothing, loads nothing, and shows the payloads as t
 });
 
 test('a chip turns red if the output ever has something unsafe in it', async ({ page }) => {
-  await open(page);
+  await open(page, '#v=1&stream=reply'); // a stream with no hostile input, so the chip starts hidden
   await page.click('#finish');
   await expect(page.locator('#chip-attacks')).toBeHidden(); // nothing hostile went in, so there is nothing to report
   await page.evaluate(() => {
@@ -411,7 +422,7 @@ test('the share button copies the run link and says so, and the theme toggle swi
   await page.emulateMedia({ colorScheme: 'light' });
   await page.click('#share');
   await expect(page.locator('#notice')).toContainText(/Link copied|Copying is blocked/);
-  expect(page.url()).toContain('stream=reply');
+  expect(page.url()).toContain('stream=showcase');
   await page.click('#theme');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.click('#theme');

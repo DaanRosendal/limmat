@@ -1,6 +1,9 @@
 // The one mutable state object. Modules read and write it directly.
+/** The stream that plays first, and the one a link that cannot be read falls back to. */
+export const DEFAULT_STREAM = 'showcase';
+
 export const s = {
-  stream: 'reply',
+  stream: DEFAULT_STREAM,
   size: 12,
   random: true,
   seed: 1,

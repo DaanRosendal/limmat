@@ -1,7 +1,7 @@
 // Share links: the whole run lives in the URL fragment, so nothing leaves the browser.
 import { clamp, notice, utf8 } from './dom.js';
 import { el } from './els.js';
-import { SHARE_MAX, s } from './state.js';
+import { DEFAULT_STREAM, SHARE_MAX, s } from './state.js';
 import { STREAMS } from './streams.js';
 
 const b64url = {
@@ -56,7 +56,7 @@ export function readHash() {
     }
   } catch {
     notice('That link could not be read, so the default stream is playing.');
-    s.stream = 'reply';
+    s.stream = DEFAULT_STREAM;
   }
 }
 
