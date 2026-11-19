@@ -13,11 +13,11 @@ Streaming markdown for LLM chat. Half-typed syntax like `[docs](https://example`
 
 **[Try the demo](https://limmat.daanrosendal.com)**
 
-- **No flicker.** Unfinished markdown shows as clean text until it is complete.
+- **No raw markers.** Unfinished markdown shows as clean text until it is complete.
 - **Predictable.** However the text is cut into chunks, the page ends up the same as rendering it all at once.
-- **Safe.** It builds DOM nodes, never HTML strings, so hostile input shows up as plain text.
+- **Safe.** It builds DOM nodes, never HTML strings, so hostile input shows up as plain text. Images load unless you limit them, see [Safety](#safety).
 - **Any framework.** Give it any DOM element: React, Vue, Svelte, or plain JavaScript.
-- **Small and fast.** 9 kB gzip, no dependencies. Only the open block re-renders: 100 KB takes about 10 ms in Chromium.
+- **Small and fast.** 9.5 kB gzip, no dependencies. A 100 KB reply streamed in small chunks takes about 20 ms in total in Chromium.
 
 ## Install
 
@@ -34,7 +34,27 @@ for await (const chunk of stream) md.write(chunk); // any source of text chunks
 md.end();
 ```
 
-Use one renderer per message: `write` takes only the new text. In a framework, give it an empty element and call `destroy()` when it unmounts. Options are listed [below](#options). limmat ships as an ES module.
+`createRenderer(el)` returns `write(chunk)` (only the new text), `end()` (call it when the stream is over), `reset()` (clear it for a new message), and `destroy()`. Use one renderer per message. Creating a renderer empties the element, and options are read once, at creation. limmat is an ES module and renders in the browser, so on a server the element stays empty until the client runs. Options are listed [below](#options).
+
+In React, create the renderer in an effect and destroy it in the cleanup:
+
+```tsx
+useEffect(() => {
+  const md = createRenderer(ref.current!);
+  const ctrl = new AbortController();
+  fetch('/chat', { signal: ctrl.signal })
+    .then(async (res) => {
+      const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
+      for (let r = await reader.read(); !r.done; r = await reader.read()) md.write(r.value);
+      md.end();
+    })
+    .catch(() => {});
+  return () => {
+    ctrl.abort();
+    md.destroy();
+  };
+}, []);
+```
 
 For colored code, add the optional highlighter (it needs `@speed-highlight/core`, plus one of its theme stylesheets):
 
@@ -53,7 +73,7 @@ Tested in Chromium, Firefox, and WebKit.
 
 ## Safety
 
-Raw HTML shows as text, except attribute-free tags like `<kbd>` and `<sub>`, and collapsible `<details>`. Links must be http, https, mailto, or a site path you approve. Images load without a click, so a hostile reply can send data to its own server: pass `images: ['https://your-cdn.example']` or `images: false` to limit that. More in [SECURITY.md](https://github.com/DaanRosendal/limmat/blob/master/SECURITY.md).
+Raw HTML shows as text, except attribute-free tags like `<kbd>` and `<sub>`, and collapsible `<details>`. Links must be http, https, mailto, or a site path (every path unless `isInternalPath` says otherwise). The optional highlighter passes code to `@speed-highlight/core`, which builds HTML itself. Images load without a click, so a hostile reply can send data to its own server: pass `images: ['https://your-cdn.example']` or `images: false` to limit that. More in [SECURITY.md](https://github.com/DaanRosendal/limmat/blob/master/SECURITY.md).
 
 ## What is supported
 
@@ -73,9 +93,9 @@ limmat follows the [CommonMark spec](https://spec.commonmark.org/0.31.2/) where 
 | Inline code | 🟢&nbsp;Supported |  |
 | Collapsible sections (`<details>`) | 🟢&nbsp;Supported | Each tag alone on its line. |
 | Line breaks | 🟢&nbsp;Supported |  |
-| Half-typed markers hidden while streaming | 🟢&nbsp;Supported | One exception: the `<` of an email autolink. |
+| Half-typed markers hidden while streaming | 🟢&nbsp;Supported | A few exceptions, see Known limits. |
 | Same output however the text is chunked | 🟢&nbsp;Supported |  |
-| Lists | 🟡&nbsp;Partial | Nesting works. Loose lists render tight. |
+| Lists | 🟡&nbsp;Partial | Nesting works. Blank lines between items are ignored. |
 | Links | 🟡&nbsp;Partial | `[text](url)` only. A title is dropped, and unsafe URLs show as text. |
 | Autolinks (bare URLs, `www.`, emails) | 🟡&nbsp;Partial | Only http, https, and mailto. |
 | Images | 🟡&nbsp;Partial | On by default and loaded without a click, so limit them with `images`. No titles. |
@@ -86,7 +106,7 @@ limmat follows the [CommonMark spec](https://spec.commonmark.org/0.31.2/) where 
 | Reference links (`[a][1]`) | ⚪&nbsp;Not&nbsp;yet | Shown as text. |
 | HTML entities (`&amp;`) | ⚪&nbsp;Not&nbsp;yet | Shown literally. |
 | Tab indentation | ⚪&nbsp;Not&nbsp;yet |  |
-| Math (`$x$`) | ⚪&nbsp;Not&nbsp;yet | Will be an opt-in hook you supply. |
+| Math (`$x$`) | ⚪&nbsp;Not&nbsp;yet | Planned as an opt-in hook you supply. |
 | Footnotes | ⚪&nbsp;Not&nbsp;yet | Shown as text. Will be opt-in. |
 | Alerts (`> [!NOTE]`) | ⚪&nbsp;Not&nbsp;yet | Shown as a plain block quote. |
 | Citations (`[1]`) and emoji codes | ⚪&nbsp;Not&nbsp;yet | Shown literally. Will be opt-in. |
@@ -100,8 +120,8 @@ Pass options as the second argument to `createRenderer`. All are optional.
 |---|---|---|
 | `throttleMs` | `50` | Minimum ms between re-renders of the open block. `0` renders on every write. |
 | `images` | `true` | Allowed image origins, like `['https://cdn.example.com']`, or `false` for alt text only. See [Safety](#safety). |
-| `html` | `true` | Which safe tags become elements, like `<kbd>` and `<details>`. A list keeps only those, `false` shows all as text. |
-| `highlight` | none | `(el, code, lang) => void`, called once per finished code block. `limmat/highlight` provides one. |
+| `html` | `true` | Which safe tags become elements, like `<kbd>` and `<details>`. A list keeps only those, `false` shows them as text, except `<br>`. |
+| `highlight` | none | `(el, code, lang) => void`, called for each finished code block. `limmat/highlight` provides one. |
 | `onLinkClick` | none | `(href, event) => boolean`. Return `true` to handle the click yourself. |
 | `isInternalPath` | every path | `(path) => boolean`. Site paths like `/docs/x` become links only if this returns `true`. Check the whole path. |
 | `allowedProtocols` | `['https', 'http', 'mailto']` | Protocols that become links. Others show as text. |
@@ -125,9 +145,9 @@ createRenderer(el, {
 
 ## Known limits
 
-- `throttleMs: 0` re-renders the open block on every write, so one very long paragraph gets slow. The default throttle (`throttleMs: 50`) prevents that.
 - `[1]` shows as `1` until its closing bracket arrives, and the `<` of an `<email@example.com>` autolink shows until the `@` arrives.
 - `#anchor` links and relative links without a leading slash show as plain text.
+- A different bullet or delimiter (`+` after `-`, `3)` after `2.`) does not start a new list, and any number can interrupt a paragraph.
 
 ---
 
