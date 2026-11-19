@@ -51,6 +51,15 @@ const cases: [string, string, string][] = [
 describe('half-open constructs show no raw markers', () => {
   for (const [name, md, expected] of cases) it(name, () => expect(html(renderOpen(md))).toBe(expected));
 
+  it('typing a table one character at a time never shows a pipe', () => {
+    const table = '| A | B |\n|---|---|\n| 1 | 2 |';
+    for (let i = 1; i <= table.length; i++) expect(renderOpen(table.slice(0, i)).textContent, table.slice(0, i)).not.toContain('|');
+  });
+
+  it('a closing asterisk after an open bold never shows a raw asterisk', () => {
+    expect(renderOpen('**bold*').textContent).toBe('bold');
+  });
+
   it('typing a table without outer pipes one character at a time never shows the delimiter row', () => {
     const table = 'a | b | c\n--|---|---\n1 | 2 | 3\n';
     for (let i = 1; i <= table.length; i++) expect(renderOpen(table.slice(0, i)).textContent, table.slice(0, i)).not.toContain('--');

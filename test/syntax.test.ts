@@ -251,6 +251,14 @@ describe('edge cases', () => {
     expect(render('```' + 'a'.repeat(21) + '\nx\n```').querySelector('code')!.className).toBe('');
     expect(render('| a \\|\n|--|\n| b \\|').querySelectorAll('th')[0].textContent).toBe('a |');
   });
+  it('a task marker with no text after it still renders its checkbox', () => {
+    expect(html(render('- [ ]'))).toBe('<ul><li><input type="checkbox" disabled="" aria-label="Not completed"></li></ul>');
+    expect(html(render('- [x] '))).toBe('<ul><li><input type="checkbox" disabled="" checked="" aria-label="Completed"></li></ul>');
+  });
+  it('a line break inside image alt text becomes a space, and other tags stay text', () => {
+    expect(render('![a<br>b](/x.png)').querySelector('img')!.getAttribute('alt')).toBe('a b');
+    expect(render('![a<b>c](/x.png)').querySelector('img')!.getAttribute('alt')).toBe('a<b>c');
+  });
 });
 
 describe('line endings', () => {

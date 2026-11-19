@@ -204,6 +204,30 @@ describe('throttle', () => {
     r.end();
     expect(root.textContent).toBe('abcd');
   });
+  it('the first write renders at once with the default throttle, and the next one waits', () => {
+    vi.useFakeTimers();
+    const root = document.createElement('div');
+    const r = createRenderer(root);
+    r.write('a');
+    expect(root.textContent).toBe('a');
+    r.write('b');
+    expect(root.textContent).toBe('a');
+    vi.advanceTimersByTime(50);
+    expect(root.textContent).toBe('ab');
+  });
+  it('a throttleMs that is not a finite number behaves exactly like the default', () => {
+    for (const throttleMs of [Number.NaN, Number.POSITIVE_INFINITY]) {
+      vi.useFakeTimers();
+      const { root, r } = mk({ throttleMs });
+      r.write('a');
+      expect(root.textContent, String(throttleMs)).toBe('a');
+      r.write('b');
+      expect(root.textContent, String(throttleMs)).toBe('a');
+      vi.advanceTimersByTime(50);
+      expect(root.textContent, String(throttleMs)).toBe('ab');
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('links', () => {
