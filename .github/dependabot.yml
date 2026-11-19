@@ -4,10 +4,24 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 5
     groups:
       dev-dependencies:
         dependency-type: development
+        update-types: [minor, patch]
+  - package-ecosystem: npm
+    directory: /deploy
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 5
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 5
+    groups:
+      actions:
+        patterns: ["*"]

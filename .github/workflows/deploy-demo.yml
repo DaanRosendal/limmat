@@ -1,6 +1,8 @@
 name: Deploy demo
 # Runs after CI passes on master, and deploys demo/out/ to https://limmat.daanrosendal.com (see wrangler.jsonc).
-# Needs the repository secrets CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN (Edit Cloudflare Workers template, scoped to this zone).
+# The build job runs the repository's code without any secret. Only the deploy job has the Cloudflare token, and it runs
+# nothing but wrangler, installed from deploy/package-lock.json, on the artifact that the build job made.
+# Needs CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN as secrets of the `production` environment (Settings > Environments).
 on:
   workflow_run:
     workflows: [CI]
@@ -13,9 +15,9 @@ concurrency:
   group: deploy-demo
   cancel-in-progress: false
 jobs:
-  deploy:
+  build:
     # Only master, and only its newest commit: after a push in this repository, never for a fork's pull request (it can
-    # come from a branch named master, and its code must never run with these secrets), and never for a re-run of an old run.
+    # come from a branch named master, and its code must never run with these secrets), and never for an old CI run.
     if: >-
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') ||
       (github.event.workflow_run.conclusion == 'success' &&
@@ -25,15 +27,41 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-      - uses: actions/setup-node@v7
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: npm
       - run: npm ci --ignore-scripts
-      - run: npm run deploy:demo
+      - run: npm run build && npm run build:demo
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: demo-out
+          path: demo/out
+          if-no-files-found: error
+          retention-days: 1
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: demo-out
+          path: demo/out
+      - run: npm ci --ignore-scripts --prefix deploy
+      - run: deploy/node_modules/.bin/wrangler deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"

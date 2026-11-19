@@ -1,0 +1,8 @@
+{
+  "name": "limmat-demo-deploy",
+  "private": true,
+  "description": "Pins wrangler (with a lockfile) for the demo deploy, so the Cloudflare token only ever meets reviewed, locked code.",
+  "devDependencies": {
+    "wrangler": "4.165.0"
+  }
+}
