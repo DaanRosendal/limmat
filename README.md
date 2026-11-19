@@ -12,8 +12,8 @@ It suits any text that arrives in pieces: LLM replies, agent and tool output, co
 <p align="center">
   <a href="https://limmat.daanrosendal.com">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/demo-dark.png">
-      <img src="docs/demo-light.png" width="760" alt="The limmat demo: the raw text a model sends on the left, and limmat's output on the right. A link is only half typed, so it shows as plain text and its paragraph is outlined as the open block.">
+      <source media="(prefers-color-scheme: dark)" srcset="docs/demo-dark.gif">
+      <img src="docs/demo-light.gif" width="720" alt="The limmat demo streaming a reply about itself. The raw text a model sends is on the left and limmat's output is on the right. Half-typed markers never show, a table grows row by row, code fences fill in, collapsible sections open, and a hostile reply stays inert.">
     </picture>
   </a>
 </p>
