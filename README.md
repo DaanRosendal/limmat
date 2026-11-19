@@ -129,4 +129,6 @@ createRenderer(el, {
 - `[1]` shows as `1` until its closing bracket arrives, and the `<` of an `<email@example.com>` autolink shows until the `@` arrives.
 - `#anchor` links and relative links without a leading slash show as plain text.
 
+---
+
 [AGENTS.md](AGENTS.md) for working on limmat, [SECURITY.md](SECURITY.md) to report a problem, and [CHANGELOG.md](CHANGELOG.md). Licensed under the [MIT License](LICENSE).
