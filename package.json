@@ -28,7 +28,7 @@
     "./package.json": "./package.json"
   },
   "peerDependencies": {
-    "@speed-highlight/core": "^2.0.0"
+    "@speed-highlight/core": "^2.1.0"
   },
   "peerDependenciesMeta": {
     "@speed-highlight/core": {
