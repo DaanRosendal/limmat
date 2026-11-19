@@ -1,7 +1,7 @@
 // Records the Showcase stream of the built demo as a looping GIF (run `npm run build && npm run build:demo` first).
 //   npm run record                       docs/demo-light.gif and docs/demo-dark.gif
 //   npm run record -- theme=dark         only docs/demo-dark.gif
-//   options: theme=light|dark (both when left out)  seed=1  size=4  speed=15  fps=30  width=720  colors=32  chunks=0|1  view=900x740  out=docs/demo-light.gif  frames=<dir to keep the PNG frames in>
+//   options: theme=light|dark (both when left out)  seed=1  size=4  speed=15  fps=30  width=720  colors=32  chunks=0|1  bg=#ffffff  view=900x740  out=docs/demo-light.gif  frames=<dir to keep the PNG frames in>
 //
 // The recording is reproducible: the page runs on Playwright's virtual clock, so every timer, throttle, and animation
 // frame advances by exactly one frame interval between screenshots, and the chunk cuts come from the seed in the URL.
@@ -30,6 +30,7 @@ const speed = Number(opt.speed ?? 15); // ms between chunks
 const fps = Number(opt.fps ?? 30);
 const width = Number(opt.width ?? 720);
 const colors = Number(opt.colors ?? 32);
+const bg = opt.bg ?? (theme === 'dark' ? '#0d1117' : '#ffffff'); // the page background, set to GitHub's own so the GIF blends into the README
 const marks = opt.chunks === '1' ? 1 : 0; // the chunk tint in the raw pane, off in the recording unless chunks=1
 const [vw, vh] = (opt.view ?? '900x740').split('x').map(Number);
 const out = opt.out ?? `docs/demo-${theme}.gif`;
@@ -81,6 +82,8 @@ await page.waitForFunction(() => window.__demoReady === true);
 // Stop CSS animations (the blinking caret, the pulse on the open chip) without touching the CSP: the page reads
 // prefers-reduced-motion once, at load, so changing it now only switches the animations off and the stream keeps playing.
 await page.emulateMedia({ reducedMotion: 'reduce' });
+// The CSSOM is allowed under the strict style-src, so the background can change without a style attribute or a CSP bypass.
+await page.evaluate((color) => document.documentElement.style.setProperty('--bg', color), bg);
 await page.clock.pauseAt(Date.now() + 3_600_000);
 await page.click('#restart'); // a known start: empty panes, chunk 0
 await page.mouse.move(0, 0);
