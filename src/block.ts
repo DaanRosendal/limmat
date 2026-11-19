@@ -74,7 +74,6 @@ const fence = (l: string) => {
   const m = FENCE.exec(l);
   return m && !(m[2][0] === '`' && m[3].includes('`')) ? m : null;
 };
-/** Regex for the line that closes the fence opened by match `m`. */
 const closer = (m: RegExpExecArray, indent: string) => new RegExp(`^${indent}${m[2][0]}{${m[2].length},}[ \\t]*$`);
 /** The match of a details opener line, or null. A one-line summary that is blank does not make an opener. */
 function opener(l: string): RegExpExecArray | null {
@@ -204,7 +203,6 @@ interface Frame {
  * scan() hold back constructs that the next characters could still turn into something else.
  * `det` is 0 when details blocks are off, 1 while the text can still grow, and 2 once it is settled. `dh` means the
  * last line is still arriving, so a tag that could still become a details opener, closer, or summary is held back.
- * One branch per block kind, tried in priority order. Each pushes a unit and advances `i` past it.
  */
 export function scan(L: string[], tbl: Al | null, partial: boolean, final: boolean, det = 0, dh = false): Unit[] {
   const U: Unit[] = [];

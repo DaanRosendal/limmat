@@ -113,7 +113,7 @@ function parseDest(s: string, j: number, w: { n: number }): { end: number; href:
   const q = s[j];
   if (q === '"' || q === "'" || q === '(') {
     const close = q === '(' ? ')' : q;
-    const lim = Math.min(n, j + 501);
+    const lim = Math.min(n, j + 501); // a title longer than 500 characters is not a title
     let k = j + 1;
     while (k < lim && s[k] !== close) k++;
     w.n -= k - j;
@@ -143,7 +143,7 @@ function trimUrl(u: string): string {
 /**
  * Match HTML tag tokens into elements. A closing tag matches the nearest open tag of the same name, and open tags
  * between them are left as text. At most MAXDEPTH tags can be open at once, which also bounds the work. While
- * streaming (`spec`), tags still open at the end are closed so the raw tag never shows; at the end of the message
+ * streaming (`spec`), tags still open at the end are closed so the raw tag never shows. At the end of the message
  * they stay text. Each element's content is resolved on its own, so emphasis never crosses a tag boundary.
  */
 function pairTags(t: N[], spec: boolean): N[] {
@@ -313,7 +313,7 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
   let i = 0;
   let runs: Map<number, number[]> | undefined;
   const ptr = new Map<number, number>();
-  const work = { n: 8 * n + 8192 };
+  const work = { n: 8 * n + 8192 }; // work budget for link destinations, see parseDest
   const text = (to: number) => {
     if (to > ts) out.push({ k: 't', s: s.slice(ts, to) });
   };

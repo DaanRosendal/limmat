@@ -14,7 +14,7 @@ export interface Options {
   externalLinksNewTab?: boolean;
   /**
    * Safe HTML tags written without attributes (b, strong, i, em, u, s, del, ins, mark, small, kbd, sub, sup) become elements. Default true.
-   * false shows them as text. An array narrows the list; names outside the built-in list are ignored. A tag with any attribute, and every other tag, stays text. <br> always works.
+   * false shows them as text. An array narrows the list, and names outside the built-in list are ignored. A tag with any attribute, and every other tag, stays text. <br> always works.
    * The list also holds `details`, which turns on collapsible blocks (<details>, an optional <summary> line, content, </details>, each tag alone on its line). Leave it out of an array to turn them off.
    */
   html?: boolean | string[];
@@ -52,7 +52,7 @@ type Ctx = { k: 'l' | 't'; el: Element; ord?: boolean; al?: Al } | null;
 interface St {
   tail: Entry[];
   fctx: Ctx;
-  fl: number; // lines frozen so far (used by the nested state of an open <details>; the top level counts characters in `froz`)
+  fl: number; // lines frozen so far, used only by the nested state of an open <details>
 }
 interface Entry {
   key: string;
@@ -268,6 +268,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         head.append(btn, status);
         const pre = h('pre');
         pre.setAttribute('tabindex', '0');
+        // A language name that is longer than 20 characters or has other characters than these gets no class.
         const code = h('code', /^[\w+#-]{1,20}$/.test(lang) ? cls('lang-' + lang.toLowerCase()) : '');
         code.append(document.createTextNode(text));
         pre.append(code);
@@ -401,22 +402,12 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
 
   const hkey = (u: Extract<Unit, { k: 'd' }>, L: string[]) => `${L[u.a]}\n${u.sum}\n${u.bs - u.a}`;
 
-  /*
-   * Incremental render. `src` (only the lines that are not frozen yet) is split into units by scan(). Rules that
-   * keep chunked output identical to whole output:
-   *  1. A unit is frozen (its DOM is never touched again) only when a LATER unit exists that starts on a complete
-   *     line, because only then can nothing the stream adds change how that unit is parsed or rendered.
-   *  2. A tail entry's `key` holds everything that affects its DOM (kind, text, speculative or open state), so an
-   *     unchanged key means the existing node can stay. The first changed key tears down everything after it.
-   *  3. List and table context does not live in the units: `fctx` carries the open list or table across the freeze
-   *     point, and scan() gets the table alignment through its `tbl` argument. A blank line ends a table in both.
-   *  4. An open fence updates its text in place, so the node, scroll position, and selection survive.
-   * test/freeze.test.ts and test/chunk-fuzz.test.ts hold these rules to account.
-   */
   /**
-   * Diff and freeze for one level: the document, or the inside of an open <details> (which keeps its own St, so only
-   * its newest blocks are rebuilt). Returns how many lines of L became frozen. `q` collects the fences of a level
-   * below the top, which are highlighted only once the outermost container is settled.
+   * Diff and freeze for one level: the document, or the inside of an open <details> (its own St, so only its newest
+   * blocks are rebuilt). A unit freezes, and its DOM is never touched again, only when a later unit starts on a
+   * complete line. List and table context crosses the freeze point in `fctx`, and scan() gets the table alignment
+   * through `tbl`. Returns how many lines of L became frozen. `q` collects the fences of a level below the top,
+   * which are highlighted only once the outermost container is settled.
    */
   function sync(S: St, parent: Element, L: string[], partial: boolean, final: boolean, depth: number, q: Entry['hl'] | null): number {
     const tail = S.tail;
@@ -597,7 +588,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
           timers.delete(id);
           t.textContent = label.copy;
           if (status) status.textContent = '';
-        }, 2000);
+        }, 2000); // the Copied label shows for 2 seconds
         timers.add(id);
       });
     }
