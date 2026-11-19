@@ -265,7 +265,10 @@ function resolve(t: N[], spec: boolean): N[] {
   if (spec) {
     let last = head;
     while (last.x) last = last.x;
-    if (last.k === 'd' && last !== head) last.p!.x = null;
+    while (last.k === 'd' && last !== head) {
+      last = last.p!;
+      last.x = null;
+    }
     closing: for (let j = stack.length - 1; j >= 0; j--) {
       const op = stack[j];
       while (op.n! > 0 && op.x && !(op.ch === '~' && op.n! < 2)) {
