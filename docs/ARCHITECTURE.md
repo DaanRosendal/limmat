@@ -28,11 +28,13 @@ Rules that must hold (they are also written above `flush()`):
 3. **`spec` vs `final`.** While streaming, the last unit renders with `spec` (speculative): unfinished emphasis, links, and code are closed so raw markers never show. At `end()`, `final` is true: unmatched markers become literal text, and every code block is highlighted.
 4. **List and table context** crosses the freeze point in `fctx`, because a list item or table row is its own unit but belongs to a parent element. A blank line ends a table both in `scan()` and in `flush()`.
 5. **Open fences update in place**, so the node, scroll position, and text selection survive each chunk.
-6. **Hostile input stays linear.** Depth caps, a work budget per paragraph for link destinations, and no regex that backtracks on user text.
+6. **Details blocks run to the end like fences.** An opener line without a closer is a container that runs to the end of its input, so it renders the same way while streaming and when final (it only gains `open` at the end), and nothing earlier has to be taken back. An open container keeps its own incremental state (`sub` in the tail entry), so a long section is not rebuilt on every flush, and the reader's toggle is carried over when it is. An opener and closer always interrupt a paragraph, whether or not they end up paired, so the paragraph split is the same in every state.
+7. **Hostile input stays linear.** Depth caps, a work budget per paragraph for link destinations, and no regex that backtracks on user text.
 
 ## Safety invariants
 
 - No `innerHTML`, `insertAdjacentHTML`, or `outerHTML` in `src/`. Only `createElement`, `textContent`, and text nodes.
+- `details` and `summary` elements come only from `scan()`'s details unit, with the fixed attribute set (`class`, and `open` only if the author wrote it or the block never closed).
 - HTML tags become elements only from the fixed `HTML_TAGS` list, only when written with no attributes, and the `html` option can only narrow that list. Anything else stays text.
 - Every `href` and every image `src` comes from `safeUrl()`, and an image also passes the `images` origin list. An `<img>` is created only from a parsed image node, with fixed attributes plus `alt` and `src`.
 - Classes and attributes that come from the input (the fence language) are checked against a strict pattern first.

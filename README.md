@@ -3,8 +3,8 @@
 **Streaming markdown for LLM chat that never shows a half-finished marker.**
 
 - **Clean streaming:** a half-typed `**` or `[link](` never flashes on screen, and the result is the same however the text is split.
-- **Safe by default:** it builds DOM nodes, never HTML strings. Raw HTML shows as text, except a few attribute-free formatting tags like `<kbd>` and `<sub>`, and links are allow-listed. Images load, which can leak data to a hostile server, so use `images: ['https://your-cdn.example']` or `images: false` if that matters ([details](docs/API.md#images-and-privacy)).
-- **Tiny:** about 8 kB gzip, no dependencies.
+- **Safe by default:** it builds DOM nodes, never HTML strings. Raw HTML shows as text, except a few attribute-free formatting tags like `<kbd>` and `<sub>` and collapsible `<details>` sections, and links are allow-listed. Images load, which can leak data to a hostile server, so use `images: ['https://your-cdn.example']` or `images: false` if that matters ([details](docs/API.md#images-and-privacy)).
+- **Tiny:** about 9 kB gzip, no dependencies.
 - **Fast:** only the open block re-renders, so a 100 KB reply takes about 10 ms in Chromium with the default 50 ms throttle.
 
 It suits any text that arrives in pieces: LLM replies, agent and tool output, comments, and live previews. The name is that of the [Limmat](https://en.wikipedia.org/wiki/Limmat), the river through Zurich, because the text arrives as a stream.
@@ -69,6 +69,7 @@ Statuses: Supported (works, with tests), Partial (the common cases work, the not
 | Emphasis and strong | 🟢 Supported | 129/132 | `snake_case_words` stay text. |
 | Strikethrough (GFM) | 🟢 Supported |  | Needs two tildes on both sides. Test: `single tilde is literal` in [gaps.test.ts](test/gaps.test.ts). |
 | Code spans | 🟢 Supported | 20/22 |  |
+| Collapsible sections (`<details>` and `<summary>`) | 🟢 Supported |  | Each tag alone on its line, and `<details><summary>T</summary>` on one line works too. The only attribute is `open`. A block that has not closed yet shows collapsed while streaming, and opens at the end of the message if it never closes. A lone `<details>` with nothing after it stays text. Turn it off with the `html` option. Test: `a well-formed block becomes details and summary, with or without blank lines inside` in [details.test.ts](test/details.test.ts). |
 | Hard and soft line breaks | 🟢 Supported | 14/17 | Test: `single trailing space before newline` in [gaps.test.ts](test/gaps.test.ts). |
 | Half-open constructs never show raw markers while streaming | 🟢 Supported |  | Test: `open fence shows code immediately` in [half-open.test.ts](test/half-open.test.ts), `streaming never shows raw markers` in [behavior.spec.ts](browser/behavior.spec.ts). |
 | Any chunking gives the same DOM as one write | 🟢 Supported |  | Test: `two-part splits at every index` in [chunk-fuzz.test.ts](test/chunk-fuzz.test.ts). |
@@ -76,7 +77,7 @@ Statuses: Supported (works, with tests), Partial (the common cases work, the not
 | Inline links | 🟡 Partial | 23/90 | Inline `[text](url)` works. Reference-style links, many title forms, and unsafe URLs render as text. Titles and URL encoding are planned. These cause most of the misses. Test: `blocked links keep the label as text` in [xss.test.ts](test/xss.test.ts). |
 | Autolinks: `<url>`, bare URLs, `www.`, emails (GFM) | 🟡 Partial | 9/19 | Only allowed protocols become links, so spec examples with other schemes differ by design. Test: `urls only autolink at a word boundary` in [gaps.test.ts](test/gaps.test.ts). |
 | Images | 🟡 Partial | 6/22 | On by default, with the same URL checks as links. Images load without a click, so a hostile reply can send data to its own server: pass `images: ['https://your-cdn.example']` or `images: false` to limit that. Reference-style images and sources without a leading slash (`train.jpg`) render the alt text. Titles are ignored. Test: `![alt](https-url) becomes an img with the alt text and a restrictive set of attributes` in [images.test.ts](test/images.test.ts). |
-| Raw HTML and HTML blocks | 🟡 Partial | 8/64 | Shown as text, because raw HTML can run code, except attribute-free `br`, `b`, `strong`, `i`, `em`, `u`, `s`, `del`, `ins`, `mark`, `small`, `kbd`, `sub`, and `sup`, which become elements. A tag with any attribute, every other tag, and HTML blocks stay text. Narrow the list or turn it off with the `html` option. `details` and `summary` are planned. Test: `tags with attributes, unknown tags, and unbalanced tags stay text` in [html.test.ts](test/html.test.ts). |
+| Raw HTML and HTML blocks | 🟡 Partial | 8/64 | Shown as text, because raw HTML can run code, except attribute-free `br`, `b`, `strong`, `i`, `em`, `u`, `s`, `del`, `ins`, `mark`, `small`, `kbd`, `sub`, and `sup`, which become elements. A tag with any attribute, every other tag, and HTML blocks stay text. Narrow the list or turn it off with the `html` option. Collapsible blocks are the next row. Test: `tags with attributes, unknown tags, and unbalanced tags stay text` in [html.test.ts](test/html.test.ts). |
 | Backslash escapes | 🟡 Partial | 9/13 |  |
 | Setext headings (`Title` over `---`) | ⚪ Not yet | 12/27 | The underline renders as a rule (`---`) or as text (`===`). Planned. |
 | Indented code blocks | ⚪ Not yet | 1/12 | Use fences. Planned. |

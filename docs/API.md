@@ -10,7 +10,7 @@ The quick start is in the [README](../README.md). Types and defaults are also in
 | `isInternalPath(path)` | all paths | Site-relative paths (`/research/x/`) become links only if this returns `true`. Others render as plain text. It gets the raw path including any query and hash, may be called more than once per link while the reply streams, and a throw counts as `false`. Check the whole path, not just a prefix: `/research/../admin` starts with `/research/`. |
 | `allowedProtocols` | `['https', 'http', 'mailto']` | Protocols that may become links, with or without the colon and in any case. Anything else renders as plain text. |
 | `externalLinksNewTab` | `true` | `http` and `https` links get `target="_blank"` and `rel="noopener noreferrer"`. `false` adds neither, so they open in the same tab (site paths and `mailto:` links never get them). For per-link control, return `true` from `onLinkClick` and open the link yourself. |
-| `html` | `true` | Attribute-free `b`, `strong`, `i`, `em`, `u`, `s`, `del`, `ins`, `mark`, `small`, `kbd`, `sub`, and `sup` tags become elements, and markdown works inside them. `false` shows them as text, and an array of names narrows the list (names outside the built-in list are ignored, so the option can never create another element). A tag with any attribute and every other tag stays text, and `<br>` always works. See [HTML tags](#html-tags). |
+| `html` | `true` | Attribute-free `b`, `strong`, `i`, `em`, `u`, `s`, `del`, `ins`, `mark`, `small`, `kbd`, `sub`, and `sup` tags become elements, and markdown works inside them. `false` shows them as text, and an array of names narrows the list (names outside the built-in list are ignored, so the option can never create another element). A tag with any attribute and every other tag stays text, and `<br>` always works. The name `details` in an array also turns on [collapsible sections](#collapsible-sections). See [HTML tags](#html-tags). |
 | `images` | `true` | `![alt](url)` becomes an `<img>` when the URL passes the link checks, limited to `http`, `https`, and site paths. An array of origins (`['https://cdn.example.com']`) loads only from those, and site paths still work. `false` shows the alt text only. `allowedProtocols` and `isInternalPath` apply too. See [Images and privacy](#images-and-privacy). |
 | `highlight(el, code, lang)` | none | Called once when a fence closes (or at `end()`), with the `<code>` element. A throw or rejection is ignored and the plain text stays. |
 | `throttleMs` | `50` | Minimum time between re-renders of the open block. `0` renders on every write. A non-finite value uses the default. |
@@ -30,7 +30,24 @@ The quick start is in the [README](../README.md). Types and defaults are also in
 
 Models often mix HTML into markdown, so these tags work when written without attributes: `b`, `strong`, `i`, `em`, `u`, `s`, `del`, `ins`, `mark`, `small`, `kbd`, `sub`, `sup`, plus `<br>`. For example `Press <kbd>Ctrl</kbd>+<kbd>C</kbd> to copy H<sub>2</sub>O` renders the keys and the subscript.
 
-Everything else stays visible text: a tag with any attribute (`<kbd class="x">`), unknown tags (`<div>`, `<span>`, `<thinking>`), and tags that load or run something (`<a>`, `<img>`, `<script>`, `<iframe>`). Tags must nest properly: in `<b><i>x</b></i>` the `<i>` and `</i>` stay text, and a closing tag with no opener stays text. While a reply streams, a half-typed tag such as `<kb` is hidden, and a tag that is still open is closed for display. If it never closes, it shows as text when the message ends. Tags inside inline code and fences are code text. Narrow or disable the list with `html: ['kbd', 'sub']` or `html: false`.
+Everything else stays visible text: a tag with any attribute (`<kbd class="x">`), unknown tags (`<div>`, `<span>`, `<thinking>`), and tags that load or run something (`<a>`, `<img>`, `<script>`, `<iframe>`). Tags must nest properly: in `<b><i>x</b></i>` the `<i>` and `</i>` stay text, and a closing tag with no opener stays text. While a reply streams, a half-typed tag such as `<kb` is hidden, and a tag that is still open is closed for display. If it never closes, it shows as text when the message ends. Tags inside inline code and fences are code text. Block-level `<details>` and `<summary>` are covered in [Collapsible sections](#collapsible-sections). Narrow or disable the list with `html: ['kbd', 'sub']` or `html: false`.
+
+### Collapsible sections
+
+```
+<details>
+<summary>Why this works</summary>
+
+Content with **markdown**, lists, code, and nested sections.
+
+</details>
+```
+
+renders a native `<details>` and `<summary>`, which are keyboard and screen-reader accessible. Each tag sits alone on its line, and `<details><summary>Title</summary>` on one line works too. The summary is one line of inline markdown, and the optional line must come right after the opener. The only attribute is `open` (`<details open>`), and anything else (`<details class="x">`, `<summary onclick=...>`) stays text. An unmatched `</details>` stays text.
+
+While a reply streams, a block that has not closed yet shows as a collapsed `<details>` with what has arrived, and a half-typed tag line is hidden. If it never closes (the model forgot `</details>`, or the reply was cut off), it opens when the message ends, so nothing stays hidden behind a click, in the same way an unclosed code fence still renders as code. A lone `<details>` with nothing after it stays text.
+
+Because the opener swallows everything up to its closer, a stray `<details>` line wraps the rest of the reply in a section. Content stays in the page and in the accessibility tree, but a closed section hides text from a reader until they open it, so do not rely on it to show anything important. Sections nest up to 12 levels. The reader's open or closed choice survives while the reply streams, and code inside a section is highlighted once the section is settled.
 
 ## Images and privacy
 
@@ -68,6 +85,7 @@ div.limmat-code
   pre[tabindex=0] > code.limmat-lang-ts
 div.limmat-table-wrap[tabindex=0][role=region] > table
 a.limmat-link
+details.limmat-details[open] > summary.limmat-summary, then the content blocks
 kbd.limmat-kbd, b, strong, i, em, u, s, del, ins, mark, small, sub, sup (from the HTML tags, no attributes)
 img.limmat-image[loading=lazy][decoding=async][referrerpolicy=no-referrer] (an image)
 code.limmat-inline-code (inline code)

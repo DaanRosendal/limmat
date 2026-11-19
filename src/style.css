@@ -36,6 +36,19 @@
   font-size: 0.875em;
   white-space: nowrap;
 }
+.limmat-details {
+  margin: 0.5em 0;
+  padding: 0.35em 0.75em;
+  border: 1px solid var(--limmat-border);
+  border-radius: var(--limmat-radius);
+}
+.limmat-summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.limmat-details[open] > .limmat-summary {
+  margin-bottom: 0.4em;
+}
 .limmat-image {
   max-width: 100%;
   height: auto;
@@ -141,6 +154,7 @@
 }
 :where(.limmat-code pre, .limmat-table-wrap):focus-visible,
 .limmat-copy:focus-visible,
+.limmat-summary:focus-visible,
 .limmat-link:focus-visible {
   outline: 2px solid var(--limmat-focus);
   outline-offset: 2px;
@@ -156,7 +170,8 @@
   .limmat-inline-code {
     border: 1px solid CanvasText;
   }
-  .limmat-kbd {
+  .limmat-kbd,
+  .limmat-details {
     border-color: CanvasText;
   }
   .limmat-link {

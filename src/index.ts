@@ -15,6 +15,7 @@ export interface Options {
   /**
    * Safe HTML tags written without attributes (b, strong, i, em, u, s, del, ins, mark, small, kbd, sub, sup) become elements. Default true.
    * false shows them as text. An array narrows the list; names outside the built-in list are ignored. A tag with any attribute, and every other tag, stays text. <br> always works.
+   * The list also holds `details`, which turns on collapsible blocks (<details>, an optional <summary> line, content, </details>, each tag alone on its line). Leave it out of an array to turn them off.
    */
   html?: boolean | string[];
   /**
@@ -48,6 +49,11 @@ export interface Renderer {
 }
 
 type Ctx = { k: 'l' | 't'; el: Element; ord?: boolean; al?: Al } | null;
+interface St {
+  tail: Entry[];
+  fctx: Ctx;
+  fl: number; // lines frozen so far (used by the nested state of an open <details>; the top level counts characters in `froz`)
+}
 interface Entry {
   key: string;
   u: Unit;
@@ -57,6 +63,8 @@ interface Entry {
   code?: HTMLElement;
   open?: boolean;
   hl?: [HTMLElement, string, string][]; // fences nested in this unit, highlighted once the unit is final
+  sub?: St; // an open <details>: the incremental state of its inside
+  hk?: string; // what the open <details> was opened with (opener, summary), a change rebuilds it
 }
 interface Built {
   n: Element;
@@ -110,6 +118,8 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         ? o.html.map((x) => `${x}`.toLowerCase()).filter((x) => (HTML_TAGS as readonly string[]).includes(x))
         : HTML_TAGS,
   );
+  const details =
+    o.html === undefined || o.html === true || (Array.isArray(o.html) && o.html.some((x) => `${x}`.toLowerCase() === 'details'));
   const throttle = Number.isFinite(o.throttleMs) ? (o.throttleMs as number) : 50;
   const px = o.classPrefix ?? 'limmat';
   const lb = o.labels ?? {};
@@ -123,10 +133,9 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   const cls = (name: string) => `${px}-${name}`;
   const timers = new Set<ReturnType<typeof setTimeout>>();
 
+  const opened = new WeakSet<Element>(); // <details> elements limmat opened itself: the author wrote `open`, or the block never closed
   let src = '';
   let froz = 0;
-  let fctx: Ctx = null;
-  let tail: Entry[] = [];
   let held = ''; // a trailing CR waits for the next chunk, in case it is the first half of CRLF
   let ended = false;
   let dead = false;
@@ -225,7 +234,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
    * `settled` means no more input can change it, so code is highlighted now. Fences nested in a quote or list item
    * are queued on `hl` instead, because their parent unit can still change until it is frozen.
    */
-  function build(u: Unit, L: string[], spec: boolean, depth: number, settled: boolean, hl?: Entry['hl']): Built {
+  function build(u: Unit, L: string[], spec: boolean, depth: number, settled: boolean, hl?: Entry['hl'], part = false): Built {
     switch (u.k) {
       case 'p': {
         const el = h('p');
@@ -274,7 +283,22 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
           spec,
           false,
           hl,
+          part,
         );
+        return { n: el };
+      }
+      case 'd': {
+        const el = h('details', cls('details'));
+        if (u.open || (!u.closed && !spec)) {
+          el.setAttribute('open', ''); // an unclosed block that is settled opens, so nothing stays hidden behind a click
+          opened.add(el);
+        }
+        if (u.sum !== null) {
+          const sm = h('summary', cls('summary'));
+          inline(sm, u.sum, false);
+          el.append(sm);
+        }
+        blocks(L.slice(u.bs, u.closed ? u.e - 1 : u.e), el, depth + 1, spec && !u.closed, false, hl, part);
         return { n: el };
       }
       case 'li': {
@@ -292,7 +316,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
           li.append(box);
           body[0] = body[0].slice(tk[0].length);
         }
-        blocks(body, li, depth + 1, spec, true, hl);
+        blocks(body, li, depth + 1, spec, true, hl, part);
         return { n: li };
       }
       case 'th': {
@@ -349,7 +373,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     return { ctx: u.k === 'th' ? { k: 't', el: b.body!, al: u.al } : null };
   }
 
-  function blocks(L: string[], parent: Element, depth: number, spec: boolean, unwrap: boolean, hl?: Entry['hl']) {
+  function blocks(L: string[], parent: Element, depth: number, spec: boolean, unwrap: boolean, hl?: Entry['hl'], part = false) {
     if (depth > MAX_DEPTH) {
       const p = h('p');
       inline(p, joinTrim(L), spec);
@@ -357,11 +381,11 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       return;
     }
     let ctx: Ctx = null;
-    const U = scan(L, null, false, true);
+    const U = scan(L, null, false, true, details ? (spec ? 1 : 2) : 0, part);
     U.forEach((u, i) => {
       const sp = spec && i === U.length - 1; // only the last block can still be growing
       if (unwrap && i === 0 && u.k === 'p') return inline(parent, joinTrim(L.slice(u.a, u.e)), sp);
-      ctx = place(parent, ctx, u, build(u, L, sp, depth, true, hl)).ctx;
+      ctx = place(parent, ctx, u, build(u, L, sp, depth, true, hl, part && u.b === L.length)).ctx;
     });
   }
 
@@ -369,6 +393,11 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     for (const [c, t, l] of e.hl ?? []) highlight(c, t, l);
     e.hl = undefined;
   }
+
+  const mkSt = (): St => ({ tail: [], fctx: null, fl: 0 });
+  let top = mkSt();
+
+  const hkey = (u: Extract<Unit, { k: 'd' }>, L: string[]) => `${L[u.a]}\n${u.sum}\n${u.bs - u.a}`;
 
   /*
    * Incremental render. `src` is split into units by scan(), but only from `froz`, the offset of the first line that
@@ -382,16 +411,22 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
    *  4. An open fence updates its text in place, so the node, scroll position, and selection survive.
    * test/freeze.test.ts and test/chunk-fuzz.test.ts hold these rules to account.
    */
-  function flush(final: boolean) {
-    const text = src.slice(froz);
-    const partial = !text.endsWith('\n');
-    const L = text.split('\n');
-    if (!partial) L.pop();
-    const U = scan(L, fctx && fctx.k === 't' ? fctx.al! : null, partial, final);
+  /**
+   * Diff and freeze for one level: the document, or the inside of an open <details> (which keeps its own St, so only
+   * its newest blocks are rebuilt). Returns how many lines of L became frozen. `q` collects the fences of a level
+   * below the top, which are highlighted only once the outermost container is settled.
+   */
+  function sync(S: St, parent: Element, L: string[], partial: boolean, final: boolean, depth: number, q: Entry['hl'] | null): number {
+    const tail = S.tail;
+    const U = scan(L, S.fctx && S.fctx.k === 't' ? S.fctx.al! : null, partial, final, details ? (final ? 2 : 1) : 0, partial && !final);
+    const hi = (c: HTMLElement, t: string, l: string) => (q ? q.push([c, t, l]) : highlight(c, t, l));
     const keys = U.map((u, i) => {
       const spec = !final && i === U.length - 1;
       const t = L.slice(u.a, u.e).join('\n');
-      return u.k === 'f' ? `f${u.closed ? 1 : 0}${t}` : `${u.k}${spec ? '*' : ''}${u.k === 'th' && u.pend ? '?' : ''}${t}`;
+      const pt = partial && !final && u.b === L.length && (u.k === 'q' || u.k === 'li' || u.k === 'd');
+      return u.k === 'f'
+        ? `f${u.closed ? 1 : 0}${t}`
+        : `${u.k}${u.k === 'd' && u.closed ? 1 : ''}${spec ? '*' : ''}${pt ? '~' : ''}${u.k === 'th' && u.pend ? '?' : ''}${t}`;
     });
     let p = 0;
     while (p < tail.length && p < U.length && tail[p].key === keys[p]) p++;
@@ -404,41 +439,94 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       e.u = u;
       if (u.closed || final) {
         e.open = false;
-        highlight(e.code, text2, u.lang);
+        hi(e.code, text2, u.lang);
       }
       p++;
+    } else if (e?.sub && p === U.length - 1 && u.k === 'd' && !u.closed && e.u.k === 'd' && hkey(u, L) === e.hk) {
+      // An open <details> keeps its node (and the reader's toggle, focus, and selection): only its inside is synced.
+      const inner = L.slice(u.bs, u.e);
+      e.sub.fl += sync(e.sub, e.node, inner.slice(e.sub.fl), partial, final, depth + 1, e.hl!);
+      if (final && !e.node.hasAttribute('open') && !opened.has(e.node)) {
+        e.node.setAttribute('open', ''); // untouched by the reader: open it, as a settled unclosed block is
+        opened.add(e.node);
+      }
+      e.key = keys[p];
+      e.u = u;
+      p++;
     }
-    let ctx: Ctx = p > 0 ? tail[p - 1].ctx : fctx;
+    let ctx: Ctx = p > 0 ? tail[p - 1].ctx : S.fctx;
+    const toggled: (boolean | null)[] = []; // per removed <details>, the state the reader left it in, or null if untouched
     for (const old of tail.splice(p)) {
+      for (const d of old.node.tagName === 'DETAILS' ? [old.node] : Array.from(old.node.querySelectorAll('details')))
+        toggled.push((d as HTMLDetailsElement).open !== opened.has(d) ? (d as HTMLDetailsElement).open : null);
       old.node.remove();
       old.made?.remove();
     }
     for (let i = p; i < U.length; i++) {
       const u = U[i];
       const hl: Entry['hl'] = [];
-      const b = build(u, L, !final && i === U.length - 1, 0, final, hl);
-      const r = place(container, ctx, u, b);
+      const last = !final && i === U.length - 1;
+      let b: Built;
+      let sub: St | undefined;
+      if (u.k === 'd' && !u.closed && depth < MAX_DEPTH) {
+        // Open <details>: its own St, so the next flush syncs only what changed inside instead of rebuilding it all.
+        b = build({ ...u, bs: u.e }, L, last, depth, final, hl);
+        sub = mkSt();
+        sub.fl += sync(sub, b.n, L.slice(u.bs, u.e), partial, final, depth + 1, hl);
+      } else b = build(u, L, last, depth, final, hl, partial && !final && u.b === L.length);
+      const r = place(parent, ctx, u, b);
       ctx = r.ctx;
-      tail.push({ key: keys[i], u, node: b.n, made: r.made, ctx, code: b.code, open: u.k === 'f' && !u.closed && !final, hl });
+      tail.push({
+        key: keys[i],
+        u,
+        node: b.n,
+        made: r.made,
+        ctx,
+        code: b.code,
+        open: u.k === 'f' && !u.closed && !final,
+        hl,
+        sub,
+        hk: u.k === 'd' ? hkey(u, L) : undefined,
+      });
+    }
+    if (toggled.some((x) => x !== null)) {
+      let k = 0;
+      for (const t of tail.slice(p))
+        for (const d of t.node.tagName === 'DETAILS' ? [t.node] : Array.from(t.node.querySelectorAll('details'))) {
+          const was = toggled[k++];
+          if (was !== null && was !== undefined) (d as HTMLDetailsElement).open = was;
+        }
     }
     if (final)
       for (const t of tail) {
         if (t.open && t.code && t.u.k === 'f') {
           t.open = false;
-          highlight(t.code, t.code.textContent ?? '', t.u.lang);
+          hi(t.code, t.code.textContent ?? '', t.u.lang);
         }
-        runNested(t);
+        if (q) q.push(...(t.hl ?? []));
+        else runNested(t);
       }
     let k = Math.max(U.length - 1, 0);
     if (partial && k > 0 && U[k].a === L.length - 1) k--;
     if (!final && k > 0) {
-      fctx = tail[k - 1].ctx;
-      if (fctx && fctx.k === 't' && U[k - 1].b > U[k - 1].e) fctx = null;
-      let off = 0;
-      for (let x = 0; x < U[k - 1].b; x++) off += L[x].length + 1;
-      froz += off;
-      for (const t of tail.splice(0, k)) runNested(t);
+      S.fctx = tail[k - 1].ctx;
+      if (S.fctx && S.fctx.k === 't' && U[k - 1].b > U[k - 1].e) S.fctx = null;
+      for (const t of tail.splice(0, k)) {
+        if (q) q.push(...(t.hl ?? []));
+        else runNested(t);
+      }
+      return U[k - 1].b;
     }
+    return 0;
+  }
+
+  function flush(final: boolean) {
+    const text = src.slice(froz);
+    const partial = !text.endsWith('\n');
+    const L = text.split('\n');
+    if (!partial) L.pop();
+    const drop = sync(top, container, L, partial, final, 0, null);
+    for (let x = 0; x < drop; x++) froz += L[x].length + 1;
   }
 
   function schedule() {
@@ -544,8 +632,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       src = '';
       held = '';
       froz = 0;
-      fctx = null;
-      tail = [];
+      top = mkSt();
       ended = false;
       lastRun = -Infinity;
     },

@@ -34,10 +34,10 @@ export const mk = (o: Options = {}) => {
 };
 
 /** Midstream state: write everything but do not call end(). */
-export function renderOpen(md: string, options: Options = {}) {
+export function renderOpen(md: string, options: Options = {}, split: Split = 'whole', seed = 1) {
   const root = document.createElement('div');
   const r = createRenderer(root, { throttleMs: 0, ...options });
-  r.write(md);
+  for (const c of chunks(md, split, seed)) r.write(c);
   return root;
 }
 
@@ -45,7 +45,7 @@ export function renderOpen(md: string, options: Options = {}) {
 export const html = (el: Element) => el.innerHTML.replace(/ class="[^"]*"/g, '');
 
 const TAGS = new Set(
-  'P H1 H2 H3 H4 H5 H6 HR BLOCKQUOTE UL OL LI DIV SPAN BUTTON PRE CODE TABLE THEAD TBODY TR TH TD A EM STRONG DEL BR INPUT IMG B I U S INS MARK SMALL KBD SUB SUP'.split(
+  'P H1 H2 H3 H4 H5 H6 HR BLOCKQUOTE UL OL LI DIV SPAN BUTTON PRE CODE TABLE THEAD TBODY TR TH TD A EM STRONG DEL BR INPUT IMG B I U S INS MARK SMALL KBD SUB SUP DETAILS SUMMARY'.split(
     ' ',
   ),
 );
@@ -68,6 +68,7 @@ const ATTRS = new Set([
   'loading',
   'decoding',
   'referrerpolicy',
+  'open',
 ]);
 const SAFE_HREF = /^(https?:\/\/[^/?#\s]|mailto:[^\s]|\/(?![/\\]))/i;
 const SAFE_SRC = /^(https?:\/\/[^/?#\s]|\/(?![/\\]))/i;
@@ -81,11 +82,17 @@ export function audit(root: Element): string[] {
     if (tag === 'INPUT' && e.getAttribute('type') !== 'checkbox') bad.push('input type');
     if (tag === 'BUTTON' && e.getAttribute('type') !== 'button') bad.push('button type');
     if (tag === 'IMG' && e.getAttribute('referrerpolicy') !== 'no-referrer') bad.push('img referrerpolicy');
+    if (tag === 'DETAILS' && !['DIV', 'BLOCKQUOTE', 'LI', 'DETAILS'].includes(e.parentElement?.tagName ?? '')) bad.push('details parent');
+    if (tag === 'SUMMARY' && (e.parentElement?.tagName !== 'DETAILS' || e.parentElement.firstElementChild !== e))
+      bad.push('summary position');
+    if (tag === 'SUMMARY' && e.querySelector('p,ul,ol,li,blockquote,pre,table,details,button,input,div,h1,h2,h3,h4,h5,h6,hr'))
+      bad.push('block inside summary');
     for (const a of Array.from(e.attributes)) {
       if (!ATTRS.has(a.name)) bad.push(`attr ${a.name}`);
       if (a.name.startsWith('on')) bad.push(`handler ${a.name}`);
       if (a.name === 'href' && (tag !== 'A' || !SAFE_HREF.test(a.value))) bad.push(`href ${a.value}`);
       if (a.name === 'src' && (tag !== 'IMG' || !SAFE_SRC.test(a.value))) bad.push(`src ${a.value}`);
+      if (a.name === 'open' && (tag !== 'DETAILS' || a.value !== '')) bad.push(`open on ${tag}`);
       if (a.name === 'style' && !(['TH', 'TD'].includes(tag) && /^text-align: ?(left|center|right);?$/.test(a.value)))
         bad.push(`style ${a.value}`);
       if (a.name === 'class' && /[\s"'<>]/.test(a.value.replace(/ /g, ''))) bad.push('class chars');

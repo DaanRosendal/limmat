@@ -16,6 +16,7 @@ export type Unit = Span &
     | { k: 'li'; ord: boolean; num: number; off: number } // list item, `off` is the content column, `num` the start number
     | { k: 'th'; al: Al; pend?: boolean } // table header, `pend` while the delimiter row is still arriving
     | { k: 'tr'; al: Al } // table body row
+    | { k: 'd'; open: boolean; closed: boolean; sum: string | null; bs: number } // details container, inner lines are scanned again when built
   );
 
 // `[^\n]` instead of `.`: a dot stops at \r, \u2028 and \u2029, which made some of these regexes backtrack badly.
@@ -28,6 +29,11 @@ const BQ = /^ {0,3}>/;
 const PIPE = /^ {0,3}\|/;
 const DELIM = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$/;
 const PREFIX = /^[ \t|:-]*$/;
+// `<details>` or `<details open>`, alone on its line or followed by `<summary>text</summary>`. No other attribute, spacing, or text.
+const OPEN = /^ {0,3}<details( open)?>(?:<summary>((?:(?!<\/summary>)[^\n])*)<\/summary>)?[ \t]*$/i;
+const CLOSE = /^ {0,3}<\/details>[ \t]*$/i;
+const SUMM = /^ {0,3}<summary>((?:(?!<\/summary>)[^\n])*)<\/summary>[ \t]*$/i;
+const TAGS = ['<details>', '<details open>', '</details>'];
 const PARTIAL_CLOSE = /^ {0,3}(?:`+|~+)$/;
 
 export const spaces = (l: string) => l.length - l.trimStart().length;
@@ -70,7 +76,33 @@ const fence = (l: string) => {
 };
 /** Regex for the line that closes the fence opened by match `m`. */
 const closer = (m: RegExpExecArray, indent: string) => new RegExp(`^${indent}${m[2][0]}{${m[2].length},}[ \\t]*$`);
-function interrupts(l: string, inTable: boolean): boolean {
+/** The match of a details opener line, or null. A one-line summary that is blank does not make an opener. */
+function opener(l: string): RegExpExecArray | null {
+  const m = OPEN.exec(l);
+  return m && (m[2] === undefined || m[2].trim()) ? m : null;
+}
+/** Could the unfinished line `l` still become a details opener, closer, or (if `sum`) summary line? Then it is held back while streaming. */
+export function tagPrefix(l: string, sum: boolean): boolean {
+  let k = 0;
+  while (k < 4 && l[k] === ' ') k++;
+  if (k > 3) return false;
+  const r = l.slice(k).toLowerCase();
+  const t = r.replace(/[ \t]+$/, '');
+  if (TAGS.some((x) => x.startsWith(r) || (t.length < r.length && x === t))) return true;
+  const o = /^<details( open)?>/.exec(r);
+  if (o) {
+    const rest = r.slice(o[0].length); // the one-line form: `<details><summary>T</summary>`
+    return !!rest && ('<summary>'.startsWith(rest) || (rest.startsWith('<summary>') && !rest.includes('</summary>')));
+  }
+  if (sum && (r.length < 9 ? '<summary>'.startsWith(r) : r.startsWith('<summary>'))) {
+    const rest = r.slice(9);
+    const e = rest.indexOf('</summary>');
+    return e < 0 || !rest.slice(e + 10).trim();
+  }
+  return false;
+}
+function interrupts(l: string, inTable: boolean, det = false): boolean {
+  if (det && (opener(l) || CLOSE.test(l))) return true;
   if (fence(l) || atx(l) || HR.test(l) || BQ.test(l)) return true;
   if (!inTable && PIPE.test(l)) return true;
   const m = LI.exec(l);
@@ -97,7 +129,7 @@ function fenceUnit(L: string[], i: number, m: RegExpExecArray, partial: boolean,
 }
 
 /** End (exclusive) of the blockquote starting at line i. */
-function quoteEnd(L: string[], i: number): number {
+function quoteEnd(L: string[], i: number, det: boolean): number {
   const n = L.length;
   // Lazy continuation (a line without `>`) is only allowed right after paragraph text.
   let j = i;
@@ -105,7 +137,7 @@ function quoteEnd(L: string[], i: number): number {
   let fe: RegExp | null = null;
   for (; j < n && L[j].trim(); j++) {
     if (!BQ.test(L[j])) {
-      if (!para || interrupts(L[j], false)) break;
+      if (!para || interrupts(L[j], false, det)) break;
       continue;
     }
     const c = L[j].replace(/^ {0,3}> ?/, '');
@@ -125,7 +157,7 @@ function quoteEnd(L: string[], i: number): number {
  * Extent of the list item starting at line i, whose content starts at column `off` and has text on its first line
  * if `text`. Returns the end of its content (`last`) and the end including trailing blank lines (`j`).
  */
-function itemEnd(L: string[], i: number, off: number, text: boolean): { last: number; j: number } {
+function itemEnd(L: string[], i: number, off: number, text: boolean, det: boolean): { last: number; j: number } {
   const n = L.length;
   let j = i + 1;
   let fe: RegExp | null = null;
@@ -150,7 +182,7 @@ function itemEnd(L: string[], i: number, off: number, text: boolean): { last: nu
     if (xi >= 2) {
       const f = fence(x.slice(Math.min(xi, off)));
       if (f) fe = closer(f, ' *');
-    } else if (LI.test(x) || interrupts(x, false) || blank || !text) break;
+    } else if (LI.test(x) || interrupts(x, false, det) || blank || !text) break;
     blank = false;
     text = !fe;
     last = j + 1;
@@ -158,26 +190,61 @@ function itemEnd(L: string[], i: number, off: number, text: boolean): { last: nu
   return { last, j };
 }
 
+/** An opener line waiting for its closer. */
+interface Frame {
+  a: number; // opener line
+  u: number; // length of U when the opener was seen
+  open: boolean;
+  sum: string | null; // the summary, if the opener line has it (`<details><summary>T</summary>`)
+}
+
 /**
  * Split lines into units. `tbl` is the alignment of a table that was already open before line 0 (see flush() in
  * index.ts). `partial` says the last line is still arriving, and `final` says no more input will come: both make
  * scan() hold back constructs that the next characters could still turn into something else.
+ * `det` is 0 when details blocks are off, 1 while the text can still grow, and 2 once it is settled. `dh` means the
+ * last line is still arriving, so a tag that could still become a details opener, closer, or summary is held back.
  * One branch per block kind, tried in priority order. Each pushes a unit and advances `i` past it.
  */
-export function scan(L: string[], tbl: Al | null, partial: boolean, final: boolean): Unit[] {
+export function scan(L: string[], tbl: Al | null, partial: boolean, final: boolean, det = 0, dh = false): Unit[] {
   const U: Unit[] = [];
   const n = L.length;
+  const fr: Frame[] = [];
   let i = 0;
   while (i < n) {
     const l = L[i];
     if (!l.trim()) {
-      if (U.length) U[U.length - 1].b = i + 1;
+      if (U.length > (fr.length ? fr[fr.length - 1].u : 0)) U[U.length - 1].b = i + 1;
       tbl = null;
       i++;
       continue;
     }
+    if (det) {
+      const dm = opener(l);
+      if (dh && i === n - 1 && (dm || CLOSE.test(l) || tagPrefix(l, !!fr.length && i === fr[fr.length - 1].a + 1))) {
+        i++; // a tag that is still arriving: wait for the rest of the line
+        continue;
+      }
+      if (dm) {
+        fr.push({ a: i, u: U.length, open: !!dm[1], sum: dm[2] === undefined ? null : dm[2].trim() });
+        tbl = null;
+        i++;
+        continue;
+      }
+      if (fr.length && CLOSE.test(l)) {
+        const f = fr.pop()!;
+        tbl = null;
+        if (!fr.length) {
+          U.length = f.u;
+          const s = body(L, f, i, false);
+          U.push({ k: 'd', a: f.a, e: i + 1, b: i + 1, open: f.open, closed: true, sum: s[0], bs: s[1] });
+        }
+        i++;
+        continue;
+      }
+    }
     if (tbl) {
-      if (!interrupts(l, true)) {
+      if (!interrupts(l, true, !!det)) {
         U.push({ k: 'tr', a: i, e: i + 1, b: i + 1, al: tbl });
         i++;
         continue;
@@ -197,7 +264,7 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       U.push({ k: 'hr', a: i, e: i + 1, b: i + 1 });
       i++;
     } else if (BQ.test(l)) {
-      const j = quoteEnd(L, i);
+      const j = quoteEnd(L, i, !!det);
       U.push({ k: 'q', a: i, e: j, b: j });
       i = j;
     } else if ((m = LI.exec(l))) {
@@ -209,7 +276,7 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       const ord = /\d/.test(m[2]);
       const sp = m[3]?.length ?? 1;
       const off = ind + m[2].length + (m[4] === undefined || sp > 4 ? 1 : sp);
-      const { last, j } = itemEnd(L, i, off, !!m[4]);
+      const { last, j } = itemEnd(L, i, off, !!m[4], !!det);
       U.push({ k: 'li', a: i, e: last, b: j, ord, num: ord ? parseInt(m[2], 10) : 0, off });
       i = j;
     } else {
@@ -229,11 +296,32 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
         }
       }
       let j = i + 1;
-      while (j < n && L[j].trim() && !interrupts(L[j], false)) j++;
+      while (j < n && L[j].trim() && !interrupts(L[j], false, !!det)) j++;
       const bare = !final && partial && j === n && j - 1 > i && BARE.test(L[n - 1]);
-      U.push({ k: 'p', a: i, e: bare ? j - 1 : j, b: j });
+      const dbare = !!det && dh && j === n && j - 1 > i && tagPrefix(L[n - 1], false);
+      U.push({ k: 'p', a: i, e: bare || dbare ? j - 1 : j, b: j });
       i = j;
     }
   }
+  if (fr.length) {
+    // Openers that never found a closer: the first one holds everything after it, and its inside is scanned again when built.
+    const f = fr[0];
+    U.length = f.u;
+    const s = body(L, f, n, dh);
+    let has = s[0] !== null;
+    for (let k = s[1]; !has && k < n; k++) has = !!L[k].trim() && !(dh && k === n - 1 && tagPrefix(L[k], false));
+    if (has) U.push({ k: 'd', a: f.a, e: n, b: n, open: f.open, closed: false, sum: s[0], bs: s[1] });
+    else if (det === 2) U.push({ k: 'p', a: f.a, e: f.a + 1, b: n }); // nothing follows the opener: show it as text
+  }
   return U;
+}
+
+/** Summary and body start of the details container whose opener is frame `f`. `pend`: the last line is still arriving. */
+function body(L: string[], f: Frame, end: number, pend: boolean): [string | null, number] {
+  if (f.sum !== null) return [f.sum, f.a + 1];
+  const k = f.a + 1;
+  if (k >= end) return [null, k];
+  if (pend && k === L.length - 1 && tagPrefix(L[k], true)) return [null, k + 1];
+  const m = SUMM.exec(L[k]);
+  return m?.[1].trim() ? [m[1].trim(), k + 1] : [null, k];
 }
