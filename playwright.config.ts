@@ -1,6 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
-// Timing tests need a quiet machine, so one worker. Tests run against the built dist/ files.
+// Timing tests need a quiet machine, so one worker by default (CI passes --workers=2 for Firefox and WebKit, where the
+// budgets do not run). Tests run against the built dist/ files.
 // The budgets and the memory test only run in Chromium, everything else runs in all three engines.
 export default defineConfig({
   testDir: './browser',

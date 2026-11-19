@@ -66,6 +66,7 @@ test('streaming never shows raw markers, and finished blocks never move', async 
 test('copy button copies the code and announces it', async ({ page, context, browserName }) => {
   // Only Chromium lets a test grant clipboard permissions and read the clipboard back.
   if (browserName === 'chromium') await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.clock.install(); // the label resets after a 2 s timer: fast-forward it instead of waiting
   await page.evaluate(() => {
     const root = document.getElementById('root')!;
     root.replaceChildren();
@@ -76,6 +77,7 @@ test('copy button copies the code and announces it', async ({ page, context, bro
   await page.getByRole('button', { name: 'Copy js' }).click();
   await expect(page.getByRole('status')).toHaveText('Copied');
   if (browserName === 'chromium') expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('console.log(1);\nlet b = 2;');
+  await page.clock.fastForward(2100);
   await expect(page.getByRole('status')).toHaveText('', { timeout: 4000 });
 });
 
