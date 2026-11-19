@@ -245,6 +245,36 @@ test('a chip turns red if the output ever has something unsafe in it', async ({ 
   await expect(page.locator('#chip-attacks')).toHaveText('Something unsafe got through');
 });
 
+test('ordinary text, code, and a local image do not set off the attack chip', async ({ page, seen }) => {
+  await open(page);
+  await pick(page, 'stream', 'custom');
+  await page.fill(
+    '#custom-text',
+    'The river:\n\n![The river](/favicon.svg)\n\n```js\nconst one = 1;\nconst once = true;\n```\n\nOnline only.',
+  );
+  await page.click('#custom-go');
+  await page.click('#finish');
+  await expect(page.locator('#out img')).toHaveCount(1); // the image is really there
+  await expect(page.locator('#chip-attacks')).toBeHidden();
+  expect(seen.requests.filter((u) => !u.startsWith('https://limmat.test/'))).toEqual([]);
+});
+
+test('a remote image in the output still turns the chip red, and an event handler in the input is still counted', async ({ page }) => {
+  await open(page);
+  await page.click('#finish');
+  await page.evaluate(() => {
+    const img = document.createElement('img');
+    img.setAttribute('src', 'https://evil.example/x.png');
+    document.querySelector('#out')!.append(img);
+  });
+  await expect(page.locator('#chip-attacks')).toHaveClass(/bad/);
+  await pick(page, 'stream', 'custom');
+  await page.fill('#custom-text', 'x <b onclick=alert(1)>y</b> and ![t](https://evil.example/t.png)');
+  await page.click('#custom-go');
+  await page.click('#finish');
+  await expect(page.locator('#chip-attacks')).toHaveClass(/safe/);
+});
+
 test('a shared link restores the settings and plays the same chunks', async ({ page }) => {
   await open(page, '#v=1&stream=table&c=3&r=0&s=7&t=0&d=10');
   await expect(page.locator('input[name="stream"][value="table"]')).toBeChecked();

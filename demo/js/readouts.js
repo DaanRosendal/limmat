@@ -34,22 +34,30 @@ const unsafeHref = (a) => {
   return !!scheme && !['http', 'https', 'mailto'].includes(scheme);
 };
 
+// Event handler attributes by name, so ordinary words that start with "on" (`one`, `once`, `online`) are not counted.
+const HANDLER =
+  /\bon(?:error|load|click|dblclick|focus|blur|toggle|submit|change|input|key[a-z]+|mouse[a-z]+|pointer[a-z]+|touch[a-z]+|animation[a-z]+|transition[a-z]+)\s*=/gi;
+
 /** Unsafe patterns in the text, by pattern. This reads the input, so it never trusts limmat's own output. */
 export function attacksIn(text) {
   const count = (re) => text.match(re)?.length ?? 0;
   return (
     count(/<script/gi) +
-    count(/<img\b|!\[/gi) +
-    count(/\bon[a-z]+\s*=/gi) +
+    count(/<img\b/gi) +
+    // An image is an attack unless its address is a path on this site, which the page's own policy allows.
+    count(/!\[[^\]]*\]\((?!\s*\/(?![/\\]))/g) +
+    count(HANDLER) +
     count(/\]\(\s*(?:(?:javascript|data|vbscript)\s*:|\/\/|\/\\|java[\t&])/gi)
   );
 }
 
-/** Live elements that must never exist in the output: scripts, images, on... attributes, unsafe links, and alert() calls. */
+const sitePath = (v) => v.startsWith('/') && !/^\/[/\\]/.test(v);
+
+/** Live elements that must never exist in the output: scripts, images from anywhere but this site, on... attributes, unsafe links, and alert() calls. */
 function throughCount(all) {
   const bad = (n) =>
     n.tagName === 'SCRIPT' ||
-    n.tagName === 'IMG' ||
+    (n.tagName === 'IMG' && !sitePath(n.getAttribute('src') ?? '')) ||
     Array.from(n.attributes).some((a) => /^on/i.test(a.name)) ||
     (n.tagName === 'A' && unsafeHref(n));
   return all.filter(bad).length + counters.alerts;
