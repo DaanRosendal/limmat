@@ -259,6 +259,13 @@ describe('edge cases', () => {
     expect(render('![a<br>b](/x.png)').querySelector('img')!.getAttribute('alt')).toBe('a b');
     expect(render('![a<b>c](/x.png)').querySelector('img')!.getAttribute('alt')).toBe('a<b>c');
   });
+  it('emphasis after an earlier match still finds its opener (the unmatched-closer cache follows the stack)', () => {
+    expect(html(render('~~**`g` a** b~~ **`d`**.'))).toBe(
+      '<p><del><strong><code>g</code> a</strong> b</del> <strong><code>d</code></strong>.</p>',
+    );
+    expect(html(render('**a** b **c**.'))).toBe('<p><strong>a</strong> b <strong>c</strong>.</p>');
+    expect(html(render('*a **b** c* **d**'))).toBe('<p><em>a <strong>b</strong> c</em> <strong>d</strong></p>');
+  });
 });
 
 describe('line endings', () => {

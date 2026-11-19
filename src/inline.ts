@@ -257,6 +257,7 @@ function resolve(t: N[], spec: boolean): N[] {
           node.x = cl.x;
           if (cl.x) cl.x.p = node;
         }
+        for (const k in bottom) bottom[k] = Math.min(bottom[k], stack.length); // the stack shrank: openers pushed later sit below the old mark
       }
       if (cl.n! > 0 && cl.o) stack.push(cl);
     } else stack.push(cl);
