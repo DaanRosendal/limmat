@@ -2,7 +2,7 @@
 // kinds, then checked against the library's rules. Raise the size with FUZZ_N=1500 and change the seed with FUZZ_SEED.
 import { describe, expect, it } from 'vitest';
 import { createRenderer } from '../src/index';
-import { audit, rng } from './helpers/util';
+import { audit, chunks, renderTwoPart, rng } from './helpers/util';
 
 const POOL_DET = [
   '<details>',
@@ -68,17 +68,7 @@ function genDoc(r: () => number, pool: string[], maxLines = 12): string {
 }
 
 type Split = 'whole' | 'char' | 'rand' | number;
-function chunksOf(s: string, sp: Split, seed: number): string[] {
-  if (sp === 'whole') return [s];
-  const out: string[] = [];
-  const r = rng(seed);
-  for (let i = 0; i < s.length; ) {
-    const n = sp === 'char' ? 1 : sp === 'rand' ? 1 + Math.floor(r() * 9) : sp;
-    out.push(s.slice(i, i + n));
-    i += n;
-  }
-  return out;
-}
+const chunksOf = (s: string, sp: Split, seed: number) => chunks(s, sp === 'rand' ? 'random' : sp, seed, 9);
 
 function run(md: string, sp: Split, seed: number, end: boolean) {
   const root = document.createElement('div');
@@ -124,12 +114,8 @@ const finalChunked: Prop = (md) => {
 const twoPart: Prop = (md) => {
   const whole = dom(md, 'whole', 1, true);
   for (let i = 1; i < md.length; i++) {
-    const root = document.createElement('div');
-    const r = createRenderer(root, { throttleMs: 0 });
-    r.write(md.slice(0, i));
-    r.write(md.slice(i));
-    r.end();
-    if (root.innerHTML !== whole) return `two-part split at ${i}\nwhole: ${whole}\ngot:   ${root.innerHTML}`;
+    const got = renderTwoPart(md, i).innerHTML;
+    if (got !== whole) return `two-part split at ${i}\nwhole: ${whole}\ngot:   ${got}`;
   }
   return null;
 };

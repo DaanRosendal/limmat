@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CORPUS, XSS } from './helpers/cases';
-import { render, rng, type Split } from './helpers/util';
+import { render, renderTwoPart, rng, type Split } from './helpers/util';
 
 const docs = [...CORPUS, ...XSS.map(([, md]) => md)];
 
@@ -14,18 +14,10 @@ describe('chunked output equals whole output', () => {
     });
   });
 
-  it('two-part splits at every index', async () => {
-    const { createRenderer } = await import('../src/index');
+  it('two-part splits at every index', () => {
     for (const md of CORPUS.slice(0, 6)) {
       const whole = render(md).innerHTML;
-      for (let i = 1; i < md.length; i++) {
-        const root = document.createElement('div');
-        const r = createRenderer(root, { throttleMs: 0 });
-        r.write(md.slice(0, i));
-        r.write(md.slice(i));
-        r.end();
-        expect(root.innerHTML).toBe(whole);
-      }
+      for (let i = 1; i < md.length; i++) expect(renderTwoPart(md, i).innerHTML).toBe(whole);
     }
   });
 

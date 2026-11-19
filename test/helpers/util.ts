@@ -6,12 +6,12 @@ export function rng(seed: number) {
   return () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32;
 }
 
-function chunks(s: string, split: Split, seed = 1): string[] {
+export function chunks(s: string, split: Split, seed = 1, max = 12): string[] {
   if (split === 'whole') return [s];
   const out: string[] = [];
   const r = rng(seed);
   for (let i = 0; i < s.length; ) {
-    const n = split === 'char' ? 1 : split === 'random' ? 1 + Math.floor(r() * 12) : split;
+    const n = split === 'char' ? 1 : split === 'random' ? 1 + Math.floor(r() * max) : split;
     out.push(s.slice(i, i + n));
     i += n;
   }
@@ -38,6 +38,16 @@ export function renderOpen(md: string, options: Options = {}, split: Split = 'wh
   const root = document.createElement('div');
   const r = createRenderer(root, { throttleMs: 0, ...options });
   for (const c of chunks(md, split, seed)) r.write(c);
+  return root;
+}
+
+/** Render `md` written as exactly two chunks, cut at index `at`. */
+export function renderTwoPart(md: string, at: number, options: Options = {}) {
+  const root = document.createElement('div');
+  const r = createRenderer(root, { throttleMs: 0, ...options });
+  r.write(md.slice(0, at));
+  r.write(md.slice(at));
+  r.end();
   return root;
 }
 
