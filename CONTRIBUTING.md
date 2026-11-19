@@ -20,7 +20,7 @@ Run `npm run format` before committing. Read [docs/ARCHITECTURE.md](docs/ARCHITE
 - Every fix starts with a failing test. Streaming changes need a case in `test/helpers/cases.ts`, which feeds the chunk-split fuzz and the half-open snapshots, and security-relevant input goes into the XSS list in the same file.
 - `npm run size` fails if the core grows by more than 3%. If the growth is worth it, run `npm run size -- --update` and say why in the commit message.
 - `test/commonmark.test.ts` fails on a new CommonMark failure and on a stale entry in `test/fixtures/commonmark-known-failures.json`. Regenerate with `UPDATE_CONFORMANCE=1 npx vitest run test/commonmark.test.ts` after an intentional change, and review the diff.
-- The README support table is generated: edit `docs/support.json`, then run `npm run support`. New syntax must say what it shows while it is still open, and must be opt-in if it changes how any text renders today.
+- The README support table is generated: edit `docs/support.json`, then run `npm run support`. New syntax must say what it shows while it is still open. It must be opt-in unless it is safe by construction (no network request, no attribute from the input that is not checked), and a risk that cannot be removed, like images loading without a click, must be documented in `SECURITY.md` next to the option that limits it.
 - One logical change per pull request, and no drive-by reformatting.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `test:`, `docs:`).
 - Use hyphens, commas, and colons, not em or en dashes, and the Oxford comma.
