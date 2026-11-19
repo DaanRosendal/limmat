@@ -5,8 +5,8 @@ Streaming markdown for LLM chat. Half-typed syntax like `[docs](https://example`
 <p align="center">
   <a href="https://limmat.daanrosendal.com">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/demo-dark.gif">
-      <img src="docs/demo-light.gif" width="720" alt="The limmat demo streaming a reply about itself: the raw text from the model on the left, limmat's rendered output on the right.">
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/DaanRosendal/limmat/master/docs/demo-dark.gif">
+      <img src="https://raw.githubusercontent.com/DaanRosendal/limmat/master/docs/demo-light.gif" width="720" alt="The limmat demo streaming a reply about itself: the raw text from the model on the left, limmat's rendered output on the right.">
     </picture>
   </a>
 </p>
@@ -53,7 +53,7 @@ Tested in Chromium, Firefox, and WebKit.
 
 ## Safety
 
-Raw HTML shows as text, except attribute-free tags like `<kbd>` and `<sub>`, and collapsible `<details>`. Links must be http, https, mailto, or a site path you approve. Images load without a click, so a hostile reply can send data to its own server: pass `images: ['https://your-cdn.example']` or `images: false` to limit that. More in [SECURITY.md](SECURITY.md).
+Raw HTML shows as text, except attribute-free tags like `<kbd>` and `<sub>`, and collapsible `<details>`. Links must be http, https, mailto, or a site path you approve. Images load without a click, so a hostile reply can send data to its own server: pass `images: ['https://your-cdn.example']` or `images: false` to limit that. More in [SECURITY.md](https://github.com/DaanRosendal/limmat/blob/master/SECURITY.md).
 
 ## What is supported
 
@@ -131,4 +131,6 @@ createRenderer(el, {
 
 ---
 
-[AGENTS.md](AGENTS.md) for working on limmat, [SECURITY.md](SECURITY.md) to report a problem, and [CHANGELOG.md](CHANGELOG.md). Licensed under the [MIT License](LICENSE).
+[AGENTS.md](https://github.com/DaanRosendal/limmat/blob/master/AGENTS.md) for working on limmat, [SECURITY.md](https://github.com/DaanRosendal/limmat/blob/master/SECURITY.md) to report a problem, and [CHANGELOG.md](https://github.com/DaanRosendal/limmat/blob/master/CHANGELOG.md). Licensed under the [MIT License](https://github.com/DaanRosendal/limmat/blob/master/LICENSE).
+
+*Named after the [Limmat](https://en.wikipedia.org/wiki/Limmat), the river through Zurich.*
