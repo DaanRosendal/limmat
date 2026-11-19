@@ -59,6 +59,25 @@ test.describe('performance budgets (Chromium)', () => {
     });
   }
 
+  test('the cost of a write does not grow with the size of the message', async ({ page }) => {
+    const doc = REPLY.repeat(Math.ceil(300_000 / REPLY.length));
+    const r = await page.evaluate((doc) => {
+      const root = document.createElement('div');
+      document.body.append(root);
+      const w = (window as any).limmat.createRenderer(root, { throttleMs: 0 });
+      const marks = [0, 0.1, 0.9, 1].map((f) => Math.floor(doc.length * f));
+      const at: number[] = [];
+      for (let i = 0; i <= doc.length; i++) {
+        if (marks.includes(i)) at.push(performance.now());
+        if (i < doc.length) w.write(doc[i]);
+      }
+      root.remove();
+      return { early: at[1] - at[0], late: at[3] - at[2] };
+    }, doc);
+    console.log('first 10% of the writes:', r.early.toFixed(0), 'ms, last 10%:', r.late.toFixed(0), 'ms');
+    expect(r.late / Math.max(r.early, 1)).toBeLessThan(2.5); // flat is about 1, buffering the whole message again gave 5 to 10
+  });
+
   test('1 MB of input finishes without hanging the page', async ({ page }) => {
     const t = await page.evaluate(() => (window as any).run('word '.repeat(200_000), 4096));
     console.log('1 MB, ms:', t.toFixed(0));
