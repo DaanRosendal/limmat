@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## Stability
 
-From v0.1, a change to any of these is a breaking change: `createRenderer` and the four `Renderer` methods, the option names and their meanings, the `limmat-*` class names (classes may be added, never removed or renamed), the CSS variable names, and the ARIA attributes. The exact set of recognized syntax, the DOM inside a code block, the `labels` keys, and what a half-finished construct looks like mid-stream may change in a minor release. While the version is 0.x, minor releases may also break the stable parts, and this file will say so.
+These parts are the public contract: `createRenderer` and the four `Renderer` methods, the option names and their meanings, the `limmat-*` class names (classes may be added, never removed or renamed), the CSS variable names, and the ARIA attributes. Before 1.0, a change to any of them can ship in a minor release and is listed in this file under **Breaking**. From 1.0, it needs a major release. The exact set of recognized syntax, the DOM inside a code block, the `labels` keys, and what a half-finished construct looks like mid-stream may change in any minor release.
 
 ## [Unreleased]
 
