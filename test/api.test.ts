@@ -367,6 +367,35 @@ describe('code blocks', () => {
     expect(highlightElement).toHaveBeenCalledTimes(1);
     vi.doUnmock('@speed-highlight/core');
   });
+  it('the highlight adapter only passes safe language names to the highlighter', async () => {
+    const highlightElement = vi.fn();
+    vi.doMock('@speed-highlight/core', () => ({ highlightElement }));
+    const { speedHighlight } = await import('../src/highlight');
+    const hl = speedHighlight()!;
+    const el = document.createElement('code');
+    for (const bad of ['../x', 'a/b', 'a.b', 'a b', 'x'.repeat(21), 'js"onload=1', '..%2f']) await hl(el, 'x', bad);
+    expect(highlightElement).not.toHaveBeenCalled();
+    for (const good of ['js', 'c++', 'c#', 'objective-c', 'x_y']) await hl(el, 'x', good);
+    await hl(el, 'x', '');
+    expect(highlightElement.mock.calls.map((c) => c[1])).toEqual(['js', 'c++', 'c#', 'objective-c', 'x_y', undefined]);
+    vi.doUnmock('@speed-highlight/core');
+  });
+  it('the copy fallback puts its textarea inside the container, so it also works in a modal dialog', async () => {
+    Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });
+    let inside: boolean | undefined;
+    (document as any).execCommand = vi.fn(() => {
+      const ta = document.querySelector('textarea');
+      inside = !!ta && root.contains(ta);
+      return true;
+    });
+    const { root, r } = mk();
+    r.write('```\nx\n```');
+    r.end();
+    root.querySelector('button')!.click();
+    await vi.waitFor(() => expect(inside).toBeDefined());
+    expect(inside).toBe(true);
+    expect(root.querySelector('textarea')).toBeNull();
+  });
   it('highlight is called exactly once for fences nested in lists and quotes, streamed per character', () => {
     for (const md of ['- l\n  ```c\n  z\n  ```\n- m', '> ```c\n> z\n> ```\n\nafter', '1. a\n   ```c\n   z\n   ```\n2. b']) {
       const highlight = vi.fn();

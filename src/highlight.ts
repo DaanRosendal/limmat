@@ -14,6 +14,7 @@ import type { Options } from './index.js';
 export function speedHighlight({ maxChars = 4096, maxLine = 300 } = {}): NonNullable<Options['highlight']> {
   return async (el, code, lang) => {
     if (code.length > maxChars || new RegExp(`[^\\n]{${maxLine + 1}}`).test(code)) return;
+    if (lang && !/^[\w+#-]{1,20}$/.test(lang)) return; // the language names a file the highlighter loads, so it is checked here too
     const { highlightElement } = await import('@speed-highlight/core');
     await highlightElement(el, lang || undefined);
   };

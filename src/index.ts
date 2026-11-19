@@ -560,7 +560,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       ta.value = text;
       ta.style.cssText = 'position:fixed;opacity:0'; // CSSOM, so a strict style-src policy allows it
       const prev = document.activeElement as HTMLElement | null;
-      document.body.append(ta);
+      container.append(ta); // not document.body: behind a modal dialog the body is inert and the copy fails
       ta.select();
       let ok = false;
       try {
