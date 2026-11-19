@@ -43,31 +43,31 @@ limmat is a tiny, safe, streaming markdown renderer for LLM chat UIs (TypeScript
 ## How it works
 
 ```
-write(chunk) --> src (string) --> flush() --> scan() --> units --> build() --> DOM
-                                      |                              ^
-                                      +-- key diff against `tail` ---+
+write(chunk) --> src --> flush() --> sync() --> scan() --> units --> build() --> DOM
+                                     |                                  ^
+                                     +-- key diff against `tail` -------+
 ```
 
 - `src/block.ts`: `scan(lines, ...)` splits lines into `Unit`s (paragraph, heading, fence, quote, list item, table header, table row, details). Forward-only: a unit followed by a unit that starts on a complete line is final.
-- `src/inline.ts`: `parseInline(text, spec)` turns one block's text into an `Inline` tree (CommonMark's delimiter stack for emphasis, a bracket stack for links, `pairTags()` for the allowed HTML tags). Linear time, with depth and work caps.
+- `src/inline.ts`: `parseInline(text, spec, tags)` turns one block's text into an `Inline` tree (CommonMark's delimiter stack for emphasis, a bracket stack for links, `pairTags()` for the allowed HTML tags). Linear time, with depth and work caps.
 - `src/url.ts`: `safeUrl()`, the only gate between parsed link text and an `href`.
-- `src/index.ts`: `createRenderer()`: the buffer, throttle, `flush()` (diff and freeze), `build()` and `place()` (DOM), the Copy button, and the click listener.
+- `src/index.ts`: `createRenderer()`: the buffer, throttle, `flush()` (cuts the buffer into lines), `sync()` (diff and freeze, one level at a time), `build()` and `place()` (DOM), the Copy button, and the click listener.
 - `src/highlight.ts` (optional adapter for `@speed-highlight/core`, shipped as `limmat/highlight`) and `src/style.css` (optional styles, shipped as `limmat/style.css`).
 
-`src` holds everything written so far. `flush()` re-scans only the text from `froz`, the offset of the first line that is not frozen, and compares the new units with the `tail` of live DOM entries by `key`. Unchanged units keep their node, and the first changed unit and everything after it is rebuilt. Units that can no longer change are frozen: their DOM is never touched again.
+`src` holds only the text from the first line that is not frozen yet (frozen lines are cut off its front). `flush()` splits it into lines and hands them to `sync()`, which compares the new units with the `tail` of live DOM entries by `key`. Unchanged units keep their node, and the first changed unit and everything after it is rebuilt. Units that can no longer change are frozen: their DOM is never touched again.
 
 Rules that must hold:
 
 1. Chunked output equals whole output (`test/chunk-fuzz.test.ts`).
 2. Freeze only behind a complete line: a unit is frozen only if a later unit starts on a complete line (`test/freeze.test.ts`).
 3. `spec` vs `final`: while streaming, the last unit renders with `spec`, so unfinished emphasis, links, and code are closed and raw markers never show. At `end()`, unmatched markers become literal text and every code block is highlighted.
-4. List and table context crosses the freeze point in `fctx`, because a list item or table row is its own unit but belongs to a parent element. A blank line ends a table both in `scan()` and in `flush()`.
+4. List and table context crosses the freeze point in `fctx`, because a list item or table row is its own unit but belongs to a parent element. A blank line ends a table both in `scan()` and in `sync()`.
 5. Open fences update in place, so the node, scroll position, and text selection survive each chunk.
 6. A `<details>` opener without a closer is a container that runs to the end of its input, like a fence, so it renders the same while streaming and when final (it only gains `open` at the end). It keeps its own incremental state (`sub` in the tail entry), and the reader's toggle is carried over.
 7. Hostile input stays linear: depth caps, a work budget per paragraph for link destinations, and no regex that backtracks on user text.
 
 Safety invariants: `details` and `summary` come only from `scan()`'s details unit with a fixed attribute set. HTML tags become elements only from the fixed `HTML_TAGS` list, written with no attributes, and the `html` option can only narrow it. Every `href` and image `src` comes from `safeUrl()`, and an image also passes the `images` origin list. Classes and attributes that come from the input (the fence language) are checked against a strict pattern first.
 
-To add a block type: add a member to the `Unit` union and a check in `src/block.ts`, a branch in `scan()` (and in `interrupts()` if it can interrupt a paragraph), a `case` in `build()` and `place()` in `src/index.ts`, and extend the `key` in `flush()` if the DOM depends on more than the unit's text. To add an inline construct: tokenize it in `parseInline()` (use a delimiter node if it needs matching and resolve it in `resolve()`), add the shape to the `Inline` union, handle it in `inline()` in `src/index.ts`, and decide what `spec` shows while it is open. Either way: a case in `test/helpers/cases.ts` (plus a hostile-input case if it can produce a link, class, or attribute), a golden entry if the DOM shape matters, and a CommonMark ratchet update if conformance changes.
+To add a block type: add a member to the `Unit` union and a check in `src/block.ts`, a branch in `scan()` (and in `interrupts()` if it can interrupt a paragraph), a `case` in `build()` and `place()` in `src/index.ts`, and extend the `key` in `sync()` if the DOM depends on more than the unit's text. To add an inline construct: tokenize it in `parseInline()` (use a delimiter node if it needs matching and resolve it in `resolve()`), add the shape to the `Inline` union, handle it in `inline()` in `src/index.ts`, and decide what `spec` shows while it is open. Either way: a case in `test/helpers/cases.ts` (plus a hostile-input case if it can produce a link, class, or attribute), a golden entry if the DOM shape matters, and a CommonMark ratchet update if conformance changes.
 
 The public contract is `createRenderer`, the four `Renderer` methods, the option names and meanings, the `limmat-*` class names, the CSS variable names, and the ARIA attributes. A change to any of them is listed under **Breaking** in `CHANGELOG.md`, and from 1.0 it needs a major version. The set of recognized syntax may change in a minor release.
