@@ -22,7 +22,6 @@ const OUT_OF_SCOPE: Record<string, string> = {
   'HTML blocks': 'raw HTML is shown as text',
   'Raw HTML': 'raw HTML is shown as text',
   'Link reference definitions': 'reference links are not supported',
-  Images: 'images render their alt text only',
   Inlines: 'precedence example uses reference-style input',
 };
 const BLOCKS = 'p|ul|ol|li|blockquote|h[1-6]|pre|hr|div';
@@ -42,6 +41,7 @@ function canon(root: Element): string {
     let attrs = '';
     if (tag === 'a') attrs = ` href="${e.getAttribute('href')}"`;
     if (tag === 'ol' && e.getAttribute('start')) attrs = ` start="${e.getAttribute('start')}"`;
+    if (tag === 'img') return `<img src="${e.getAttribute('src')}" alt="${e.getAttribute('alt')}">`;
     if (tag === 'br' || tag === 'hr') return `<${tag}>`;
     return `<${tag}${attrs}>${kids()}</${tag}>`;
   };

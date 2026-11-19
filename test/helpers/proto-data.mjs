@@ -58,7 +58,6 @@ export const XSS = [
   ['url quote breakout', '[a](http://x.com/" onmouseover="alert(1))'],
   ['nested malformed', '<div><p><b><script>alert(1)</p></b>'],
   ['html in link text', '[<img src=x onerror=alert(1)>](https://ok.com)'],
-  ['image tag (policy)', '![x](https://evil.com/track.png)'],
   ['image js:', '![x](javascript:alert(1))'],
   ['iframe js:', '<iframe src="javascript:alert(1)"></iframe>'],
   ['autolink quote', '<https://x.com/"onmouseover="alert(1)>'],

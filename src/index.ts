@@ -10,6 +10,12 @@ export interface Options {
   isInternalPath?: (path: string) => boolean;
   /** Protocols that may become links, with or without the colon and in any case. Default ['https', 'http', 'mailto']. Everything else renders as plain text. */
   allowedProtocols?: string[];
+  /**
+   * Images. Default true: `![alt](url)` becomes an <img> when the URL passes the same checks as a link, limited to http, https, and site paths.
+   * An array of origins ('https://cdn.example.com') loads only from those, and site paths still work. false renders the alt text only.
+   * An image loads as soon as it renders, with no click, so a hostile reply can use one to send data to a server it controls. If that matters, pass an origin list or false, or set a CSP img-src.
+   */
+  images?: boolean | string[];
   /** Called once when a code fence closes (or at end()). Receives the <code> element, its text, and the language. A throw or rejection is ignored and the plain text stays. */
   highlight?: (el: HTMLElement, code: string, lang: string) => void | Promise<void>;
   /** Minimum ms between re-renders of the open block. Default 50. 0 renders on every write. Non-finite values use the default. */
@@ -73,6 +79,22 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         }
       }
     : () => true;
+  const originOf = (u: string) => {
+    try {
+      const x = new URL(u);
+      return x.protocol === 'https:' || x.protocol === 'http:' ? x.origin : '';
+    } catch {
+      return '';
+    }
+  };
+  const imgProtocols = protocols.filter((p) => p === 'https:' || p === 'http:');
+  const imgOrigins = Array.isArray(o.images) ? new Set(o.images.map((x) => originOf(`${x}`)).filter(Boolean)) : null;
+  // Same gate as links (so hostile schemes and look-alike separators are refused), narrowed to http(s) and site paths, then the optional origin list.
+  const imageSrc = (href: string) => {
+    if (o.images === false) return null;
+    const s = safeUrl(href, imgProtocols, internal);
+    return s && (!imgOrigins || s[0] === '/' || imgOrigins.has(originOf(s))) ? s : null;
+  };
   const throttle = Number.isFinite(o.throttleMs) ? (o.throttleMs as number) : 50;
   const px = o.classPrefix ?? 'limmat';
   const lb = o.labels ?? {};
@@ -104,6 +126,9 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     return e;
   };
 
+  const plain = (ns: Inline[]): string =>
+    ns.map((n) => (n.k === 't' || n.k === 'c' || n.k === 'a' ? n.s : n.k === 'br' ? ' ' : plain(n.kids))).join('');
+
   function inline(parent: Element, s: string, spec: boolean) {
     const st: { nodes: Inline[]; i: number; el: Element; il: boolean }[] = [{ nodes: parseInline(s, spec), i: 0, el: parent, il: false }];
     while (st.length) {
@@ -121,7 +146,22 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         f.el.append(el);
         st.push({ nodes: x.kids, i: 0, el, il: f.il });
       } else {
-        const href = x.k === 'l' && x.img ? null : safeUrl(x.href, protocols, internal);
+        const isImg = x.k === 'l' && x.img;
+        const src = x.k === 'l' && isImg ? imageSrc(x.href) : null;
+        if (x.k === 'l' && src) {
+          const im = h('img', cls('image'));
+          for (const [k, v] of [
+            ['alt', plain(x.kids)],
+            ['loading', 'lazy'],
+            ['decoding', 'async'],
+            ['referrerpolicy', 'no-referrer'],
+            ['src', src],
+          ])
+            im.setAttribute(k, v); // src last, so the other attributes are in place when the request starts
+          f.el.append(im);
+          continue;
+        }
+        const href = isImg ? null : safeUrl(x.href, protocols, internal);
         if (!href || f.il) {
           if (x.k === 'a') f.el.append(x.s);
           else st.push({ nodes: x.kids, i: 0, el: f.el, il: true });

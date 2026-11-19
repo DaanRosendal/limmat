@@ -33,7 +33,7 @@ Rules that must hold (they are also written above `flush()`):
 ## Safety invariants
 
 - No `innerHTML`, `insertAdjacentHTML`, or `outerHTML` in `src/`. Only `createElement`, `textContent`, and text nodes.
-- Every `href` comes from `safeUrl()`. Images never create an element.
+- Every `href` and every image `src` comes from `safeUrl()`, and an image also passes the `images` origin list. An `<img>` is created only from a parsed image node, with fixed attributes plus `alt` and `src`.
 - Classes and attributes that come from the input (the fence language) are checked against a strict pattern first.
 
 ## Adding a block type

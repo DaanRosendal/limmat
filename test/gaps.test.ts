@@ -288,9 +288,6 @@ describe('gaps found by mutation', () => {
   it('a link inside a link label is not nested', () => {
     expect(render('[a [b](https://b.com) c](https://a.com)').querySelectorAll('a a').length).toBe(0);
   });
-  it('an image becomes text, not a link to the image URL', () => {
-    expect(render('![alt](https://evil.com/t.png)').querySelectorAll('a').length).toBe(0);
-  });
   it('uppercase [X] task checkbox', () => {
     expect((render('- [X] a').querySelector('input') as HTMLInputElement).defaultChecked).toBe(true);
   });

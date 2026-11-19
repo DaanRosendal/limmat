@@ -65,10 +65,10 @@
   },
   {
     "feature": "Images",
-    "status": "not-yet",
+    "status": "partial",
     "cm": ["Images"],
-    "tests": [{ "file": "test/xss.test.ts", "title": "images become plain text" }],
-    "note": "The alt text is shown and nothing is loaded, so images cannot track or leak data. Planned as an opt-in with an origin allow-list."
+    "tests": [{ "file": "test/images.test.ts", "title": "![alt](https-url) becomes an img with the alt text and a restrictive set of attributes" }],
+    "note": "On by default, with the same URL checks as links. Images load without a click, so a hostile reply can send data to its own server: pass `images: ['https://your-cdn.example']` or `images: false` to limit that. Reference-style images and sources without a leading slash (`train.jpg`) render the alt text. Titles are ignored."
   },
   {
     "feature": "Raw HTML and HTML blocks",

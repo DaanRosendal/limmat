@@ -100,9 +100,9 @@
     "scope": "in"
   },
   "Images": {
-    "pass": 1,
+    "pass": 6,
     "total": 22,
-    "scope": "out"
+    "scope": "in"
   },
   "Autolinks": {
     "pass": 9,
