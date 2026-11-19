@@ -331,7 +331,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         cells(L[u.a]).forEach((c, i) => {
           const th = h('th');
           if (u.al[i]) th.style.textAlign = u.al[i] as string;
-          inline(th, c, false);
+          inline(th, c, !!u.pend);
           tr.append(th);
         });
         const thead = h('thead');

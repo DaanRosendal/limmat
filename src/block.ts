@@ -298,7 +298,7 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       if (!lead && !final && partial && nx !== undefined && i + 1 === n - 1 && l.includes('|') && PREFIX.test(nx)) {
         // A table without outer pipes whose delimiter row is still arriving: `a | b | c` over `--|-`.
         const dashes = nx.split('-').length - 1;
-        if ((nx.includes('|') ? dashes > 0 : dashes > 1) && cells(nx).length <= cells(l).length) {
+        if (dashes > 0 && (dashes > 1 || /[|:]/.test(nx)) && cells(nx).length <= cells(l).length) {
           U.push({ k: 'th', a: i, e: n, b: n, pend: true, al: cells(l).map(() => null) });
           break;
         }
