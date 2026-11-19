@@ -82,8 +82,5 @@
     "dom",
     "xss",
     "safe"
-  ],
-  "engines": {
-    "node": ">=22"
-  }
+  ]
 }
