@@ -1,4 +1,4 @@
-// Deploys the demo (demo/out/) as a static-assets Worker. `npm run deploy:demo` and .github/workflows/deploy-demo.yml run it.
+// Deploys the demo (demo/out/) as a static-assets Worker.
 {
   "name": "limmat-demo",
   "compatibility_date": "2026-11-01",

@@ -1,6 +1,6 @@
 name: Deploy demo
 # Runs after CI passes on master, and deploys demo/out/ to https://limmat.daanrosendal.com (see wrangler.jsonc).
-# Needs two repository secrets: CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_API_TOKEN (an account API token made from the "Edit Cloudflare Workers" template, scoped to this account and the daanrosendal.com zone).
+# Needs the repository secrets CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN (Edit Cloudflare Workers template, scoped to this zone).
 on:
   workflow_run:
     workflows: [CI]

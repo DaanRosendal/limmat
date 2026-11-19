@@ -377,7 +377,7 @@ describe('details blocks', () => {
       };
       const plain = created(body);
       const wrapped = created(`<details>\n<summary>S</summary>\n${body}`);
-      // Rebuilding the whole section on each write made this over 500 times larger. The finished blocks stay frozen.
+      // Rebuilding the whole section on each write would make this far larger. The finished blocks stay frozen.
       expect(wrapped).toBeLessThan(plain * 3);
     });
   });

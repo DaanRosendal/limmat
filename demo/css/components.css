@@ -1,4 +1,4 @@
-/* Components: buttons, segmented controls, chips, panes, panels, tables, cards. No inline styles anywhere. */
+/* Components: buttons, segmented controls, chips, and panes. No inline styles anywhere. */
 a {
   color: var(--accent);
 }
@@ -28,7 +28,6 @@ h3 {
   flex: none;
 }
 
-/* ---------------------------------------------------------------- brand and header */
 .brand {
   display: flex;
   align-items: center;
@@ -111,7 +110,6 @@ h3 {
   white-space: nowrap;
 }
 
-/* ---------------------------------------------------------------- buttons */
 .btn,
 .icon-btn {
   display: inline-flex;
@@ -209,7 +207,6 @@ h3 {
   display: none;
 }
 
-/* ---------------------------------------------------------------- segmented controls (the pill slides in CSS alone) */
 .gl {
   padding-left: 2px;
   color: var(--muted);
@@ -307,7 +304,6 @@ h3 {
   cursor: inherit;
 }
 
-/* ---------------------------------------------------------------- chips and the scrubber */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -398,7 +394,6 @@ input[type="range"] {
   font-size: 13px;
 }
 
-/* ---------------------------------------------------------------- the two panes */
 .raw,
 .rendered {
   flex: 1;

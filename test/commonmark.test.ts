@@ -13,7 +13,7 @@ const spec: Example[] = JSON.parse(readFileSync(join(process.cwd(), 'test/fixtur
 const FAILS = join(process.cwd(), 'test/fixtures/commonmark-known-failures.json');
 const SECTIONS = join(process.cwd(), 'test/fixtures/commonmark-sections.json');
 
-// Sections that are out of scope for v0.1 (listed in the README table as not yet or partial).
+// Sections that are out of scope (listed in the README table as not yet or partial).
 const OUT_OF_SCOPE: Record<string, string> = {
   Tabs: 'tabs are not expanded',
   'Entity and numeric character references': 'entities are shown literally',

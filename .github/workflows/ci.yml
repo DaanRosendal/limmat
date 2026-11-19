@@ -67,8 +67,7 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
         if: steps.changes.outputs.code == 'true'
-      # The Ubuntu mirror has stalled for minutes before (one run took 12 minutes to install the WebKit packages). Let apt
-      # retry and give up on a silent connection, and cap the install, with one more try, instead of waiting it out.
+      # The Ubuntu mirror can stall for minutes, so apt retries and gives up on a silent connection.
       - name: Make apt retry stalled downloads
         if: steps.changes.outputs.code == 'true'
         run: printf 'Acquire::Retries "5";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/80-ci-retries > /dev/null
@@ -86,7 +85,6 @@ jobs:
         if: steps.changes.outputs.code == 'true'
       - run: npm run build:demo
         if: steps.changes.outputs.code == 'true'
-      # Chromium keeps one worker because the timing budgets need a quiet machine (they only run there).
       - run: npx playwright test --project=${{ matrix.browser }} --workers=${{ matrix.browser == 'chromium' && 1 || 2 }}
         if: steps.changes.outputs.code == 'true'
       - uses: actions/upload-artifact@v7

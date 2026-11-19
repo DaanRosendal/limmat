@@ -143,14 +143,14 @@ test('clicking a preset mark jumps the slider to that preset', async ({ page }) 
   await open(page);
   const marks = page.locator('#sl-throttle .tick');
   expect(await marks.count()).toBe(3);
-  await marks.nth(2).locator('rect').click(); // the 200 ms mark
+  await marks.nth(2).locator('rect').click();
   await expect(page.locator('#sl-throttle')).toHaveAttribute('aria-valuetext', '200 ms');
   expect(page.url()).toContain('t=200');
   await expect(marks.nth(2)).toHaveClass(/on/);
-  await marks.nth(0).locator('rect').click(); // the 0 ms mark
+  await marks.nth(0).locator('rect').click();
   await expect(page.locator('#sl-throttle')).toHaveAttribute('aria-valuetext', '0 ms');
   await expect(marks.nth(2)).not.toHaveClass(/on/);
-  await page.locator('#sl-size .tick rect').nth(1).click(); // the chunk size 5 mark
+  await page.locator('#sl-size .tick rect').nth(1).click();
   await expect(page.locator('#sl-size')).toHaveAttribute('aria-valuetext', '1-5');
 });
 
@@ -246,7 +246,7 @@ test('the Attack stream runs nothing, loads nothing, and shows the payloads as t
 test('a chip turns red if the output ever has something unsafe in it', async ({ page }) => {
   await open(page, '#v=1&stream=reply'); // a stream with no hostile input, so the chip starts hidden
   await page.click('#finish');
-  await expect(page.locator('#chip-attacks')).toBeHidden(); // nothing hostile went in, so there is nothing to report
+  await expect(page.locator('#chip-attacks')).toBeHidden();
   await page.evaluate(() => {
     const a = document.createElement('a');
     a.href = 'javascript:void(0)';
@@ -265,7 +265,7 @@ test('ordinary text, code, and a local image do not set off the attack chip', as
   );
   await page.click('#custom-go');
   await page.click('#finish');
-  await expect(page.locator('#out img')).toHaveCount(1); // the image is really there
+  await expect(page.locator('#out img')).toHaveCount(1);
   await expect(page.locator('#chip-attacks')).toBeHidden();
   expect(seen.requests.filter((u) => !u.startsWith('https://limmat.test/'))).toEqual([]);
 });
