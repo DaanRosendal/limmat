@@ -1,8 +1,7 @@
 {
   "name": "limmat",
-  "version": "0.1.0-dev.0",
+  "version": "0.1.0",
   "description": "A tiny, safe markdown renderer for streaming LLM output. Builds DOM nodes as text arrives, never HTML strings, with no framework and no dependencies.",
-  "private": true,
   "type": "module",
   "license": "MIT",
   "author": "Daan Rosendal",

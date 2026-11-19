@@ -8,6 +8,8 @@ From v0.1, a change to any of these is a breaking change: `createRenderer` and t
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-19
+
 ### Added
 
 - First release: `createRenderer(container, options)` with `write`, `end`, `reset`, and `destroy`.
