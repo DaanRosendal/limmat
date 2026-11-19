@@ -52,6 +52,7 @@
     "check:style": "node scripts/check-style.mjs",
     "prepublishOnly": "npm run build && npm run check:package",
     "build:demo": "node scripts/build-demo.mjs",
+    "record": "node scripts/record-demo.mjs",
     "demo": "npm run build && npm run build:demo && node scripts/serve-demo.mjs"
   },
   "devDependencies": {
