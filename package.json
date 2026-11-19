@@ -52,7 +52,7 @@
     "prepublishOnly": "npm run build && npm run check:package",
     "build:demo": "node scripts/build-demo.mjs",
     "record": "node scripts/record-demo.mjs",
-    "deploy:demo": "npm run build && npm run build:demo && WRANGLER_SEND_METRICS=false npx wrangler@4.157.0 deploy",
+    "deploy:demo": "npm run build && npm run build:demo && WRANGLER_SEND_METRICS=false npx wrangler@4.165.0 deploy",
     "demo": "npm run build && npm run build:demo && node scripts/serve-demo.mjs"
   },
   "devDependencies": {
