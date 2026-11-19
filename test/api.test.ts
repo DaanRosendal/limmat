@@ -340,6 +340,17 @@ describe('code blocks', () => {
     expect(root.querySelector('pre')).toBe(pre);
     expect(root.querySelector('code')!.textContent).toBe('ab\nc');
   });
+  it('creating a renderer empties the container, so a remount does not duplicate a finished message', () => {
+    const root = document.createElement('div');
+    root.innerHTML = '<p>old</p>';
+    for (let i = 0; i < 2; i++) {
+      const r = createRenderer(root, { throttleMs: 0 });
+      r.write('# Title');
+      r.end();
+      r.destroy();
+    }
+    expect(root.innerHTML).toBe('<h1>Title</h1>');
+  });
   it('a text selection inside an open fence survives the next chunk', () => {
     const { root, r } = mk();
     r.write('```\nalpha beta');

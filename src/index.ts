@@ -75,7 +75,7 @@ interface Built {
 const MAX_DEPTH = 12;
 
 /**
- * Render streaming markdown into `container`. Use one renderer per message, and call `destroy()` when the element goes away.
+ * Render streaming markdown into `container`, which is emptied first. Use one renderer per message, and call `destroy()` when the element goes away.
  * The container has no live region, because announcing every chunk is noisy: to have the finished reply announced, set
  * `aria-busy` on your own element while streaming, or announce once after `end()`. The Copy button names the language,
  * tables and code blocks are keyboard-scrollable, task checkboxes have names, and the copy result goes to a polite status element.
@@ -86,6 +86,7 @@ const MAX_DEPTH = 12;
  */
 export function createRenderer(container: HTMLElement, options: Options = {}): Renderer {
   if (!container || typeof container.addEventListener !== 'function') throw new TypeError('limmat: container must be an element');
+  container.replaceChildren(); // a remount (React StrictMode runs effects twice) would otherwise append to the last render
   const o = options;
   const protocols = (o.allowedProtocols ?? ['https', 'http', 'mailto']).map((p) => `${p}`.toLowerCase().replace(/:?$/, ':'));
   const internal = o.isInternalPath
