@@ -154,3 +154,58 @@ for (const [name, opts] of [
     expect(results.violations.map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 80)}`)).toEqual([]);
   });
 }
+
+test('the stylesheet also styles a renderer inside a shadow root', async ({ page }) => {
+  const css = await page.evaluate(async () => {
+    const text = await (await fetch('/style.css')).text();
+    for (const l of document.querySelectorAll('link[rel=stylesheet]')) l.remove(); // only the copy inside the shadow root counts
+    const host = document.getElementById('root')!;
+    host.replaceChildren();
+    const shadow = host.attachShadow({ mode: 'open' });
+    const sheet = document.createElement('style');
+    sheet.textContent = text;
+    const mount = document.createElement('div');
+    shadow.append(sheet, mount);
+    const r = (window as any).limmat.createRenderer(mount);
+    r.write('```\nx\n```\n\n[a](https://a.com)');
+    r.end();
+    const code = getComputedStyle(mount.querySelector('.limmat-code')!);
+    const link = getComputedStyle(mount.querySelector('a')!);
+    return { border: code.borderTopWidth + ' ' + code.borderTopColor, link: link.color };
+  });
+  expect(css.border).not.toMatch(/^0px|rgba\(0, 0, 0, 0\)/);
+  expect(css.link).toBe('rgb(29, 78, 216)');
+});
+
+test('a long link stays inside a narrow container', async ({ page }) => {
+  const [scroll, client] = await page.evaluate(() => {
+    const root = document.getElementById('root')!;
+    root.replaceChildren();
+    root.style.width = '200px';
+    const r = (window as any).limmat.createRenderer(root);
+    r.write('https://example.com/' + 'a'.repeat(120) + '\n\n[' + 'b'.repeat(120) + '](https://a.com)');
+    r.end();
+    return [root.scrollWidth, root.clientWidth];
+  });
+  expect(scroll).toBeLessThanOrEqual(client);
+});
+
+test('right-to-left pages keep code left to right and list indents on the right side', async ({ page }) => {
+  const css = await page.evaluate(() => {
+    const root = document.getElementById('root')!;
+    root.replaceChildren();
+    root.setAttribute('dir', 'rtl');
+    const r = (window as any).limmat.createRenderer(root);
+    r.write('- a\n- [ ] b\n\n```\nx;\n```\n\n| a |\n|-|\n| 1 |');
+    r.end();
+    const ul = getComputedStyle(root.querySelector('ul')!);
+    const th = getComputedStyle(root.querySelector('th')!);
+    return {
+      pre: getComputedStyle(root.querySelector('pre')!).direction,
+      left: ul.paddingLeft,
+      right: ul.paddingRight,
+      align: th.textAlign,
+    };
+  });
+  expect(css).toEqual({ pre: 'ltr', left: '0px', right: '24px', align: 'start' });
+});

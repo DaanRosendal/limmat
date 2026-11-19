@@ -13,29 +13,41 @@
      img.limmat-image[loading=lazy][decoding=async][referrerpolicy=no-referrer]
      code.limmat-inline-code (inline code)
 */
-:root {
+:root,
+:host {
   --limmat-code-bg: rgba(128, 128, 128, 0.1);
   --limmat-border: rgba(128, 128, 128, 0.4);
-  --limmat-muted: rgba(128, 128, 128, 0.95);
+  --limmat-muted: #595959;
   --limmat-link: #1d4ed8;
   --limmat-radius: 0.5rem;
   --limmat-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --limmat-focus: #2563eb;
 }
 @supports (color: color-mix(in srgb, red, blue)) {
-  :root {
+  :root,
+  :host {
     --limmat-code-bg: color-mix(in srgb, currentColor 7%, transparent);
     --limmat-border: color-mix(in srgb, currentColor 22%, transparent);
     --limmat-muted: color-mix(in srgb, currentColor 65%, transparent);
   }
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root,
+  :host {
     --limmat-link: #93c5fd;
     --limmat-focus: #93c5fd;
   }
 }
+@supports not (color: color-mix(in srgb, red, blue)) {
+  @media (prefers-color-scheme: dark) {
+    :root,
+    :host {
+      --limmat-muted: #a3a3a3;
+    }
+  }
+}
 .limmat-link {
+  overflow-wrap: anywhere;
   color: var(--limmat-link);
   text-decoration: underline;
   text-underline-offset: 0.15em;
@@ -92,11 +104,11 @@
   color: var(--limmat-muted);
 }
 .limmat-lang {
-  margin-right: auto;
+  margin-inline-end: auto;
   font-family: var(--limmat-font-mono);
 }
 .limmat-code-head > .limmat-copy:first-child {
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 .limmat-copy {
   font: inherit;
@@ -119,6 +131,8 @@
   white-space: nowrap;
 }
 .limmat-code pre {
+  direction: ltr;
+  text-align: left;
   margin: 0;
   padding: 0.75rem;
   overflow-x: auto;
@@ -151,20 +165,20 @@
 .limmat-table-wrap td {
   border: 1px solid var(--limmat-border);
   padding: 0.3rem 0.6rem;
-  text-align: left;
+  text-align: start;
 }
 .limmat-table-wrap th {
   background: var(--limmat-code-bg);
 }
 .limmat-list {
-  padding-left: 1.5em;
+  padding-inline-start: 1.5em;
 }
 .limmat-task {
   list-style: none;
-  margin-left: -1.25em;
+  margin-inline-start: -1.25em;
 }
 .limmat-task > input[type="checkbox"]:first-child {
-  margin-right: 0.5em;
+  margin-inline-end: 0.5em;
 }
 .limmat-code pre:focus-visible,
 .limmat-table-wrap:focus-visible,
