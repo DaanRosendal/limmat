@@ -14,7 +14,12 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    # Only after a push to master in this repository. A fork's pull request can come from a branch named master, and its code must never run with these secrets.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
