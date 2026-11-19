@@ -26,11 +26,11 @@ Bare addresses like https://example.com/docs, www.example.com, and hi@example.co
 
 | Option | Default | What it does |
 |:-------|:-------:|:-------------|
-| \`throttleMs\` | \`50\` | Pause between redraws |
-| \`images\` | \`true\` | \`false\` or a list of origins |
-| \`html\` | \`true\` | Narrow or turn off safe tags |
-| \`externalLinksNewTab\` | \`true\` | New tab for \`http\` links |
-| \`highlight\` | none | Colours a closed code block |
+| \`throttleMs\` | \`50\` | Redraw pause |
+| \`images\` | \`true\` | Origin list or \`false\` |
+| \`html\` | \`true\` | Which safe tags |
+| \`labels\` | English | Button text |
+| \`highlight\` | none | Code colours |
 
 ### Three lines to use it
 
