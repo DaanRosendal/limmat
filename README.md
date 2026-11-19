@@ -49,7 +49,7 @@ createRenderer(el, { highlight: speedHighlight() });
 |:---:|:---:|:---:|
 | ✅ | ✅ | ✅ |
 
-Current versions, tested in CI on every push (in Chromium, Firefox, and WebKit).
+Tested in Chromium, Firefox, and WebKit.
 
 ## Safety
 
