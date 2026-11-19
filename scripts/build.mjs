@@ -12,6 +12,8 @@ await build({ ...common, entryPoints: ['src/index.ts'], outfile: 'dist/limmat.mi
 await build({ ...common, entryPoints: ['src/highlight.ts'], outfile: 'dist/highlight.js', external: ['@speed-highlight/core'] });
 copyFileSync('src/style.css', 'dist/style.css');
 execFileSync('npx', ['tsc', '-p', 'tsconfig.build.json'], { stdio: 'inherit' });
+// Only index and highlight are public (see "exports"), so the declarations of the internal modules stay out of the package.
+for (const f of ['block', 'inline', 'url']) rmSync(`dist/${f}.d.ts`);
 writeFileSync('dist/limmat.min.js', '// limmat, MIT, Copyright (c) 2026 Daan Rosendal\n' + readFileSync('dist/limmat.min.js', 'utf8'));
 const min = readFileSync('dist/limmat.min.js');
 console.log(`dist/limmat.min.js ${min.length} B, ${gzipSync(min, { level: 9 }).length} B gzip, ${brotliCompressSync(min).length} B brotli`);

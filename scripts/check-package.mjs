@@ -8,9 +8,14 @@ import { pathToFileURL } from 'node:url';
 
 const pack = JSON.parse(execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { encoding: 'utf8' }))[0];
 const files = pack.files.map((f) => f.path).sort();
-const bad = files.filter((f) => !/^(dist\/[\w.-]+|package\.json|README\.md|LICENSE)$/.test(f));
-const need = ['dist/index.js', 'dist/index.d.ts', 'dist/highlight.js', 'dist/highlight.d.ts', 'dist/style.css', 'dist/limmat.min.js'];
-const missing = need.filter((f) => !files.includes(f));
+const want = [
+  'LICENSE',
+  'README.md',
+  'package.json',
+  ...['highlight.d.ts', 'highlight.js', 'index.d.ts', 'index.js', 'limmat.min.js', 'style.css'].map((f) => `dist/${f}`),
+];
+const bad = files.filter((f) => !want.includes(f));
+const missing = want.filter((f) => !files.includes(f));
 if (bad.length || missing.length) {
   console.error('unexpected files:', bad, 'missing files:', missing);
   process.exit(1);
