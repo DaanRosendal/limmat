@@ -14,12 +14,14 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    # Only after a push to master in this repository. A fork's pull request can come from a branch named master, and its code must never run with these secrets.
+    # Only master, and only its newest commit: after a push in this repository, never for a fork's pull request (it can
+    # come from a branch named master, and its code must never run with these secrets), and never for a re-run of an old run.
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') ||
       (github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_repository.full_name == github.repository)
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_sha == github.sha)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
