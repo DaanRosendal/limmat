@@ -28,7 +28,11 @@ try {
   // The real tarball, unpacked where a consumer's node_modules would hold it.
   const packed = join(dir, 'packed');
   mkdirSync(packed);
-  execFileSync('npm', ['pack', '--ignore-scripts', '--pack-destination', packed], { stdio: 'ignore' });
+  // `npm publish --dry-run` exports npm_config_dry_run, which would make this nested pack write nothing.
+  execFileSync('npm', ['pack', '--ignore-scripts', '--pack-destination', packed], {
+    stdio: 'ignore',
+    env: { ...process.env, npm_config_dry_run: 'false' },
+  });
   execFileSync('tar', ['-xzf', join(packed, readdirSync(packed)[0]), '-C', pkg, '--strip-components=1']);
   writeFileSync(join(dir, 'package.json'), '{"type":"module"}');
   writeFileSync(

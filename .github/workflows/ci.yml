@@ -32,6 +32,7 @@ jobs:
       - run: npm run check:package
       - run: npm run check:support
       - run: npm run size
+      - run: npm publish --dry-run # the same hooks and file list as a real publish, without publishing
   browsers:
     runs-on: ubuntu-latest
     timeout-minutes: 15
