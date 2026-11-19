@@ -4,4 +4,4 @@
   X-Content-Type-Options: nosniff
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   Cross-Origin-Opener-Policy: same-origin
-  Cache-Control: no-cache
+  Cache-Control: no-cache, no-transform
