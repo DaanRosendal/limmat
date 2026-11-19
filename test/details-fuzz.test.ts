@@ -2,7 +2,7 @@
 // kinds, then checked against the library's rules. Raise the size with FUZZ_N=1500 and change the seed with FUZZ_SEED.
 import { describe, expect, it } from 'vitest';
 import { createRenderer } from '../src/index';
-import { audit, chunks, renderTwoPart, rng } from './helpers/util';
+import { audit, chunks, renderTwoPart, rng, shrink } from './helpers/util';
 
 const POOL_DET = [
   '<details>',
@@ -281,19 +281,6 @@ const oracleProp: Prop = (md) => {
   const got = skeleton(run(md, 'whole', 1, true));
   return want === got ? null : `oracle ${want} != dom ${got}`;
 };
-
-function shrink(md: string, fails: (m: string) => boolean): string {
-  let cur = md;
-  for (let pass = 0; pass < 6; pass++) {
-    const ls = cur.split('\n');
-    const candidates = ls.map((_, i) => [...ls.slice(0, i), ...ls.slice(i + 1)].join('\n'));
-    candidates.push(cur.replace(/\n$/, ''), cur.slice(0, -1), cur.slice(1));
-    const next = candidates.find((t) => t && t !== cur && fails(t));
-    if (next === undefined) break;
-    cur = next;
-  }
-  return cur;
-}
 
 const N = Number(process.env.FUZZ_N ?? 80);
 const rand = rng(Number(process.env.FUZZ_SEED ?? 12345));

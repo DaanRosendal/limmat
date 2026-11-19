@@ -55,3 +55,17 @@ export function renderTwoPart(md: string, at: number, options: Options = {}) {
 export const html = (el: Element) => el.innerHTML.replace(/ class="[^"]*"/g, '');
 
 export { audit } from './audit';
+
+/** The smallest variant of a failing document that still fails: drops lines and edge characters while `fails` stays true. */
+export function shrink(md: string, fails: (m: string) => boolean): string {
+  let cur = md;
+  for (let pass = 0; pass < 6; pass++) {
+    const ls = cur.split('\n');
+    const candidates = ls.map((_, i) => [...ls.slice(0, i), ...ls.slice(i + 1)].join('\n'));
+    candidates.push(cur.replace(/\n$/, ''), cur.slice(0, -1), cur.slice(1));
+    const next = candidates.find((t) => t && t !== cur && fails(t));
+    if (next === undefined) break;
+    cur = next;
+  }
+  return cur;
+}
