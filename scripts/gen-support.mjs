@@ -34,7 +34,7 @@ const lines = rows.map((r) => {
     return t.title;
   });
   if (!cm && !proof.length && r.status !== 'not-yet') problems.push(`${r.feature}: a ${r.status} row needs a CommonMark section or a test`);
-  return `| ${r.feature} | ${DOT[r.status]} ${LABEL[r.status]} | ${r.note ?? ''} |`;
+  return `| ${r.feature} | ${`${DOT[r.status]} ${LABEL[r.status]}`.replace(/ /g, '&nbsp;')} | ${r.note ?? ''} |`;
 });
 
 const table = [START, '| Feature | Status | Note |', '|---|---|---|', ...lines, END].join('\n');
