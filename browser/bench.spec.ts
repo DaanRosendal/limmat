@@ -82,7 +82,6 @@ test.describe('performance budgets (Chromium)', () => {
     const t = await page.evaluate(() => (window as any).run('word '.repeat(200_000), 4096));
     console.log('1 MB, ms:', t.toFixed(0));
     expect(t).toBeLessThan(2000);
-    expect(await page.evaluate(() => 1 + 1)).toBe(2);
   });
 
   test('memory stays flat across 1,000 reset() cycles', async ({ page }) => {

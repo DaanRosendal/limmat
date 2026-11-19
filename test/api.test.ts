@@ -488,13 +488,20 @@ describe('option and input hardening', () => {
       expect(Array.from(root.querySelectorAll('a')).map((a) => a.getAttribute('href'))).toEqual(['https://e.com']);
     }
   });
-  it('a non-finite throttleMs falls back to the default instead of breaking the timer', () => {
+  it('a non-finite throttleMs falls back to the default 50 ms instead of breaking the timer', () => {
+    vi.useFakeTimers();
     for (const t of [Number.NaN, Number.POSITIVE_INFINITY, undefined]) {
-      const { root, r } = mk({ throttleMs: t });
+      const root = document.createElement('div');
+      const r = createRenderer(root, { throttleMs: t });
       r.write('a');
+      expect(root.textContent).toBe('a');
       r.write(' b');
-      r.end();
+      expect(root.textContent).toBe('a');
+      vi.advanceTimersByTime(49);
+      expect(root.textContent).toBe('a');
+      vi.advanceTimersByTime(1);
       expect(root.textContent).toBe('a b');
+      r.destroy();
     }
   });
   it('a copy that resolves after destroy or reset leaves no timer and no label change', async () => {

@@ -71,7 +71,7 @@ describe('CommonMark spec examples for the supported subset', () => {
   const results = new Map(inScope.map((e) => [e.example, run(e)]));
   const failing = [...results].filter(([, ok]) => !ok).map(([n]) => n);
 
-  it('reports the pass rate', () => {
+  it('has a large in-scope sample, and prints failing examples on request', () => {
     expect(inScope.length).toBeGreaterThan(400);
     expect(inScope.length - failing.length).toBeGreaterThan(300);
     if (process.env.SHOW && process.env.OUT) {

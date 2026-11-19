@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test as base, expect } from '@playwright/test';
 
 // Serves the built demo (demo/out) on https://limmat.test with the response headers from demo/_headers,
 // and records everything a visitor could be harmed by: page errors, CSP violations, and requests.
-const ROOT = new URL('../demo/out/', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('../demo/out/', import.meta.url));
 const TYPES: Record<string, string> = {
   '.html': 'text/html',
   '.js': 'text/javascript',

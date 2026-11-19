@@ -54,7 +54,11 @@ const cases: [string, string, string][] = [
     '| a | *',
     '<div tabindex="0" role="group" aria-label="Table"><table><thead><tr><th>a</th><th></th></tr></thead><tbody></tbody></table></div>',
   ],
-  ['a star bullet whose bold marker is still arriving is not a rule', '* **Fast**: yes\n* **', '<ul><li><strong>Fast</strong>: yes</li></ul>'],
+  [
+    'a star bullet whose bold marker is still arriving is not a rule',
+    '* **Fast**: yes\n* **',
+    '<ul><li><strong>Fast</strong>: yes</li></ul>',
+  ],
   ['a star bullet whose bold marker is still arriving, as the first item', '* **', ''],
   ['a bare bullet marker in a list item waits', '1. Item\n   -', '<ol><li>Item</li></ol>'],
   ['a bare number marker in a list item waits', '1. Item\n   1.', '<ol><li>Item</li></ol>'],
