@@ -1,9 +1,10 @@
-// Packaging guard: the tarball holds exactly the intended files, and a strict NodeNext consumer type-checks against it.
-// Run after `npm run build`.
+// Packaging guard: the tarball holds exactly the intended files, a strict NodeNext consumer type-checks against it, and the
+// packed code renders a document, both as dist/index.js and as the minified bundle. Run after `npm run build`.
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const pack = JSON.parse(execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { encoding: 'utf8' }))[0];
 const files = pack.files.map((f) => f.path).sort();
@@ -19,8 +20,11 @@ const dir = mkdtempSync(join(tmpdir(), 'limmat-consumer-'));
 try {
   const pkg = join(dir, 'node_modules/limmat');
   mkdirSync(pkg, { recursive: true });
-  cpSync('dist', join(pkg, 'dist'), { recursive: true });
-  cpSync('package.json', join(pkg, 'package.json'));
+  // The real tarball, unpacked where a consumer's node_modules would hold it.
+  const packed = join(dir, 'packed');
+  mkdirSync(packed);
+  execFileSync('npm', ['pack', '--ignore-scripts', '--pack-destination', packed], { stdio: 'ignore' });
+  execFileSync('tar', ['-xzf', join(packed, readdirSync(packed)[0]), '-C', pkg, '--strip-components=1']);
   writeFileSync(join(dir, 'package.json'), '{"type":"module"}');
   writeFileSync(
     join(dir, 'consumer.ts'),
@@ -51,7 +55,34 @@ const notAny: number = speedHighlight();
     }),
   );
   execFileSync('npx', ['tsc', '-p', join(dir, 'tsconfig.json')], { stdio: 'inherit', cwd: process.cwd() });
-  console.log(`package ok: ${files.length} files, NodeNext consumer type-checks`);
+
+  // Run the packed code: stream one document through the package entry and through the minified bundle, with jsdom as the DOM.
+  const jsdom = pathToFileURL(join(process.cwd(), 'node_modules/jsdom/lib/api.js')).href;
+  writeFileSync(
+    join(dir, 'run.mjs'),
+    `import { JSDOM } from ${JSON.stringify(jsdom)};
+const dom = new JSDOM('<div id="a"></div><div id="b"></div>');
+Object.assign(globalThis, { document: dom.window.document, window: dom.window, HTMLElement: dom.window.HTMLElement, Element: dom.window.Element, Node: dom.window.Node });
+const { createRenderer } = await import('limmat');
+const min = await import('./node_modules/limmat/dist/limmat.min.js');
+const md = '# Hi\\n\\nSome **bold** and a [link](https://example.com).\\n\\n- a\\n- b\\n\\n| x | y |\\n|---|---|\\n| 1 | 2 |\\n';
+const run = (create, id) => {
+  const el = document.getElementById(id);
+  const r = create(el, { throttleMs: 0 });
+  for (const ch of md) r.write(ch);
+  r.end();
+  return el.innerHTML;
+};
+const a = run(createRenderer, 'a');
+const b = run(min.createRenderer, 'b');
+for (const want of ['<h1', '<strong>bold</strong>', 'href="https://example.com"', '<li>a</li>', '<table']) {
+  if (!a.includes(want)) throw new Error('the packed renderer output lacks ' + want + ': ' + a);
+}
+if (a !== b) throw new Error('dist/index.js and dist/limmat.min.js render differently:\\n' + a + '\\n' + b);
+`,
+  );
+  execFileSync(process.execPath, ['run.mjs'], { stdio: 'inherit', cwd: dir });
+  console.log(`package ok: ${files.length} files, NodeNext consumer type-checks, packed code renders`);
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
