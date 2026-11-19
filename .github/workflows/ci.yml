@@ -55,7 +55,7 @@ jobs:
           if [ "$EVENT" = pull_request ]; then base="$PR_BASE"; else base="$BEFORE"; fi
           files=$(git diff --name-only "$base" "$GITHUB_SHA" 2>/dev/null) || files=""
           code=true
-          if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qvE '^(README|CHANGELOG|SECURITY|CONTRIBUTING|AGENTS|CLAUDE)\.md$|^docs/[^/]+\.(md|png|gif|mp4|webm)$'; then
+          if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qvE '^(README|CHANGELOG|SECURITY|AGENTS|CLAUDE)\.md$|^docs/[^/]+\.(md|png|gif|mp4|webm)$'; then
             code=false
           fi
           echo "code=$code" >> "$GITHUB_OUTPUT"

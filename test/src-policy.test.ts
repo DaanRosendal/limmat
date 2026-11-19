@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// The safety rules from CONTRIBUTING.md that no linter enforces for us: src/ builds DOM only through
+// The safety rules from AGENTS.md that no linter enforces for us: src/ builds DOM only through
 // createElement and text nodes, and never needs anything that a strict Content-Security-Policy would block.
 const FORBIDDEN: [RegExp, string][] = [
   [/\.(?:innerHTML|outerHTML)\b/, 'innerHTML or outerHTML'],

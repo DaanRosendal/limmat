@@ -1,13 +1,6 @@
 # limmat
 
-**Streaming markdown for LLM chat that never shows a half-finished marker.**
-
-- **Clean streaming:** a half-typed `**` or `[link](` never flashes on screen, and the result is the same however the text is split.
-- **Safe by default:** it builds DOM nodes, never HTML strings. Raw HTML shows as text, except a few attribute-free formatting tags like `<kbd>` and `<sub>` and collapsible `<details>` sections, and links are allow-listed. Images load, which can leak data to a hostile server, so use `images: ['https://your-cdn.example']` or `images: false` if that matters ([details](docs/API.md#images-and-privacy)).
-- **Tiny:** about 9 kB gzip, no dependencies.
-- **Fast:** only the open block re-renders, so a 100 KB reply takes about 10 ms in Chromium with the default 50 ms throttle.
-
-It suits any text that arrives in pieces: LLM replies, agent and tool output, comments, and live previews. The name is that of the [Limmat](https://en.wikipedia.org/wiki/Limmat), the river through Zurich, because the text arrives as a stream.
+Renders streamed markdown from an LLM into the page, and never shows a half-typed `**` or `[link](`.
 
 <p align="center">
   <a href="https://limmat.daanrosendal.com">
@@ -18,7 +11,14 @@ It suits any text that arrives in pieces: LLM replies, agent and tool output, co
   </a>
 </p>
 
-**[Try the demo](https://limmat.daanrosendal.com)**. To run it yourself, clone the repo and use `npm run demo`.
+**[Try the demo](https://limmat.daanrosendal.com)**
+
+- **Clean streaming:** chunks can split anywhere, and the result is the same as rendering the whole text at once.
+- **Safe by default:** it builds DOM nodes, never HTML strings. Raw HTML shows as text apart from a few formatting tags, and links are allow-listed.
+- **Small, and framework-free:** about 9 kB gzip, no dependencies. It writes into any element, so it works in any framework or none.
+- **Fast:** only the open block re-renders. A 100 KB reply takes about 10 ms in total in Chromium.
+
+## Install
 
 ```sh
 npm install limmat
@@ -29,73 +29,68 @@ import { createRenderer } from 'limmat';
 import 'limmat/style.css'; // optional
 
 const md = createRenderer(document.querySelector('#answer')!);
-md.write('# Hello\n\nSome **streamed** text'); // call it for every chunk
+for await (const chunk of stream) md.write(chunk); // any source of text chunks
 md.end();
 ```
 
-## Use
+Use one renderer per message: `write` takes only the new text, and chunks can split anywhere. In a framework, give it an empty element and call `destroy()` when it unmounts. Every option and method is documented in the types, so your editor shows them.
 
-Use one renderer per message. `write` takes only the new text, and chunks can split anywhere, even inside a word or a marker. Rendering a finished string is the same three calls: `createRenderer(el)`, `write(text)`, `end()`.
-
-Streaming a `fetch` response:
+For colored code, add the optional highlighter (it needs `@speed-highlight/core`, plus one of its theme stylesheets):
 
 ```ts
-const res = await fetch('/api/chat', { method: 'POST', body });
-const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
-const md = createRenderer(el);
-for (let r = await reader.read(); !r.done; r = await reader.read()) md.write(r.value);
-md.end();
+import { speedHighlight } from 'limmat/highlight';
+createRenderer(el, { highlight: speedHighlight() });
 ```
 
-With an LLM SDK, call `md.write(delta)` for each text delta and `md.end()` when the stream finishes.
+It works in current Chrome, Firefox, and Safari. From the APIs it uses, the floor should be Chrome 86, Firefox 78, and Safari 14, but that comes from compatibility data and is not tested.
 
-Options, methods, code highlighting, styling, and accessibility are in [docs/API.md](docs/API.md), including React and Svelte examples. Security model and how to report a problem: [SECURITY.md](SECURITY.md).
+## Safety
+
+Raw HTML shows as text, except attribute-free tags like `<kbd>` and `<sub>`, and collapsible `<details>`. Links must be http, https, mailto, or a site path you approve. Images load without a click, so a hostile reply can send data to its own server: pass `images: ['https://your-cdn.example']` or `images: false` to limit that. More in [SECURITY.md](SECURITY.md).
 
 ## What is supported
 
-Unsupported syntax renders as literal text, never as markup. Anything not listed here has not been audited. The table is generated from [docs/support.json](docs/support.json) and the CommonMark 0.31.2 results, and CI fails if it drifts, if a row cites a test that does not exist, or if a row says "supported" while most of its spec examples fail.
-
-Statuses: Supported (works, with tests), Partial (the common cases work, the notes say what does not), and Not yet (the notes say what is planned and what will stay out for safety). Spec examples are the CommonMark 0.31.2 examples that pass, out of those in that section. The failures are listed by number in [test/fixtures/commonmark-known-failures.json](test/fixtures/commonmark-known-failures.json).
+The north star is the [CommonMark spec](https://spec.commonmark.org/0.31.2/). Anything limmat does not support falls back to plain text or a simpler element, never to raw HTML. Pass counts per feature are in the [demo](https://limmat.daanrosendal.com).
 
 <!-- support:start (generated by scripts/gen-support.mjs from docs/support.json, do not edit) -->
-| Feature | Status | [CommonMark spec](https://spec.commonmark.org/0.31.2/) examples | Notes and proof |
-|---|---|---|---|
-| ATX headings (`# Title`) | 🟢 Supported | 17/18 |  |
-| Thematic breaks | 🟢 Supported | 17/19 |  |
-| Fenced code, backtick and tilde | 🟢 Supported | 27/29 | Language label, Copy button, optional highlighting. Test: `tilde fences and fence lengths` in [conformance.test.ts](test/conformance.test.ts). |
-| Block quotes | 🟢 Supported | 22/25 | Test: `lazy blockquote continuation only follows paragraph text` in [regress.test.ts](test/regress.test.ts). |
-| Task lists (GFM) | 🟢 Supported |  | Checkboxes are disabled and labelled. Test: `task lists` in [conformance.test.ts](test/conformance.test.ts). |
-| Tables with alignment (GFM) | 🟢 Supported |  | Keyboard-scrollable wrapper. Without a leading pipe, a header and delimiter row with different column counts is not a table. Test: `tables with alignment` in [conformance.test.ts](test/conformance.test.ts). |
-| Emphasis and strong | 🟢 Supported | 129/132 | `snake_case_words` stay text. |
-| Strikethrough (GFM) | 🟢 Supported |  | Needs two tildes on both sides. Test: `single tilde is literal` in [gaps.test.ts](test/gaps.test.ts). |
-| Code spans | 🟢 Supported | 20/22 |  |
-| Collapsible sections (`<details>` and `<summary>`) | 🟢 Supported |  | Each tag alone on its line, and `<details><summary>T</summary>` on one line works too. The only attribute is `open`. A block that has not closed yet shows collapsed while streaming, and opens at the end of the message if it never closes. A lone `<details>` with nothing after it stays text. Turn it off with the `html` option. Test: `a well-formed block becomes details and summary, with or without blank lines inside` in [details.test.ts](test/details.test.ts). |
-| Hard and soft line breaks | 🟢 Supported | 14/17 | Test: `single trailing space before newline` in [gaps.test.ts](test/gaps.test.ts). |
-| Half-open constructs never show raw markers while streaming | 🟢 Supported |  | Test: `open fence shows code immediately` in [half-open.test.ts](test/half-open.test.ts), `streaming never shows raw markers` in [behavior.spec.ts](browser/behavior.spec.ts). |
-| Any chunking gives the same DOM as one write | 🟢 Supported |  | Test: `two-part splits at every index` in [chunk-fuzz.test.ts](test/chunk-fuzz.test.ts). |
-| Bullet and ordered lists, nested | 🟡 Partial | 32/74 | Bullet, ordered, and nested lists work. Loose lists render tight (a loose-list style is planned), and many edge cases in the spec differ. Test: `list scanning` in [regress.test.ts](test/regress.test.ts). |
-| Inline links | 🟡 Partial | 23/90 | Inline `[text](url)` works. Reference-style links, many title forms, and unsafe URLs render as text. Titles and URL encoding are planned. These cause most of the misses. Test: `blocked links keep the label as text` in [xss.test.ts](test/xss.test.ts). |
-| Autolinks: `<url>`, bare URLs, `www.`, emails (GFM) | 🟡 Partial | 9/19 | Only allowed protocols become links, so spec examples with other schemes differ by design. Test: `urls only autolink at a word boundary` in [gaps.test.ts](test/gaps.test.ts). |
-| Images | 🟡 Partial | 6/22 | On by default, with the same URL checks as links. Images load without a click, so a hostile reply can send data to its own server: pass `images: ['https://your-cdn.example']` or `images: false` to limit that. Reference-style images and sources without a leading slash (`train.jpg`) render the alt text. Titles are ignored. Test: `![alt](https-url) becomes an img with the alt text and a restrictive set of attributes` in [images.test.ts](test/images.test.ts). |
-| Raw HTML and HTML blocks | 🟡 Partial | 8/64 | Shown as text, because raw HTML can run code, except attribute-free `br`, `b`, `strong`, `i`, `em`, `u`, `s`, `del`, `ins`, `mark`, `small`, `kbd`, `sub`, and `sup`, which become elements. A tag with any attribute, every other tag, and HTML blocks stay text. Narrow the list or turn it off with the `html` option. Collapsible blocks are the next row. Test: `tags with attributes, unknown tags, and unbalanced tags stay text` in [html.test.ts](test/html.test.ts). |
-| Backslash escapes | 🟡 Partial | 9/13 |  |
-| Setext headings (`Title` over `---`) | ⚪ Not yet | 12/27 | The underline renders as a rule (`---`) or as text (`===`). Planned. |
-| Indented code blocks | ⚪ Not yet | 1/12 | Use fences. Planned. |
-| Reference links and definitions | ⚪ Not yet | 5/27 | Render as text. Planned for definitions that come before the link. Definitions that come after will not work, because they would rewrite text that is already final. |
-| HTML entities (`&amp;`) | ⚪ Not yet | 5/17 | Shown literally. Planned: numeric entities and a few common names. The full table is too big. |
-| Tabs for indentation | ⚪ Not yet | 2/11 |  |
-| Math (`$...$`, `$$...$$`) | ⚪ Not yet |  | Planned as an opt-in hook that you supply, so limmat bundles no math library. Dollar signs render literally today. |
-| Footnotes | ⚪ Not yet |  | Render as text. Planned as an opt-in option. |
-| Alerts and callouts (`> [!NOTE]`) | ⚪ Not yet |  | Renders as a normal block quote. |
-| Citation chips (`[1]`) and emoji codes | ⚪ Not yet |  | Planned as opt-in options. Rendered literally today. |
+| Feature | Status | Note |
+|---|---|---|
+| Headings (`# Title`) | 🟢 Supported |  |
+| Horizontal rules (`---`) | 🟢 Supported |  |
+| Code blocks (fenced) | 🟢 Supported | Language label, Copy button, optional highlighting. |
+| Block quotes | 🟢 Supported |  |
+| Task lists | 🟢 Supported | Checkboxes are read-only. |
+| Tables | 🟢 Supported | Column alignment works. |
+| Bold and italic | 🟢 Supported | `snake_case_words` stay text. |
+| Strikethrough (`~~text~~`) | 🟢 Supported | Needs two tildes. |
+| Inline code | 🟢 Supported |  |
+| Collapsible sections (`<details>`) | 🟢 Supported | Each tag alone on its line. |
+| Line breaks | 🟢 Supported |  |
+| Half-typed markers never show while streaming | 🟢 Supported |  |
+| Same output however the text is chunked | 🟢 Supported |  |
+| Lists | 🟡 Partial | Nesting works. Loose lists render tight. |
+| Links | 🟡 Partial | `[text](url)` only. Titles and unsafe URLs show as text. |
+| Autolinks (bare URLs, `www.`, emails) | 🟡 Partial | Only http, https, and mailto. |
+| Images | 🟡 Partial | On by default and loaded without a click, so limit them with `images`. No titles. |
+| Raw HTML | 🟡 Partial | Shown as text, except a few tags like `<kbd>` and `<sub>`. |
+| Backslash escapes | 🟡 Partial | A few edge cases differ. |
+| Underlined headings (`Title` over `---`) | ⚪ Not yet | The underline shows as a rule or as text. Planned. |
+| Indented code blocks | ⚪ Not yet | Use fences. Planned. |
+| Reference links (`[a][1]`) | ⚪ Not yet | Shown as text. Planned for definitions that come first. |
+| HTML entities (`&amp;`) | ⚪ Not yet | Shown literally. Planned: numeric ones and a few names. |
+| Tab indentation | ⚪ Not yet |  |
+| Math (`$x$`) | ⚪ Not yet | Planned as an opt-in hook you supply. |
+| Footnotes | ⚪ Not yet | Shown as text. Planned, opt-in. |
+| Alerts (`> [!NOTE]`) | ⚪ Not yet | Shown as a plain block quote. |
+| Citations (`[1]`) and emoji codes | ⚪ Not yet | Shown literally. Planned, opt-in. |
 <!-- support:end -->
 
-## Why TypeScript, not Rust
+Known limits:
 
-Parsing is only about a fifth of the work (measured in Chromium, rendering on every write). The rest is building the page's elements, and WebAssembly cannot do that, so JavaScript would still do it. WebAssembly would also make limmat much bigger: the streaming renderers we measured are 29 to 105 kB gzip, against about 9 kB here. A Rust parser fits better on a server or for huge documents.
+- `throttleMs: 0` re-renders the open block on every write, so one very long paragraph gets slow. The default throttle prevents that.
+- `[1]` shows as `1` until its closing bracket arrives, and the `<` of an `<email@example.com>` autolink shows until the `@` arrives.
+- `#anchor` links and relative links without a leading slash show as plain text.
 
-## License
+## More
 
-MIT, Copyright (c) 2026 Daan Rosendal.
-
-To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
+[AGENTS.md](AGENTS.md) for working on limmat, [SECURITY.md](SECURITY.md) to report a problem, and [CHANGELOG.md](CHANGELOG.md). Licensed under the [MIT License](LICENSE).

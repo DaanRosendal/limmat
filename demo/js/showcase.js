@@ -2,7 +2,7 @@
 // that streaming makes hard (half-typed markers, a link cut open, a table that grows, a fence that fills in, nested
 // sections, and hostile input that stays inert). Pure data, so a unit test can import it.
 // Rules for editing: every block starts a new paragraph or heading, no syntax limmat does not support (see the support
-// table), no unclosed fence or <details>, no numbers or option names that docs/API.md does not state.
+// table), no unclosed fence or <details>, no numbers or option names that the TSDoc in src/index.ts does not state.
 
 export const SHOWCASE = `## Streaming markdown, calmly
 

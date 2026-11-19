@@ -1,4 +1,4 @@
-// The support panel: the same table as the README, from the same data, with the gaps left in.
+// The support panel: the README's table from the same data, plus the CommonMark counts, with the gaps left in.
 import { $, $$, make } from './dom.js';
 
 const LABEL = { supported: 'Supported', partial: 'Partial', 'not-yet': 'Not yet', wont: 'Will not' };

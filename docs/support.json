@@ -1,112 +1,30 @@
 [
-  { "feature": "ATX headings (`# Title`)", "status": "supported", "cm": ["ATX headings"] },
-  { "feature": "Setext headings (`Title` over `---`)", "status": "not-yet", "cm": ["Setext headings"], "note": "The underline renders as a rule (`---`) or as text (`===`). Planned." },
-  { "feature": "Thematic breaks", "status": "supported", "cm": ["Thematic breaks"] },
-  {
-    "feature": "Fenced code, backtick and tilde",
-    "status": "supported",
-    "cm": ["Fenced code blocks"],
-    "tests": [{ "file": "test/conformance.test.ts", "title": "tilde fences and fence lengths" }],
-    "note": "Language label, Copy button, optional highlighting."
-  },
-  { "feature": "Indented code blocks", "status": "not-yet", "cm": ["Indented code blocks"], "note": "Use fences. Planned." },
-  {
-    "feature": "Block quotes",
-    "status": "supported",
-    "cm": ["Block quotes"],
-    "tests": [{ "file": "test/regress.test.ts", "title": "lazy blockquote continuation only follows paragraph text" }]
-  },
-  {
-    "feature": "Bullet and ordered lists, nested",
-    "status": "partial",
-    "cm": ["Lists", "List items"],
-    "tests": [{ "file": "test/regress.test.ts", "title": "list scanning" }],
-    "note": "Bullet, ordered, and nested lists work. Loose lists render tight (a loose-list style is planned), and many edge cases in the spec differ."
-  },
-  {
-    "feature": "Task lists (GFM)",
-    "status": "supported",
-    "tests": [{ "file": "test/conformance.test.ts", "title": "task lists" }],
-    "note": "Checkboxes are disabled and labelled."
-  },
-  {
-    "feature": "Tables with alignment (GFM)",
-    "status": "supported",
-    "tests": [{ "file": "test/conformance.test.ts", "title": "tables with alignment" }],
-    "note": "Keyboard-scrollable wrapper. Without a leading pipe, a header and delimiter row with different column counts is not a table."
-  },
-  { "feature": "Emphasis and strong", "status": "supported", "cm": ["Emphasis and strong emphasis"], "note": "`snake_case_words` stay text." },
-  {
-    "feature": "Strikethrough (GFM)",
-    "status": "supported",
-    "tests": [{ "file": "test/gaps.test.ts", "title": "single tilde is literal" }],
-    "note": "Needs two tildes on both sides."
-  },
-  { "feature": "Code spans", "status": "supported", "cm": ["Code spans"] },
-  {
-    "feature": "Inline links",
-    "status": "partial",
-    "cm": ["Links"],
-    "tests": [{ "file": "test/xss.test.ts", "title": "blocked links keep the label as text" }],
-    "note": "Inline `[text](url)` works. Reference-style links, many title forms, and unsafe URLs render as text. Titles and URL encoding are planned. These cause most of the misses."
-  },
-  {
-    "feature": "Reference links and definitions",
-    "status": "not-yet",
-    "cm": ["Link reference definitions"],
-    "note": "Render as text. Planned for definitions that come before the link. Definitions that come after will not work, because they would rewrite text that is already final."
-  },
-  {
-    "feature": "Autolinks: `<url>`, bare URLs, `www.`, emails (GFM)",
-    "status": "partial",
-    "cm": ["Autolinks"],
-    "tests": [{ "file": "test/gaps.test.ts", "title": "urls only autolink at a word boundary" }],
-    "note": "Only allowed protocols become links, so spec examples with other schemes differ by design."
-  },
-  {
-    "feature": "Images",
-    "status": "partial",
-    "cm": ["Images"],
-    "tests": [{ "file": "test/images.test.ts", "title": "![alt](https-url) becomes an img with the alt text and a restrictive set of attributes" }],
-    "note": "On by default, with the same URL checks as links. Images load without a click, so a hostile reply can send data to its own server: pass `images: ['https://your-cdn.example']` or `images: false` to limit that. Reference-style images and sources without a leading slash (`train.jpg`) render the alt text. Titles are ignored."
-  },
-  {
-    "feature": "Raw HTML and HTML blocks",
-    "status": "partial",
-    "cm": ["HTML blocks", "Raw HTML"],
-    "tests": [{ "file": "test/html.test.ts", "title": "tags with attributes, unknown tags, and unbalanced tags stay text" }],
-    "note": "Shown as text, because raw HTML can run code, except attribute-free `br`, `b`, `strong`, `i`, `em`, `u`, `s`, `del`, `ins`, `mark`, `small`, `kbd`, `sub`, and `sup`, which become elements. A tag with any attribute, every other tag, and HTML blocks stay text. Narrow the list or turn it off with the `html` option. Collapsible blocks are the next row."
-  },
-  {
-    "feature": "Collapsible sections (`<details>` and `<summary>`)",
-    "status": "supported",
-    "tests": [{ "file": "test/details.test.ts", "title": "a well-formed block becomes details and summary, with or without blank lines inside" }],
-    "note": "Each tag alone on its line, and `<details><summary>T</summary>` on one line works too. The only attribute is `open`. A block that has not closed yet shows collapsed while streaming, and opens at the end of the message if it never closes. A lone `<details>` with nothing after it stays text. Turn it off with the `html` option."
-  },
-  { "feature": "HTML entities (`&amp;`)", "status": "not-yet", "cm": ["Entity and numeric character references"], "note": "Shown literally. Planned: numeric entities and a few common names. The full table is too big." },
-  { "feature": "Backslash escapes", "status": "partial", "cm": ["Backslash escapes"] },
-  {
-    "feature": "Hard and soft line breaks",
-    "status": "supported",
-    "cm": ["Hard line breaks", "Soft line breaks"],
-    "tests": [{ "file": "test/gaps.test.ts", "title": "single trailing space before newline" }]
-  },
-  { "feature": "Tabs for indentation", "status": "not-yet", "cm": ["Tabs"] },
-  {
-    "feature": "Half-open constructs never show raw markers while streaming",
-    "status": "supported",
-    "tests": [
-      { "file": "test/half-open.test.ts", "title": "open fence shows code immediately" },
-      { "file": "browser/behavior.spec.ts", "title": "streaming never shows raw markers" }
-    ]
-  },
-  {
-    "feature": "Any chunking gives the same DOM as one write",
-    "status": "supported",
-    "tests": [{ "file": "test/chunk-fuzz.test.ts", "title": "two-part splits at every index" }]
-  },
-  { "feature": "Math (`$...$`, `$$...$$`)", "status": "not-yet", "note": "Planned as an opt-in hook that you supply, so limmat bundles no math library. Dollar signs render literally today." },
-  { "feature": "Footnotes", "status": "not-yet", "note": "Render as text. Planned as an opt-in option." },
-  { "feature": "Alerts and callouts (`> [!NOTE]`)", "status": "not-yet", "note": "Renders as a normal block quote." },
-  { "feature": "Citation chips (`[1]`) and emoji codes", "status": "not-yet", "note": "Planned as opt-in options. Rendered literally today." }
+  {"feature": "Headings (`# Title`)", "status": "supported", "cm": ["ATX headings"]},
+  {"feature": "Underlined headings (`Title` over `---`)", "status": "not-yet", "cm": ["Setext headings"], "note": "The underline shows as a rule or as text. Planned."},
+  {"feature": "Horizontal rules (`---`)", "status": "supported", "cm": ["Thematic breaks"]},
+  {"feature": "Code blocks (fenced)", "status": "supported", "cm": ["Fenced code blocks"], "tests": [{"file": "test/conformance.test.ts", "title": "tilde fences and fence lengths"}], "note": "Language label, Copy button, optional highlighting."},
+  {"feature": "Indented code blocks", "status": "not-yet", "cm": ["Indented code blocks"], "note": "Use fences. Planned."},
+  {"feature": "Block quotes", "status": "supported", "cm": ["Block quotes"], "tests": [{"file": "test/regress.test.ts", "title": "lazy blockquote continuation only follows paragraph text"}]},
+  {"feature": "Lists", "status": "partial", "cm": ["Lists", "List items"], "tests": [{"file": "test/regress.test.ts", "title": "list scanning"}], "note": "Nesting works. Loose lists render tight."},
+  {"feature": "Task lists", "status": "supported", "tests": [{"file": "test/conformance.test.ts", "title": "task lists"}], "note": "Checkboxes are read-only."},
+  {"feature": "Tables", "status": "supported", "tests": [{"file": "test/conformance.test.ts", "title": "tables with alignment"}], "note": "Column alignment works."},
+  {"feature": "Bold and italic", "status": "supported", "cm": ["Emphasis and strong emphasis"], "note": "`snake_case_words` stay text."},
+  {"feature": "Strikethrough (`~~text~~`)", "status": "supported", "tests": [{"file": "test/gaps.test.ts", "title": "single tilde is literal"}], "note": "Needs two tildes."},
+  {"feature": "Inline code", "status": "supported", "cm": ["Code spans"]},
+  {"feature": "Links", "status": "partial", "cm": ["Links"], "tests": [{"file": "test/xss.test.ts", "title": "blocked links keep the label as text"}], "note": "`[text](url)` only. Titles and unsafe URLs show as text."},
+  {"feature": "Reference links (`[a][1]`)", "status": "not-yet", "cm": ["Link reference definitions"], "note": "Shown as text. Planned for definitions that come first."},
+  {"feature": "Autolinks (bare URLs, `www.`, emails)", "status": "partial", "cm": ["Autolinks"], "tests": [{"file": "test/gaps.test.ts", "title": "urls only autolink at a word boundary"}], "note": "Only http, https, and mailto."},
+  {"feature": "Images", "status": "partial", "cm": ["Images"], "tests": [{"file": "test/images.test.ts", "title": "![alt](https-url) becomes an img with the alt text and a restrictive set of attributes"}], "note": "On by default and loaded without a click, so limit them with `images`. No titles."},
+  {"feature": "Raw HTML", "status": "partial", "cm": ["HTML blocks", "Raw HTML"], "tests": [{"file": "test/html.test.ts", "title": "tags with attributes, unknown tags, and unbalanced tags stay text"}], "note": "Shown as text, except a few tags like `<kbd>` and `<sub>`."},
+  {"feature": "Collapsible sections (`<details>`)", "status": "supported", "tests": [{"file": "test/details.test.ts", "title": "a well-formed block becomes details and summary, with or without blank lines inside"}], "note": "Each tag alone on its line."},
+  {"feature": "HTML entities (`&amp;`)", "status": "not-yet", "cm": ["Entity and numeric character references"], "note": "Shown literally. Planned: numeric ones and a few names."},
+  {"feature": "Backslash escapes", "status": "partial", "cm": ["Backslash escapes"], "note": "A few edge cases differ."},
+  {"feature": "Line breaks", "status": "supported", "cm": ["Hard line breaks", "Soft line breaks"], "tests": [{"file": "test/gaps.test.ts", "title": "single trailing space before newline"}]},
+  {"feature": "Tab indentation", "status": "not-yet", "cm": ["Tabs"]},
+  {"feature": "Half-typed markers never show while streaming", "status": "supported", "tests": [{"file": "test/half-open.test.ts", "title": "open fence shows code immediately"}, {"file": "browser/behavior.spec.ts", "title": "streaming never shows raw markers"}]},
+  {"feature": "Same output however the text is chunked", "status": "supported", "tests": [{"file": "test/chunk-fuzz.test.ts", "title": "two-part splits at every index"}]},
+  {"feature": "Math (`$x$`)", "status": "not-yet", "note": "Planned as an opt-in hook you supply."},
+  {"feature": "Footnotes", "status": "not-yet", "note": "Shown as text. Planned, opt-in."},
+  {"feature": "Alerts (`> [!NOTE]`)", "status": "not-yet", "note": "Shown as a plain block quote."},
+  {"feature": "Citations (`[1]`) and emoji codes", "status": "not-yet", "note": "Shown literally. Planned, opt-in."}
 ]

@@ -1,4 +1,5 @@
-// Generates the support table in README.md from docs/support.json and the CommonMark section counts.
+// Generates the support table in README.md from docs/support.json. The table is short on purpose: feature, status, note.
+// The CommonMark counts and the cited tests are checked here and shown in the demo, but not printed in the README.
 //   node scripts/gen-support.mjs          rewrite the table
 //   node scripts/gen-support.mjs --check  fail if README.md is out of date or the data is dishonest
 // Checked on every run: statuses are known, cited test files exist and contain the quoted title, CommonMark sections
@@ -30,20 +31,13 @@ const lines = rows.map((r) => {
       problems.push(`${r.feature}: test file ${t.file} does not exist`);
     }
     if (src && !src.includes(t.title)) problems.push(`${r.feature}: "${t.title}" not found in ${t.file}`);
-    return `\`${t.title}\` in [${t.file.split('/').pop()}](${t.file})`;
+    return t.title;
   });
   if (!cm && !proof.length && r.status !== 'not-yet') problems.push(`${r.feature}: a ${r.status} row needs a CommonMark section or a test`);
-  const notes = [r.note, proof.length ? `Test: ${proof.join(', ')}.` : ''].filter(Boolean).join(' ');
-  return `| ${r.feature} | ${DOT[r.status]} ${LABEL[r.status]} | ${cm} | ${notes} |`;
+  return `| ${r.feature} | ${DOT[r.status]} ${LABEL[r.status]} | ${r.note ?? ''} |`;
 });
 
-const table = [
-  START,
-  '| Feature | Status | [CommonMark spec](https://spec.commonmark.org/0.31.2/) examples | Notes and proof |',
-  '|---|---|---|---|',
-  ...lines,
-  END,
-].join('\n');
+const table = [START, '| Feature | Status | Note |', '|---|---|---|', ...lines, END].join('\n');
 const readme = readFileSync('README.md', 'utf8');
 const a = readme.indexOf('<!-- support:start');
 const b = readme.indexOf(END);
