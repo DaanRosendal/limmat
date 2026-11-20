@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Options } from '../src/index';
+import { createRenderer, type Options } from '../src/index';
 import { audit, html, render, renderOpen } from './helpers/util';
 
 const img = (root: Element) => Array.from(root.querySelectorAll('img'));
@@ -172,5 +172,52 @@ describe('an image inside a link whose target is refused', () => {
     expect(root.querySelectorAll('a').length).toBe(0);
     expect(img(root).length).toBe(1);
     expect(audit(root)).toEqual([]);
+  });
+});
+
+describe('an image in a block that is still open keeps its element', () => {
+  const [a, b] = ['![one](https://e.com/1.png)', '![two](https://e.com/2.png)'];
+  const open = () => {
+    const root = document.createElement('div');
+    const r = createRenderer(root, { throttleMs: 0 });
+    const write = (s: string) => {
+      r.write(s);
+      return img(root);
+    };
+    return { root, write };
+  };
+
+  it('the same img element survives while text after it keeps arriving', () => {
+    const { write } = open();
+    const [first] = write(`See ${a} and`);
+    expect(first).toBeDefined();
+    expect(write(' more')[0]).toBe(first);
+    expect(write(' text after it')[0]).toBe(first);
+  });
+
+  it('a new image is created, and the first one is kept, when a second image arrives', () => {
+    const { write } = open();
+    const [first] = write(`${a} then `);
+    const after = write(b);
+    expect(after.map((e) => e.getAttribute('alt'))).toEqual(['one', 'two']);
+    expect(after[0]).toBe(first);
+  });
+
+  it('an image shows only once its destination is complete, and then keeps its element', () => {
+    const { write } = open();
+    expect(write('![on')).toEqual([]);
+    expect(write('e](https://e.com/1.p')).toEqual([]);
+    const [x] = write('ng) ');
+    expect(x.getAttribute('src')).toBe('https://e.com/1.png');
+    expect(write('x')[0]).toBe(x);
+  });
+
+  it('two identical images each keep their own element', () => {
+    const { write } = open();
+    const [p, q] = write(`${a} ${a}`);
+    expect(p).not.toBe(q);
+    const [p2, q2] = write(' tail');
+    expect(p2).toBe(p);
+    expect(q2).toBe(q);
   });
 });

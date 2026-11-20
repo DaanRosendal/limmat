@@ -146,6 +146,10 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   let timer: ReturnType<typeof setTimeout> | undefined;
   let lastRun = -Infinity;
 
+  // The <img> elements of the blocks that sync() is rebuilding, so a rebuilt open block keeps the images it already loaded.
+  let imgPool: Map<string, HTMLElement[]> | null = null;
+  const imgKey = (e: Element) => `${e.getAttribute('src')}\n${e.getAttribute('alt')}`;
+
   const h = (tag: string, c?: string, text?: string) => {
     const e = document.createElement(tag);
     if (c) e.className = c;
@@ -178,9 +182,15 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         const isImg = x.k === 'l' && x.img;
         const src = x.k === 'l' && isImg ? imageSrc(x.href) : null;
         if (x.k === 'l' && src) {
+          const alt = plain(x.kids);
+          const kept = imgPool?.get(`${src}\n${alt}`)?.shift();
+          if (kept) {
+            f.el.append(kept);
+            continue;
+          }
           const im = h('img', cls('image'));
           for (const [k, v] of [
-            ['alt', plain(x.kids)],
+            ['alt', alt],
             ['loading', 'lazy'],
             ['decoding', 'async'],
             ['referrerpolicy', 'no-referrer'],
@@ -453,12 +463,19 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     }
     let ctx: Ctx = p > 0 ? tail[p - 1].ctx : S.fctx;
     const toggled: (boolean | null)[] = []; // per removed <details>, the state the reader left it in, or null if untouched
+    const pool = new Map<string, HTMLElement[]>();
     for (const old of tail.splice(p)) {
+      for (const im of old.node.querySelectorAll('img')) {
+        const k = imgKey(im);
+        pool.set(k, [...(pool.get(k) ?? []), im]);
+      }
       for (const d of old.node.tagName === 'DETAILS' ? [old.node] : Array.from(old.node.querySelectorAll('details')))
         toggled.push((d as HTMLDetailsElement).open !== opened.has(d) ? (d as HTMLDetailsElement).open : null);
       old.node.remove();
       old.made?.remove();
     }
+    const outerPool = imgPool;
+    imgPool = pool;
     for (let i = p; i < U.length; i++) {
       const u = U[i];
       const hl: Entry['hl'] = [];
@@ -486,6 +503,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         hk: u.k === 'd' ? hkey(u, L) : undefined,
       });
     }
+    imgPool = outerPool;
     if (toggled.some((x) => x !== null)) {
       let k = 0;
       for (const t of tail.slice(p))

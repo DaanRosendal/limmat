@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- An `<img>` in a block that is still open keeps its element while more text arrives, instead of being replaced on every update. Images no longer blink in Safari when they cannot be cached.
 - `highlight` is called once, with the whole code, for a fence that contains a line starting like a closing fence (a ```` ```md ```` fence with a ```` ```js ```` line inside). Streaming it one character at a time used to close the fence at the partial ```` ``` ````, highlight the truncated code, and reopen it. A closing fence on a line that is still arriving now waits for the end of the line (or `end()`) before the fence counts as closed.
 - `import 'limmat/style.css'` no longer fails with TS2882 under TypeScript 7, because the stylesheet export now ships a type declaration.
 
