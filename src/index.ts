@@ -75,7 +75,7 @@ interface Built {
 const MAX_DEPTH = 12;
 
 /**
- * Render streaming markdown into `container`, which is emptied first. Use one renderer per message, and call `destroy()` when the element goes away.
+ * Render streaming markdown into `container`, which is emptied first. Use one renderer per message and per container (two renderers on one container mix their output), and call `destroy()` when the element goes away.
  * The container has no live region, because announcing every chunk is noisy: to have the finished reply announced, set
  * `aria-busy` on your own element while streaming, or announce once after `end()`. The Copy button names the language,
  * tables and code blocks are keyboard-scrollable, task checkboxes have names, and the copy result goes to a polite status element.

@@ -97,7 +97,7 @@ limmat follows the [CommonMark spec](https://spec.commonmark.org/0.31.2/) where 
 | Same output however the text is chunked | 🟢&nbsp;Supported |  |
 | Lists | 🟡&nbsp;Partial | Nesting works. Blank lines between items are ignored. |
 | Links | 🟡&nbsp;Partial | `[text](url)` only. A title is dropped, and unsafe URLs show as text. |
-| Autolinks (bare URLs, `www.`, emails) | 🟡&nbsp;Partial | Only http, https, and mailto. |
+| Autolinks (bare URLs, `www.`, emails) | 🟡&nbsp;Partial | Only http, https, and mailto. `www.` links use https. |
 | Images | 🟡&nbsp;Partial | On by default and loaded without a click, so limit them with `images`. No titles. |
 | Raw HTML | 🟡&nbsp;Partial | Shown as text, except a few tags like `<kbd>` and `<sub>`. |
 | Backslash escapes | 🟡&nbsp;Partial | A few edge cases differ. |
