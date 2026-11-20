@@ -8,7 +8,7 @@ These parts are the public contract: `createRenderer` and the four `Renderer` me
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-11-19
+## [0.1.0] - 2026-11-20
 
 ### Added
 
