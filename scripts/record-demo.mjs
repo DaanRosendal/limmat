@@ -1,7 +1,7 @@
 // Records the Showcase stream of the built demo as a looping GIF (run `npm run build && npm run build:demo` first).
-//   npm run record                       docs/demo-light.gif and docs/demo-dark.gif
+//   npm run record                       docs/demo-light.gif and docs/demo-dark.gif (not in git: upload them to the `media` release)
 //   npm run record -- theme=dark         only docs/demo-dark.gif
-//   options: theme=light|dark (both when left out)  seed=1  size=4  speed=15  fps=30  width=720  colors=32  chunks=0|1  bg=#ffffff  view=900x740  out=docs/demo-light.gif  frames=<dir to keep the PNG frames in>
+//   options: theme=light|dark (both when left out)  seed=1  size=1  speed=42  throttle=0  fps=30  width=1080  dsf=2  colors=32  chunks=0|1  bg=#ffffff  view=900x740  out=docs/demo-light.gif  frames=<dir to keep the PNG frames in>
 //
 // The recording is reproducible: the page runs on Playwright's virtual clock, so every timer, throttle, and animation
 // frame advances by exactly one frame interval between screenshots, and the chunk cuts come from the seed in the URL.
@@ -26,11 +26,13 @@ if (!opt.theme && !opt.out) {
 }
 const theme = opt.theme === 'dark' ? 'dark' : 'light';
 const seed = Number(opt.seed ?? 1);
-const size = Number(opt.size ?? 4); // characters per chunk (random 1 to size)
-const speed = Number(opt.speed ?? 15); // ms between chunks
+const size = Number(opt.size ?? 1); // characters per chunk (random 1 to size)
+const speed = Number(opt.speed ?? 42); // ms between chunks (42 shows as 24/s in the demo)
+const throttle = Number(opt.throttle ?? 0); // the renderer's throttleMs
 const fps = Number(opt.fps ?? 30);
-const width = Number(opt.width ?? 720);
+const width = Number(opt.width ?? 1080);
 const colors = Number(opt.colors ?? 32);
+const dsf = Number(opt.dsf ?? 2); // device scale factor: the page renders at 2x, and the frames are scaled to `width`
 const bg = opt.bg ?? (theme === 'dark' ? '#0d1117' : '#ffffff'); // the page background, set to GitHub's own so the GIF blends into the README
 const marks = opt.chunks === '1' ? 1 : 0; // the chunk tint in the raw pane, off in the recording unless chunks=1
 const [vw, vh] = (opt.view ?? '900x740').split('x').map(Number);
@@ -38,7 +40,7 @@ const out = opt.out ?? `docs/demo-${theme}.gif`;
 const HOLD_START = 1; // seconds on the empty page before it starts
 const HOLD_END = 3; // seconds on the finished page
 const FADE = 0.8; // seconds of crossfade from the last frame back to the first, so the loop has no jump
-const MAX_SECONDS = 60;
+const MAX_SECONDS = 150;
 
 if (spawnSync('ffmpeg', ['-version']).status !== 0) {
   console.error('record-demo needs ffmpeg on the PATH (brew install ffmpeg).');
@@ -48,7 +50,7 @@ if (spawnSync('ffmpeg', ['-version']).status !== 0) {
 const problems = [];
 
 const browser = await chromium.launch();
-const ctx = await browser.newContext({ viewport: { width: vw, height: vh }, colorScheme: theme, deviceScaleFactor: 1 });
+const ctx = await browser.newContext({ viewport: { width: vw, height: vh }, colorScheme: theme, deviceScaleFactor: dsf });
 const page = await ctx.newPage();
 page.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));
 page.on('console', (m) => m.type() === 'error' && problems.push(`console: ${m.text()}`));
@@ -71,7 +73,7 @@ await page.route('https://limmat.test/**', (route) => {
 });
 
 await page.clock.install();
-await page.goto(`https://limmat.test/#v=1&stream=showcase&c=${size}&r=1&k=${marks}&s=${seed}&t=50&d=${speed}`);
+await page.goto(`https://limmat.test/#v=1&stream=showcase&c=${size}&r=1&k=${marks}&s=${seed}&t=${throttle}&d=${speed}`);
 await page.waitForFunction(() => window.__demoReady === true);
 // Stop CSS animations (the blinking caret, the pulse on the open chip) without touching the CSP: the page reads
 // prefers-reduced-motion once, at load, so changing it now only switches the animations off and the stream keeps playing.

@@ -52,7 +52,8 @@
     "prepublishOnly": "npm run build && npm run check:package",
     "build:demo": "node scripts/build-demo.mjs",
     "record": "node scripts/record-demo.mjs",
-    "deploy:demo": "npm run build && npm run build:demo && npm ci --ignore-scripts --prefix deploy && WRANGLER_SEND_METRICS=false deploy/node_modules/.bin/wrangler deploy",
+    "demo:gifs": "gh release download media --repo DaanRosendal/limmat --pattern '*.gif' --dir demo/out --clobber",
+    "deploy:demo": "npm run build && npm run build:demo && npm run demo:gifs && npm ci --ignore-scripts --prefix deploy && WRANGLER_SEND_METRICS=false deploy/node_modules/.bin/wrangler deploy",
     "demo": "npm run build && npm run build:demo && node scripts/serve-demo.mjs"
   },
   "devDependencies": {

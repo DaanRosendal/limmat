@@ -9,3 +9,6 @@ playwright-report/
 STATUS.md
 demo/out/
 .wrangler/
+
+# Recorded demo GIFs live in the media release, not in git
+docs/*.gif

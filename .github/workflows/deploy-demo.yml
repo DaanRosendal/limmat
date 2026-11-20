@@ -36,6 +36,10 @@ jobs:
           node-version: 24
       - run: npm ci --ignore-scripts
       - run: npm run build && npm run build:demo
+      # The README GIFs are not in git: they are assets of the `media` release, and the demo site serves them.
+      - run: npm run demo:gifs
+        env:
+          GH_TOKEN: ${{ github.token }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: demo-out

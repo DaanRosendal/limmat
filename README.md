@@ -5,8 +5,8 @@ Streaming markdown for LLM chat. Half-typed syntax like `[docs](https://example`
 <p align="center">
   <a href="https://limmat.daanrosendal.com">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/DaanRosendal/limmat/master/docs/demo-dark.gif">
-      <img src="https://raw.githubusercontent.com/DaanRosendal/limmat/master/docs/demo-light.gif" width="720" alt="The limmat demo streaming a reply about itself: the raw text from the model on the left, limmat's rendered output on the right.">
+      <source media="(prefers-color-scheme: dark)" srcset="https://limmat.daanrosendal.com/demo-dark.gif">
+      <img src="https://limmat.daanrosendal.com/demo-light.gif" width="720" alt="The limmat demo streaming a reply about itself: the raw text from the model on the left, limmat's rendered output on the right.">
     </picture>
   </a>
 </p>
