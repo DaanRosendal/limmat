@@ -164,4 +164,5 @@ export const CORPUS: string[] = [
   'A link with a title: [say](/u "he said \\"hi\\"") and [it](/v \'it\\\'s\') and [x](/w (a\\)b)), then a plain [y](/z "t").',
   'Nesting:\n\n1. one\n   - three spaces\n     - five spaces\n  - only two spaces\n2. two\n\n10. ten\n    - four spaces\n   - only three\n\n- dash\n  - two\n - one space',
   'Pipes in prose:\n| a | b |\n| c | d |\nand more text\n\nHere is a table right after text:\n| x | y |\n|---|---|\n| 1 | 2 |\n\n| a | b | c |\n|---|---|\n| 1 | 2 | 3 |\n\n- item\n| in an item |\n\n> quote\n| in a quote |\n\nlast | line',
+  'Tables without outer pipes after text:\nName | Qty\n:--|--:\nApple | 3\n\nHere is one:\na | b | c\n--|--|--\n1 | 2 | 3\n\nUse a | b in prose, then foo |\n---\nand a | b | c\n--|--\n1 | 2',
 ];

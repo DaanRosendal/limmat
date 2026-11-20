@@ -461,6 +461,25 @@ describe('block structure while streaming', () => {
     for (const split of ['whole', 'char'] as const)
       expect(html(render('Here is the data:\n| a | b |\n|---|---|\n| 1 | 2 |', split)), split).toBe(want);
   });
+  it('a table whose header has no outer pipes splits off from the text above it, as in GFM', () => {
+    const cases: [string, string][] = [
+      ['Here:\na | b\n--|--\n1 | 2', `<p>Here:</p>${TBL(['a', 'b'], ['1', '2'])}`],
+      ['Here:\na | b\n-|-\n1 | 2', `<p>Here:</p>${TBL(['a', 'b'], ['1', '2'])}`],
+      ['Intro\n\nHere:\na | b | c\n--|--|--\n1 | 2 | 3', `<p>Intro</p><p>Here:</p>${TBL(['a', 'b', 'c'], ['1', '2', '3'])}`],
+      ['Here:\na | b | c\n--|--\n1 | 2', '<p>Here:\na | b | c\n--|--\n1 | 2</p>'],
+      ['Here:\nuse a | b in prose', '<p>Here:\nuse a | b in prose</p>'],
+    ];
+    for (const [md, want] of cases)
+      for (const split of ['whole', 'char'] as const) expect(html(render(md, split)), `${JSON.stringify(md)} ${split}`).toBe(want);
+    expect(render('Here:\nfoo |\n---\nx').querySelector('table')).toBeNull();
+  });
+  it('a line with a pipe stays visible while it is the last line, and is hidden only while a delimiter row is arriving', () => {
+    expect(html(renderOpen('Intro\nuse a | b here'))).toBe('<p>Intro\nuse a | b here</p>');
+    for (const open of ['Intro\na | b\n-', 'Intro\na | b\n--|', 'Intro\na | b\n--|--'])
+      expect(html(renderOpen(open)), JSON.stringify(open)).toBe('<p>Intro</p>');
+    expect(html(renderOpen('Intro\na | b\n--|--\n'))).toBe(`<p>Intro</p>${TBL_OPEN(['a', 'b'])}`);
+    expect(html(renderOpen('Intro\na | b\nmore'))).toBe('<p>Intro\na | b\nmore</p>');
+  });
   it('a pipe line after text waits for the next line before it is shown, and then becomes a table head or text', () => {
     for (const open of ['Intro\n| a | b |', 'Intro\n| a | b |\n|', 'Intro\n| a | b |\n|--', 'Intro\n| a | b |\n| -'])
       expect(html(renderOpen(open)), JSON.stringify(open)).toBe('<p>Intro</p>');

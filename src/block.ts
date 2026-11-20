@@ -104,15 +104,17 @@ function tagPrefix(l: string, sum: boolean): boolean {
   return false;
 }
 /**
- * Does the pipe line L[j], inside a paragraph, start a table? 1: yes, its next line is a delimiter row with as many cells.
+ * Does the line L[j] (with a pipe in it), inside a paragraph, start a table? 1: yes, its next line is a delimiter row with as many cells.
  * 2: not known yet, because the next line has not arrived or is still arriving and looks like part of a delimiter row. 0: no.
  */
 function pipeHead(L: string[], j: number, partial: boolean, final: boolean): 0 | 1 | 2 {
   const n = L.length;
   const nx = L[j + 1];
   if (DELIM.test(L[j])) return 0; // a delimiter row is never a header
-  if (nx === undefined) return final ? 0 : 2;
+  const lead = PIPE.test(L[j]);
   const hc = cells(L[j]).length;
+  if (!lead && hc < 2) return 0; // one cell over dashes is a setext heading in CommonMark, not a table
+  if (nx === undefined) return final || !lead ? 0 : 2; // a last line with no outer pipes is shown, only a pipe-led one waits
   const growing = !final && partial && j + 1 === n - 1; // nx is the unfinished last line
   if (DELIM.test(nx)) {
     const dn = cells(nx).length;
@@ -332,7 +334,7 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       let j = i + 1;
       let wait = -1; // a pipe line that may still turn into a table head: it stays out of the paragraph until it is known
       for (; j < n && L[j].trim(); j++) {
-        const d = PIPE.test(L[j]) ? pipeHead(L, j, partial, final) : 0;
+        const d = L[j].includes('|') ? pipeHead(L, j, partial, final) : 0;
         if (d) {
           if (d === 2) wait = j;
           break;
