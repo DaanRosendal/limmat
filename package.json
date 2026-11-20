@@ -23,7 +23,10 @@
       "types": "./dist/highlight.d.ts",
       "default": "./dist/highlight.js"
     },
-    "./style.css": "./dist/style.css",
+    "./style.css": {
+      "types": "./dist/style.css.d.ts",
+      "default": "./dist/style.css"
+    },
     "./limmat.min.js": "./dist/limmat.min.js",
     "./package.json": "./package.json"
   },

@@ -11,6 +11,8 @@ await build({ ...common, entryPoints: ['src/index.ts'], outfile: 'dist/index.js'
 await build({ ...common, entryPoints: ['src/index.ts'], outfile: 'dist/limmat.min.js', minify: true });
 await build({ ...common, entryPoints: ['src/highlight.ts'], outfile: 'dist/highlight.js', external: ['@speed-highlight/core'] });
 copyFileSync('src/style.css', 'dist/style.css');
+// TypeScript 7 rejects a side-effect import with no declaration, so the stylesheet export points at an empty one.
+writeFileSync('dist/style.css.d.ts', 'export {};\n');
 execFileSync('npx', ['tsc', '-p', 'tsconfig.build.json'], { stdio: 'inherit' });
 // Only index and highlight are public (see "exports"), so the declarations of the internal modules stay out of the package.
 for (const f of ['block', 'inline', 'url']) rmSync(`dist/${f}.d.ts`);

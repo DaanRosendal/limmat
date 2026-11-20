@@ -12,7 +12,7 @@ const want = [
   'LICENSE',
   'README.md',
   'package.json',
-  ...['highlight.d.ts', 'highlight.js', 'index.d.ts', 'index.js', 'limmat.min.js', 'style.css'].map((f) => `dist/${f}`),
+  ...['highlight.d.ts', 'highlight.js', 'index.d.ts', 'index.js', 'limmat.min.js', 'style.css', 'style.css.d.ts'].map((f) => `dist/${f}`),
 ];
 const bad = files.filter((f) => !want.includes(f));
 const missing = want.filter((f) => !files.includes(f));
@@ -38,6 +38,7 @@ try {
   writeFileSync(
     join(dir, 'consumer.ts'),
     `import { createRenderer, type Highlighter, type Options, type Renderer } from 'limmat';
+import 'limmat/style.css';
 import { speedHighlight } from 'limmat/highlight';
 const el = null as unknown as HTMLElement;
 const hl: Highlighter = speedHighlight();
