@@ -111,7 +111,7 @@ test('the highlight adapter highlights once the fence closes and keeps the text'
     const lim = (window as any).limmat;
     const r = lim.createRenderer(root, { highlight: lim.speedHighlight() });
     r.write('```ts\nconst a: number = 1;\n');
-    r.write('```');
+    r.write('```\n');
   });
   await expect(page.locator('code span[class*="shj-"]').first()).toBeVisible({ timeout: 5000 });
   expect(await page.locator('code').textContent()).toBe('const a: number = 1;');
