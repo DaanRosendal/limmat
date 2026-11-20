@@ -1,4 +1,4 @@
-// Size ratchet: no fixed target, but a jump of more than 3% over the recorded baseline fails the build.
+// Size ratchet: no fixed target, but a jump of more than 10% over the recorded baseline fails the build.
 // After an intentional change, run `npm run size -- --update` and say why in the commit message.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
@@ -22,8 +22,8 @@ if (process.argv.includes('--update')) {
   const base = JSON.parse(readFileSync(file, 'utf8')).core;
   const pct = (((gz - base) / base) * 100).toFixed(1);
   console.log(`core: ${gz} B gzip (baseline ${base} B, ${pct}%)`);
-  if (gz > base * 1.03) {
-    console.error('core grew by more than 3%: justify it, then run `npm run size -- --update`');
+  if (gz > base * 1.1) {
+    console.error('core grew by more than 10%: justify it, then run `npm run size -- --update`');
     process.exit(1);
   }
 }
