@@ -4,7 +4,7 @@ export const DEFAULT_STREAM = 'showcase';
 
 export const s = {
   stream: DEFAULT_STREAM,
-  size: 12,
+  size: 1,
   random: true,
   marks: true, // tint the chunks in the raw pane
   seed: 1,
