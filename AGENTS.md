@@ -36,7 +36,7 @@ limmat is a tiny, safe, streaming markdown renderer for LLM chat UIs (TypeScript
 ## Publishing
 
 - The npm package page renders `README.md` from the tarball, and only `dist/`, the README, and the LICENSE are in the package, so relative paths do not resolve there. Keep every link and image in the README an absolute URL (`https://github.com/DaanRosendal/limmat/blob/master/...`, and `raw.githubusercontent.com` for the GIFs).
-- Releases are published by `.github/workflows/release.yml` when the maintainer pushes a `v*` tag, with npm trusted publishing and provenance (setup is described in the workflow). Before tagging: set the version with `npm version <x.y.z> --no-git-tag-version`, rename `[Unreleased]` in `CHANGELOG.md`, and wait for a green CI run. `prepublishOnly` builds and runs `check:package`, so `npm publish --dry-run` shows what a release contains.
+- Releases are staged by `.github/workflows/release.yml` when the maintainer pushes a `v*` tag, with npm trusted publishing and provenance (setup is described in the workflow). The maintainer then approves the staged version with 2FA (`npm stage approve <stage-id>` or on npmjs.com), and only then is it public. Before tagging: set the version with `npm version <x.y.z> --no-git-tag-version`, rename `[Unreleased]` in `CHANGELOG.md`, and wait for a green CI run. `prepublishOnly` builds and runs `check:package`, so `npm publish --dry-run` shows what a release contains.
 - `SECURITY.md` points to GitHub's private vulnerability reporting, so keep it enabled on the repository.
 - `.github/workflows/deploy-demo.yml` runs with the Cloudflare secrets, so it must never run code from a fork: keep its `if:` limited to pushes in this repository, and keep the secrets out of the build job.
 

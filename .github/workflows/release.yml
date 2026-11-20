@@ -1,8 +1,10 @@
 name: Release
-# Publishes limmat to npm when a version tag is pushed (git tag -a v0.1.0 && git push origin v0.1.0), with provenance.
-# It uses npm trusted publishing, so there is no npm token. One-time setup on npmjs.com: add this repository, the workflow
-# file release.yml, and the environment npm as a trusted publisher of the package. The environment `npm` should require
-# the maintainer's approval (Settings > Environments). Tag only a commit whose CI run is green.
+# Stages limmat on npm when a version tag is pushed (git tag -a v0.1.0 -m v0.1.0 && git push origin v0.1.0), with provenance.
+# The version goes live only after the maintainer approves it with 2FA: `npm stage list`, then `npm stage approve <stage-id>`
+# (or on npmjs.com). It uses npm trusted publishing, so there is no npm token. One-time setup on npmjs.com: add this
+# repository, the workflow file release.yml, and the environment npm as a trusted publisher of the package, with only
+# staged publishing allowed. The environment `npm` requires the maintainer's approval (Settings > Environments).
+# Tag only a commit whose CI run is green.
 on:
   push:
     tags: ["v*"]
@@ -32,5 +34,6 @@ jobs:
       - run: npm run lint
       - run: npm run check:style
       - run: npm test
-      # prepublishOnly builds and runs check:package
-      - run: npm publish
+      - run: npm run build
+      - run: npm run check:package
+      - run: npm stage publish --provenance
