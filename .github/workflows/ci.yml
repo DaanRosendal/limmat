@@ -71,10 +71,11 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
         if: steps.changes.outputs.code == 'true'
-      # The Ubuntu mirror can stall for minutes, so apt retries and gives up on a silent connection.
+      # The Ubuntu mirror can stall for minutes, so apt retries and gives up on a silent connection. When the first install
+      # attempt times out, its apt-get keeps running and holds the dpkg lock, so the second attempt waits for the lock.
       - name: Make apt retry stalled downloads
         if: steps.changes.outputs.code == 'true'
-        run: printf 'Acquire::Retries "5";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/80-ci-retries > /dev/null
+        run: printf 'Acquire::Retries "5";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\nDPkg::Lock::Timeout "300";\n' | sudo tee /etc/apt/apt.conf.d/80-ci-retries > /dev/null
       - name: Install the browser
         id: install
         if: steps.changes.outputs.code == 'true'
