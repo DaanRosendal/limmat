@@ -48,7 +48,7 @@ export interface Renderer {
   destroy(): void;
 }
 
-type Ctx = { k: 'l' | 't'; el: Element; ord?: boolean; al?: Al } | null;
+type Ctx = { k: 'l' | 't'; el: Element; ord?: boolean; mk?: string; al?: Al } | null;
 interface St {
   tail: Entry[];
   fctx: Ctx;
@@ -369,7 +369,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
 
   function place(root: Element, ctx: Ctx, u: Unit, b: Built): { ctx: Ctx; made?: Element } {
     if (u.k === 'li') {
-      if (ctx && ctx.k === 'l' && ctx.ord === u.ord) {
+      if (ctx && ctx.k === 'l' && ctx.ord === u.ord && ctx.mk === u.mk) {
         ctx.el.append(b.n);
         return { ctx };
       }
@@ -377,7 +377,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       if (u.ord && u.num !== 1) l.setAttribute('start', String(u.num));
       l.append(b.n);
       root.append(l);
-      return { ctx: { k: 'l', el: l, ord: u.ord }, made: l };
+      return { ctx: { k: 'l', el: l, ord: u.ord, mk: u.mk }, made: l };
     }
     if (u.k === 'tr') {
       ctx!.el.append(b.n);

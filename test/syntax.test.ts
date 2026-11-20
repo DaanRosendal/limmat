@@ -329,4 +329,45 @@ describe('block structure while streaming', () => {
     expect(root.querySelectorAll('code').length).toBe(1);
     expect(root.querySelectorAll('li')[1].textContent).toBe('b');
   });
+  const ul = (...items: string[]) => `<ul>${items.map((i) => `<li>${i}</li>`).join('')}</ul>`;
+  const ol = (start: number, ...items: string[]) =>
+    `<ol${start === 1 ? '' : ` start="${start}"`}>${items.map((i) => `<li>${i}</li>`).join('')}</ol>`;
+  const listCases: [string, string, string][] = [
+    ['a different bullet starts a new list', '- a\n+ b\n* c', ul('a') + ul('b') + ul('c')],
+    ['a different bullet after a blank line starts a new list', '- a\n\n+ b', ul('a') + ul('b')],
+    ['the same bullet continues the list', '- a\n- b\n\n- c', ul('a', 'b', 'c')],
+    ['a different number delimiter starts a new list at its own number', '1. a\n2. b\n3) c\n4) d', ol(1, 'a', 'b') + ol(3, 'c', 'd')],
+    ['a different delimiter on the second item', '1) a\n2. b', ol(1, 'a') + ol(2, 'b')],
+    ['the same delimiter continues the list', '1) a\n2) b\n3) c', ol(1, 'a', 'b', 'c')],
+    [
+      'a nested list may use another bullet than its parent',
+      '- a\n  + b\n  + c\n- d',
+      '<ul><li>a<ul><li>b</li><li>c</li></ul></li><li>d</li></ul>',
+    ],
+    ['a bullet list after a numbered list is still a new list', '1. a\n- b', ol(1, 'a') + ul('b')],
+    ['a number other than 1 does not interrupt a paragraph', 'text\n14. not a list', '<p>text\n14. not a list</p>'],
+    [
+      'a number up to 99 at the start of a wrapped line stays in the paragraph',
+      'It was on page\n42. Nobody noticed.',
+      '<p>It was on page\n42. Nobody noticed.</p>',
+    ],
+    [
+      'a long number at the start of a wrapped line stays in the paragraph',
+      'The war ended in\n1945. Then the peace began.',
+      '<p>The war ended in\n1945. Then the peace began.</p>',
+    ],
+    ['2) does not interrupt a paragraph either', 'text\n2) not a list', '<p>text\n2) not a list</p>'],
+    ['1. interrupts a paragraph', 'text\n1. a list', '<p>text</p>' + ol(1, 'a list')],
+    ['1) interrupts a paragraph', 'text\n1) a list', '<p>text</p>' + ol(1, 'a list')],
+    ['a bullet interrupts a paragraph', 'text\n- a list', '<p>text</p>' + ul('a list')],
+    ['a number other than 1 starts a list after a blank line', 'text\n\n2. now a list', '<p>text</p>' + ol(2, 'now a list')],
+    ['a number other than 1 right after a list item starts a new list', '- item\n5. other', ul('item') + ol(5, 'other')],
+    ['a number other than 1 does not interrupt a paragraph in a quote', '> text\n> 2. x', '<blockquote><p>text\n2. x</p></blockquote>'],
+    ['a number other than 1 does not interrupt a paragraph in a list item', '- a\n  2. b', '<ul><li>a\n2. b</li></ul>'],
+    ['1. interrupts a paragraph in a list item', '- a\n  1. b', '<ul><li>a<ol><li>b</li></ol></li></ul>'],
+  ];
+  it.each(listCases)('%s', (_name, md, want) => {
+    expect(html(render(md))).toBe(want);
+    expect(html(render(md, 'char'))).toBe(want);
+  });
 });

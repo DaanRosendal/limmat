@@ -159,4 +159,5 @@ export const CORPUS: string[] = [
   'Struck ~~out~~ and ~~half~ and ~one~ tilde, <https://auto.link/x> and <me@example.com> and <ftp://x.example/y> and a < b.',
   'Nesting: **bold ~~and _all_~~** then **~~_x_~~** and *_y_*, and an emoji \ud83d\ude00 right here.',
   'Name | Role | Team\n--|---|:-:\nAda | Engineer | Core\nLin | Writer | Docs\n\nA pipe | in prose\n- stays a list\n\nx | y\n---\n\nDone.',
+  'Lists that change marker:\n\n- a\n+ b\n* c\n\n1. one\n2) two\n3. three\n\nIt was on page\n42. Nobody noticed.\nThen\n1. a real list\n2. with two items\n\n- outer\n  + inner\n  + inner too\n- outer again',
 ];

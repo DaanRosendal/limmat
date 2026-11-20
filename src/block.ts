@@ -13,7 +13,7 @@ export type Unit = Span &
     | { k: 'p' | 'hr' | 'q' } // paragraph, thematic break, blockquote (its inner lines are scanned again when built)
     | { k: 'h'; lv: number } // ATX heading, level 1 to 6
     | { k: 'f'; lang: string; closed: boolean; ind: number } // fenced code, `ind` is the opening fence indent to strip
-    | { k: 'li'; ord: boolean; num: number; off: number } // list item, `off` is the content column, `num` the start number
+    | { k: 'li'; ord: boolean; num: number; off: number; mk: string } // list item, `off` is the content column, `num` the start number, `mk` the bullet or the number delimiter
     | { k: 'th'; al: Al; pend?: boolean } // table header, `pend` while the delimiter row is still arriving
     | { k: 'tr'; al: Al } // table body row
     | { k: 'd'; open: boolean; closed: boolean; sum: string | null; bs: number } // details container, inner lines are scanned again when built
@@ -108,7 +108,7 @@ function interrupts(l: string, inTable: boolean, det = false): boolean {
   if (fence(l) || atx(l) || HR.test(l) || BQ.test(l)) return true;
   if (!inTable && PIPE.test(l)) return true;
   const m = LI.exec(l);
-  return !!m && !!m[4] && m[1].length < 4 && m[2].length < 4;
+  return !!m && !!m[4] && m[1].length < 4 && m[2].length < 4 && (!/\d/.test(m[2]) || parseInt(m[2], 10) === 1);
 }
 
 /** Fenced code starting at line i. Runs to the closing fence or to the end of input. */
@@ -283,7 +283,7 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       const sp = m[3]?.length ?? 1;
       const off = ind + m[2].length + (m[4] === undefined || sp > 4 ? 1 : sp);
       const { last, j } = itemEnd(L, i, off, !!m[4], !!det);
-      U.push({ k: 'li', a: i, e: last, b: j, ord, num: ord ? parseInt(m[2], 10) : 0, off });
+      U.push({ k: 'li', a: i, e: last, b: j, ord, num: ord ? parseInt(m[2], 10) : 0, off, mk: m[2].slice(-1) });
       i = j;
     } else {
       const nx = L[i + 1];

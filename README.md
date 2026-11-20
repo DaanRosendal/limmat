@@ -147,7 +147,6 @@ createRenderer(el, {
 
 - `[1]` shows as `1` until its closing bracket arrives, and the `<` of an `<email@example.com>` autolink shows until the `@` arrives.
 - `#anchor` links and relative links without a leading slash show as plain text.
-- A different bullet or delimiter (`+` after `-`, `3)` after `2.`) does not start a new list, and any number can interrupt a paragraph.
 
 ---
 
