@@ -26,7 +26,7 @@ limmat is a tiny, safe, streaming markdown renderer for LLM chat UIs (TypeScript
 - New syntax must say what it shows while it is still open. It must be opt-in unless it is safe by construction (no network request, no attribute from the input that is not checked), and a risk that cannot be removed, like images loading without a click, must be documented in `SECURITY.md` next to the option that limits it.
 - Keep the demo's Showcase (`demo/js/showcase.js`) true. It is the README GIF and the first thing visitors read, and it describes limmat itself, so a change to supported syntax, safety behavior, an option, or a size or speed figure must update it in the same commit, and the GIFs are re-recorded when the Showcase text changes (`npm run record`).
 - Commits follow Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`). One logical change per commit.
-- Known bugs, gaps, and feature ideas are tracked as GitHub issues (labels: `bug`, `syntax`, `security`, `performance`, `tests`, `documentation`). Check them before starting a feature, and keep handoff notes out of the repository.
+- Known bugs, gaps, and feature ideas are tracked as GitHub issues (labels: `bug`, `syntax`, `security`, `performance`, `tests`, `documentation`). Check them before starting a feature, and keep handoff notes out of the repository. When a commit fixes an issue, put `Closes #N` in the commit message body so GitHub closes it on push to `master`. If a commit only helps, write `Refs #N` and leave the issue open.
 
 ## Agents: do not, without an explicit yes from the maintainer each time
 
