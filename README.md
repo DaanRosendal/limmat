@@ -17,7 +17,7 @@ Streaming markdown for LLM chat. Half-typed syntax like `[docs](https://example`
 - **Predictable.** However the text is cut into chunks, the page ends up the same as rendering it all at once.
 - **Safe.** It builds DOM nodes, never HTML strings, so hostile input shows up as plain text. Images load unless you limit them, see [Safety](#safety).
 - **Any framework.** Give it any DOM element: React, Vue, Svelte, or plain JavaScript.
-- **Small and fast.** 9.5 kB gzip, no dependencies. A 100 KB reply streamed in small chunks takes about 20 ms in total in Chromium.
+- **Small and fast.** 10.2 kB gzip, no dependencies. A 100 KB reply streamed in small chunks takes about 20 ms in total in Chromium.
 
 ## Install
 

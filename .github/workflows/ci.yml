@@ -35,6 +35,23 @@ jobs:
       - run: npm run check:support
       - run: npm run size
       - run: npm pack --dry-run # the file list of a real publish (npm publish --dry-run fails once the version is on the registry)
+  commits:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check that commit subjects are Conventional Commits
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then base="$PR_BASE"; head="$PR_HEAD"; else base="$BEFORE"; head="$GITHUB_SHA"; fi
+          node scripts/check-commits.mjs "$base" "$head"
   browsers:
     runs-on: ubuntu-latest
     timeout-minutes: 15

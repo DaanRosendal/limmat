@@ -19,6 +19,16 @@ if (process.argv.includes('--update')) {
   writeFileSync(file, `{ "core": ${gz} }\n`);
   console.log(`baseline set to ${gz} B gzip`);
 } else {
+  // The README states the size, so the figure has to stay near the real one.
+  const claim = /([\d.]+) kB gzip/.exec(readFileSync('README.md', 'utf8'));
+  if (!claim) {
+    console.error('README.md has no "N kB gzip" figure');
+    process.exit(1);
+  }
+  if (Math.abs(Number(claim[1]) * 1000 - gz) > gz * 0.05) {
+    console.error(`README.md says ${claim[1]} kB gzip but the core is ${(gz / 1000).toFixed(1)} kB: update the README`);
+    process.exit(1);
+  }
   const base = JSON.parse(readFileSync(file, 'utf8')).core;
   const pct = (((gz - base) / base) * 100).toFixed(1);
   console.log(`core: ${gz} B gzip (baseline ${base} B, ${pct}%)`);

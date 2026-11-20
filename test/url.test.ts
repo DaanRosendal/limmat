@@ -56,6 +56,15 @@ describe('link destinations', () => {
     expect(render('www.javascript:alert(1)').querySelector('a')).toBeNull();
     expect(render('[x](https://a.com/ok)').querySelector('a')).not.toBeNull();
   });
+  it('an anchor link and a relative path without a leading slash show as plain text', () => {
+    for (const u of ['#top', '#', 'page.html', './page', '../page', 'a/b', '?q=1', 'x:y'])
+      for (const md of [`[go](${u})`, `![go](${u})`]) {
+        const root = render(md);
+        expect(root.querySelector('a, img'), md).toBeNull();
+        expect(root.textContent, md).toBe('go');
+      }
+    expect(render('[go](/page)').querySelector('a')?.getAttribute('href')).toBe('/page');
+  });
   const url = (n: number) => `https://e.com/${'a'.repeat(n - 14)}`;
   it('a destination up to 8192 characters is a link with the label as its text, in both forms', () => {
     for (const md of [`[x](${url(8000)})`, `[x](<${url(8000)}>)`]) {

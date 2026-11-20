@@ -257,6 +257,29 @@ describe('links', () => {
     root.querySelector('a')!.dispatchEvent(ev);
     expect(ev.defaultPrevented).toBe(false);
   });
+  it('an onLinkClick that throws reaches window.onerror and the link keeps its default action', () => {
+    const boom = new Error('boom');
+    const { root, r } = mk({
+      onLinkClick: () => {
+        throw boom;
+      },
+    });
+    r.write('[a](/p/)');
+    r.end();
+    const reported: unknown[] = [];
+    const onError = (e: ErrorEvent) => {
+      reported.push(e.error);
+      e.preventDefault(); // keeps jsdom from printing the error
+    };
+    window.addEventListener('error', onError);
+    try {
+      const ev = click(root.querySelector('a')!);
+      expect(reported).toEqual([boom]);
+      expect(ev.defaultPrevented).toBe(false);
+    } finally {
+      window.removeEventListener('error', onError);
+    }
+  });
   it('a click on a link outside the container (container nested in an anchor) is ignored', () => {
     const a = document.createElement('a');
     a.href = 'https://outer.com';

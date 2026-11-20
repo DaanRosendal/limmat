@@ -74,7 +74,7 @@ const notAny: number = speedHighlight();
 const dom = new JSDOM('<div id="a"></div><div id="b"></div>');
 Object.assign(globalThis, { document: dom.window.document, window: dom.window, HTMLElement: dom.window.HTMLElement, Element: dom.window.Element, Node: dom.window.Node });
 const { createRenderer } = await import('limmat');
-const min = await import('./node_modules/limmat/dist/limmat.min.js');
+const min = await import('limmat/limmat.min.js'); // the package's own export, as a bundler or a vendoring script would resolve it
 const md = '# Hi\\n\\nSome **bold** and a [link](https://example.com).\\n\\n- a\\n- b\\n\\n| x | y |\\n|---|---|\\n| 1 | 2 |\\n';
 const run = (create, id) => {
   const el = document.getElementById(id);
