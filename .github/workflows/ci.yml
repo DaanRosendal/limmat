@@ -71,16 +71,18 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
         if: steps.changes.outputs.code == 'true'
-      # The Ubuntu mirror can stall for minutes, so apt retries and gives up on a silent connection. When the first install
-      # attempt times out, its apt-get keeps running and holds the dpkg lock, so the second attempt stops it before it starts.
+      # The Azure Ubuntu mirror sometimes serves 50 kB/s for minutes, and apt never switches to another mirror by itself
+      # (actions/runner-images#14823). So the first attempt is capped at 2 minutes, and the second attempt drops the Azure and
+      # EC2 mirrors from the runner's mirror list (leaving archive.ubuntu.com) after stopping the first attempt's apt-get,
+      # which would otherwise keep the dpkg lock.
       - name: Make apt retry stalled downloads
         if: steps.changes.outputs.code == 'true'
         run: printf 'Acquire::Retries "5";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\nDPkg::Lock::Timeout "300";\n' | sudo tee /etc/apt/apt.conf.d/80-ci-retries > /dev/null
       - name: Install the browser
         id: install
         if: steps.changes.outputs.code == 'true'
-        run: npx playwright install --with-deps ${{ matrix.browser }}
-        timeout-minutes: 4
+        run: timeout --kill-after=10 120 npx playwright install --with-deps ${{ matrix.browser }}
+        timeout-minutes: 3
         continue-on-error: true
       - name: Install the browser (second try)
         if: steps.changes.outputs.code == 'true' && steps.install.outcome != 'success'
@@ -88,8 +90,13 @@ jobs:
           sudo pkill -x apt-get || true
           sudo pkill -x dpkg || true
           sudo dpkg --configure -a || true
+          echo "apt mirrors before:"; cat /etc/apt/apt-mirrors.txt || true
+          grep -vE 'azure\.archive\.ubuntu\.com|ec2\.archive\.ubuntu\.com' /etc/apt/apt-mirrors.txt > "$RUNNER_TEMP/mirrors" || true
+          [ -s "$RUNNER_TEMP/mirrors" ] || echo 'http://archive.ubuntu.com/ubuntu/' > "$RUNNER_TEMP/mirrors"
+          sudo cp "$RUNNER_TEMP/mirrors" /etc/apt/apt-mirrors.txt
+          echo "apt mirrors after:"; cat /etc/apt/apt-mirrors.txt
           npx playwright install --with-deps ${{ matrix.browser }}
-        timeout-minutes: 6
+        timeout-minutes: 5
       - run: npm run build
         if: steps.changes.outputs.code == 'true'
       - run: npm run build:demo
