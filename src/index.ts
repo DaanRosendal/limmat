@@ -535,14 +535,30 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     return 0;
   }
 
+  let flushing = false;
+  let again = 0; // a flush asked for while one was running (a highlight function that writes): 1 normal, 2 final
   function flush(final: boolean) {
-    const partial = !src.endsWith('\n');
-    const L = src.split('\n');
-    if (!partial) L.pop();
-    const drop = sync(top, container, L, partial, final, 0, null);
-    let cut = 0;
-    for (let x = 0; x < drop; x++) cut += L[x].length + 1;
-    src = src.slice(cut);
+    if (flushing) {
+      again = Math.max(again, final ? 2 : 1);
+      return;
+    }
+    flushing = true;
+    try {
+      const partial = !src.endsWith('\n');
+      const L = src.split('\n');
+      if (!partial) L.pop();
+      const drop = sync(top, container, L, partial, final, 0, null);
+      let cut = 0;
+      for (let x = 0; x < drop; x++) cut += L[x].length + 1;
+      src = src.slice(cut);
+    } finally {
+      flushing = false;
+    }
+    if (again) {
+      const f = again === 2;
+      again = 0;
+      flush(f);
+    }
   }
 
   function schedule() {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createRenderer } from '../src/index';
+import { createRenderer, type Renderer } from '../src/index';
 import { mk, render } from './helpers/util';
 
 const realClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
@@ -335,6 +335,27 @@ describe('code blocks', () => {
     r.end();
     expect(streamed.mock.calls.map((c) => c.slice(1))).toEqual([['# Ex\n```js\nlet a = 1;', 'md']]);
     expect(streamed.mock.calls.map((c) => c.slice(1))).toEqual(whole.mock.calls.map((c) => c.slice(1)));
+  });
+  it('a highlight function that writes more text does not re-enter the renderer', () => {
+    const codes: string[] = [];
+    let wrote = false;
+    let r!: Renderer;
+    const root = document.createElement('div');
+    r = createRenderer(root, {
+      throttleMs: 0,
+      highlight: (_el, code) => {
+        codes.push(code);
+        if (!wrote) {
+          wrote = true;
+          r.write('\n```js\nsecond\n```\n');
+        }
+      },
+    });
+    r.write('```js\nfirst\n```\n');
+    r.end();
+    expect(codes).toEqual(['first', 'second']);
+    expect(root.querySelectorAll('code').length).toBe(2);
+    expect(root.innerHTML).toBe(render('```js\nfirst\n```\n\n```js\nsecond\n```\n').innerHTML);
   });
   it('highlight runs for a fence closed by end(), and errors are swallowed', async () => {
     const highlight = vi.fn().mockRejectedValue(new Error('boom'));
