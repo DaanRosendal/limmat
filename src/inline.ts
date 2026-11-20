@@ -116,7 +116,7 @@ function parseDest(s: string, j: number, w: { n: number }): { end: number; href:
     const close = q === '(' ? ')' : q;
     const lim = Math.min(n, j + 501); // a title longer than 500 characters is not a title
     let k = j + 1;
-    while (k < lim && s[k] !== close) k++;
+    while (k < lim && s[k] !== close) k += s[k] === '\\' && ESC.test(s[k + 1] ?? '') ? 2 : 1;
     w.n -= k - j;
     if (k >= lim) return k >= n ? 'p' : null;
     j = k + 1;
@@ -372,6 +372,10 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
       let e = i;
       while (s[e] === c) e++;
       const len = e - i;
+      if (c === '~' && len > 2) {
+        i = e; // a run of three or more tildes is text, only a pair strikes
+        continue;
+      }
       if (c === '~' && len < 2) {
         // A lone ~ at the very end may be half of a ~~, so it waits (like a trailing * does) until the next character.
         if (spec && e === n) {
@@ -413,6 +417,10 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
         continue;
       }
       const open = out[bi];
+      if (open.k === 't') {
+        i++; // the opener already turned into text, so this bracket is text too
+        continue;
+      }
       const r = s[i + 1] === '(' ? parseDest(s, i + 1, work) : null;
       if (r && r !== 'p') {
         text(i);
@@ -421,7 +429,16 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
         let md = 0;
         for (const z of kids) md = Math.max(md, z.d ?? 0);
         if (md >= MAXDEPTH) for (const z of kids) out.push(z);
-        else out.push({ k: 'l', href: r.href, img: open.img, kids, d: md + 1 });
+        else {
+          out.push({ k: 'l', href: r.href, img: open.img, kids, d: md + 1 });
+          // A link cannot contain a link: the open link brackets before this one stay text (an image may still contain it).
+          if (!open.img)
+            for (const bj of brk)
+              if (!out[bj].img) {
+                out[bj].k = 't';
+                out[bj].s = '[';
+              }
+        }
         i = r.end;
         ts = i;
       } else if (spec && (r === 'p' || i + 1 === n)) {

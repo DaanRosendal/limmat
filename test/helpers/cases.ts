@@ -160,4 +160,8 @@ export const CORPUS: string[] = [
   'Nesting: **bold ~~and _all_~~** then **~~_x_~~** and *_y_*, and an emoji \ud83d\ude00 right here.',
   'Name | Role | Team\n--|---|:-:\nAda | Engineer | Core\nLin | Writer | Docs\n\nA pipe | in prose\n- stays a list\n\nx | y\n---\n\nDone.',
   'Lists that change marker:\n\n- a\n+ b\n* c\n\n1. one\n2) two\n3. three\n\nIt was on page\n42. Nobody noticed.\nThen\n1. a real list\n2. with two items\n\n- outer\n  + inner\n  + inner too\n- outer again',
+  'Links and tables that are not: [a [b](/in)](/out) and see [x [y](/a) z](/b), then ~~~x~~~ and ~~struck~~.\n\n| a | b | c |\n|---|---|\n| 1 | 2 | 3 |\n\n| ok | fine |\n|---|---|\n| 1 | 2 |',
+  'A link with a title: [say](/u "he said \\"hi\\"") and [it](/v \'it\\\'s\') and [x](/w (a\\)b)), then a plain [y](/z "t").',
+  'Nesting:\n\n1. one\n   - three spaces\n     - five spaces\n  - only two spaces\n2. two\n\n10. ten\n    - four spaces\n   - only three\n\n- dash\n  - two\n - one space',
+  'Pipes in prose:\n| a | b |\n| c | d |\nand more text\n\nHere is a table right after text:\n| x | y |\n|---|---|\n| 1 | 2 |\n\n| a | b | c |\n|---|---|\n| 1 | 2 | 3 |\n\n- item\n| in an item |\n\n> quote\n| in a quote |\n\nlast | line',
 ];

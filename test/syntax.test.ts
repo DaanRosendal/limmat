@@ -370,4 +370,114 @@ describe('block structure while streaming', () => {
     expect(html(render(md))).toBe(want);
     expect(html(render(md, 'char'))).toBe(want);
   });
+  const IMG = '<img alt="b" loading="lazy" decoding="async" referrerpolicy="no-referrer" src="https://e.com/i.png">';
+  const TBL_OPEN = (head: string[]) =>
+    `<div tabindex="0" role="group" aria-label="Table"><table><thead><tr>${head.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody></tbody></table></div>`;
+  const TBL = (head: string[], row: string[]) =>
+    `<div tabindex="0" role="group" aria-label="Table"><table><thead><tr>${head.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody><tr>${row.map((c) => `<td>${c}</td>`).join('')}</tr></tbody></table></div>`;
+  const gfmCases: [string, string, string][] = [
+    ['a link inside link text wins and the outer brackets stay text', '[a [b](/u)](/v)', '<p>[a <a href="/u">b</a>](/v)</p>'],
+    ['the inner link wins in the middle of a sentence', 'see [x [y](/a) z](/b) end', '<p>see [x <a href="/a">y</a> z](/b) end</p>'],
+    ['two links side by side are both links', '[a](/u) and [b](/v)', '<p><a href="/u">a</a> and <a href="/v">b</a></p>'],
+    ['a link around an image is still a link', '[a ![b](https://e.com/i.png)](/v)', `<p><a href="/v">a ${IMG}</a></p>`],
+    [
+      'a link inside a deeper pair stays a link and every outer pair is text',
+      '[a [b [c](/u)](/v)](/w)',
+      '<p>[a [b <a href="/u">c</a>](/v)](/w)</p>',
+    ],
+    [
+      'a delimiter row with fewer cells than the header is not a table',
+      '| a | b | c |\n|---|---|\n| 1 | 2 | 3 |',
+      '<p>| a | b | c |\n|---|---|\n| 1 | 2 | 3 |</p>',
+    ],
+    [
+      'a delimiter row with more cells than the header is not a table',
+      '| a | b |\n|---|---|---|\n| 1 | 2 |',
+      '<p>| a | b |\n|---|---|---|\n| 1 | 2 |</p>',
+    ],
+    ['a delimiter row with the same number of cells makes a table', '| a | b |\n|---|---|\n| 1 | 2 |', TBL(['a', 'b'], ['1', '2'])],
+    ['a run of three tildes is text', 'text ~~~x~~~ text', '<p>text ~~~x~~~ text</p>'],
+    ['a longer run of tildes is text', 'a ~~~~x~~~~ b', '<p>a ~~~~x~~~~ b</p>'],
+    ['two tildes still strike text out', 'a ~~x~~ b', '<p>a <del>x</del> b</p>'],
+    ['three tildes at the end are shown at once', 'a ~~~', '<p>a ~~~</p>'],
+  ];
+  it.each(gfmCases)('%s', (_name, md, want) => {
+    expect(html(render(md))).toBe(want);
+    expect(html(render(md, 'char'))).toBe(want);
+  });
+  const titleCases: [string, string, string][] = [
+    ['a title with an escaped double quote still makes a link', '[a](/u "ti\\"tle")', '<p><a href="/u">a</a></p>'],
+    ['a single-quoted title with an escaped quote', "[a](/u 'it\\'s')", '<p><a href="/u">a</a></p>'],
+    ['a parenthesized title with an escaped parenthesis', '[a](/u (x\\)y))', '<p><a href="/u">a</a></p>'],
+    ['an escaped backslash does not escape the closing quote', '[a](/u "x\\\\")', '<p><a href="/u">a</a></p>'],
+    ['a title whose quote is escaped to the end never closes, so the link is text', '[a](/u "x\\")', '<p>[a](/u "x")</p>'],
+    ['a plain title still makes a link', '[a](/u "title")', '<p><a href="/u">a</a></p>'],
+  ];
+  it.each(titleCases)('%s', (_name, md, want) => {
+    expect(html(render(md))).toBe(want);
+    expect(html(render(md, 'char'))).toBe(want);
+  });
+  const indentCases: [string, string, string][] = [
+    ['two spaces under "1. " is not enough to nest', '1. a\n  - b', '<ol><li>a</li></ol><ul><li>b</li></ul>'],
+    ['three spaces under "10. " is not enough to nest', '10. a\n   - b', '<ol start="10"><li>a</li></ol><ul><li>b</li></ul>'],
+    ['a quote at two spaces under "1. " is not part of the item', '1. a\n  > q', '<ol><li>a</li></ol><blockquote><p>q</p></blockquote>'],
+    ['text at two spaces after a blank line under "1. " is not part of the item', '1. a\n\n  more', '<ol><li>a</li></ol><p>more</p>'],
+    ['three spaces under "1. " nest', '1. a\n   - b', '<ol><li>a<ul><li>b</li></ul></li></ol>'],
+    ['four spaces under "10. " nest', '10. a\n    - b', '<ol start="10"><li>a<ul><li>b</li></ul></li></ol>'],
+    ['five spaces under "10. " still nest', '10. a\n     - b', '<ol start="10"><li>a<ul><li>b</li></ul></li></ol>'],
+    ['two spaces under "- " nest', '- a\n  - b', '<ul><li>a<ul><li>b</li></ul></li></ul>'],
+    ['one space under "- " is a sibling', '- a\n - b', '<ul><li>a</li><li>b</li></ul>'],
+    ['a less indented line of paragraph text continues the paragraph', '1. a\n  b', '<ol><li>a\nb</li></ol>'],
+    [
+      'two nested levels under numbers',
+      '1. a\n   - b\n     - c\n   - d\n2. e',
+      '<ol><li>a<ul><li>b<ul><li>c</li></ul></li><li>d</li></ul></li><li>e</li></ol>',
+    ],
+  ];
+  it.each(indentCases)('%s', (_name, md, want) => {
+    expect(html(render(md))).toBe(want);
+    expect(html(render(md, 'char'))).toBe(want);
+  });
+  it('a line less indented than the item content ends a fence inside the item', () => {
+    for (const split of ['whole', 'char'] as const) {
+      const root = render('1. a\n   ```\n  x\n', split);
+      expect(root.querySelector('ol code')?.textContent, split).toBe('');
+      expect(root.querySelector(':scope > p')?.textContent, split).toBe('x');
+    }
+  });
+  it('pipe lines without a valid delimiter row stay in one paragraph, as in GFM', () => {
+    const cases: [string, string][] = [
+      ['| a | b |\n| c | d |', '<p>| a | b |\n| c | d |</p>'],
+      ['text\n| a | b |', '<p>text\n| a | b |</p>'],
+      ['| a | b | c |\n|---|---|\n| 1 | 2 | 3 |', '<p>| a | b | c |\n|---|---|\n| 1 | 2 | 3 |</p>'],
+      ['| a | b |\n|---|---|---|\n| 1 | 2 |', '<p>| a | b |\n|---|---|---|\n| 1 | 2 |</p>'],
+      ['text\n| a | b |\n| c | d |\nmore', '<p>text\n| a | b |\n| c | d |\nmore</p>'],
+    ];
+    for (const [md, want] of cases)
+      for (const split of ['whole', 'char'] as const) expect(html(render(md, split)), `${JSON.stringify(md)} ${split}`).toBe(want);
+  });
+  it('a table right after a line of text still splits off from it', () => {
+    const want = `<p>Here is the data:</p>${TBL(['a', 'b'], ['1', '2'])}`;
+    for (const split of ['whole', 'char'] as const)
+      expect(html(render('Here is the data:\n| a | b |\n|---|---|\n| 1 | 2 |', split)), split).toBe(want);
+  });
+  it('a pipe line after text waits for the next line before it is shown, and then becomes a table head or text', () => {
+    for (const open of ['Intro\n| a | b |', 'Intro\n| a | b |\n|', 'Intro\n| a | b |\n|--', 'Intro\n| a | b |\n| -'])
+      expect(html(renderOpen(open)), JSON.stringify(open)).toBe('<p>Intro</p>');
+    expect(html(renderOpen('Intro\n| a | b |\n|---|---|'))).toBe('<p>Intro</p>');
+    expect(html(renderOpen('Intro\n| a | b |\n|---|---|\n'))).toBe(`<p>Intro</p>${TBL_OPEN(['a', 'b'])}`);
+    expect(html(renderOpen('Intro\n| a | b |\nmore'))).toBe('<p>Intro\n| a | b |\nmore</p>');
+  });
+  it('while a delimiter row is still arriving and can still grow to the header width, the table head shows', () => {
+    const head =
+      '<div tabindex="0" role="group" aria-label="Table"><table><thead><tr><th>a</th><th>b</th><th>c</th></tr></thead><tbody></tbody></table></div>';
+    for (const row of ['|---', '|---|--', '|---|---|', '|---|---|---']) expect(html(renderOpen(`| a | b | c |\n${row}`)), row).toBe(head);
+    expect(html(renderOpen('| a | b |\n|---|---|---'))).toBe('<p>| a | b |\n|---|---|---</p>');
+  });
+  it('a header that can no longer be a table becomes text once its delimiter row ends', () => {
+    expect(html(renderOpen('| a | b | c |\n|---|---|\n'))).toBe('<p>| a | b | c |\n|---|---|</p>');
+  });
+  it('three tildes never strike text out, even while the text is still open', () => {
+    expect(html(renderOpen('a ~~~x'))).toBe('<p>a ~~~x</p>');
+  });
 });

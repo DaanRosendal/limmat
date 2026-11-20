@@ -103,6 +103,24 @@ function tagPrefix(l: string, sum: boolean): boolean {
   }
   return false;
 }
+/**
+ * Does the pipe line L[j], inside a paragraph, start a table? 1: yes, its next line is a delimiter row with as many cells.
+ * 2: not known yet, because the next line has not arrived or is still arriving and looks like part of a delimiter row. 0: no.
+ */
+function pipeHead(L: string[], j: number, partial: boolean, final: boolean): 0 | 1 | 2 {
+  const n = L.length;
+  const nx = L[j + 1];
+  if (DELIM.test(L[j])) return 0; // a delimiter row is never a header
+  if (nx === undefined) return final ? 0 : 2;
+  const hc = cells(L[j]).length;
+  const growing = !final && partial && j + 1 === n - 1; // nx is the unfinished last line
+  if (DELIM.test(nx)) {
+    const dn = cells(nx).length;
+    if (growing) return dn > hc ? 0 : 2; // more characters can still change a line that is arriving, even one that looks complete
+    return dn === hc ? 1 : 0;
+  }
+  return growing && PREFIX.test(nx) ? 2 : 0;
+}
 function interrupts(l: string, inTable: boolean, det = false): boolean {
   if (det && (opener(l) || CLOSE.test(l))) return true;
   if (fence(l) || atx(l) || HR.test(l) || BQ.test(l)) return true;
@@ -169,7 +187,7 @@ function itemEnd(L: string[], i: number, off: number, text: boolean, det: boolea
   for (; j < n; j++) {
     const x = L[j];
     if (fe) {
-      if (x.trim() && spaces(x) < 2) break; // the item ended, and its fence with it
+      if (x.trim() && spaces(x) < off) break; // the item ended, and its fence with it
       if (fe.test(x)) {
         fe = null;
         text = false;
@@ -182,8 +200,8 @@ function itemEnd(L: string[], i: number, off: number, text: boolean, det: boolea
       continue;
     }
     const xi = spaces(x);
-    if (xi >= 2) {
-      const f = fence(x.slice(Math.min(xi, off)));
+    if (xi >= off) {
+      const f = fence(x.slice(off));
       if (f) fe = closer(f, ' *');
     } else if (LI.test(x) || interrupts(x, false, det) || blank || !text) break;
     blank = false;
@@ -281,22 +299,24 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       const ind = m[1].length;
       const ord = /\d/.test(m[2]);
       const sp = m[3]?.length ?? 1;
-      const off = ind + m[2].length + (m[4] === undefined || sp > 4 ? 1 : sp);
+      const off = ind + m[2].length + (!m[4] || sp > 4 ? 1 : sp);
       const { last, j } = itemEnd(L, i, off, !!m[4], !!det);
       U.push({ k: 'li', a: i, e: last, b: j, ord, num: ord ? parseInt(m[2], 10) : 0, off, mk: m[2].slice(-1) });
       i = j;
     } else {
       const nx = L[i + 1];
       const lead = PIPE.test(l);
-      if (l.includes('|') && (lead || (nx !== undefined && DELIM.test(nx) && cells(l).length === cells(nx).length))) {
-        if (nx !== undefined && DELIM.test(nx)) {
+      const hc = l.includes('|') ? cells(l).length : -2;
+      const dn = nx !== undefined && DELIM.test(nx) ? cells(nx).length : -1; // cells of a delimiter row, or -1 if nx is none
+      if (hc >= 0 && (lead || dn === hc)) {
+        if (dn === hc) {
           const al = aligns(nx);
           U.push({ k: 'th', a: i, e: i + 2, b: i + 2, al });
           tbl = al;
           i += 2;
           continue;
         }
-        if (lead && !final && (nx === undefined || (partial && i + 1 === n - 1 && PREFIX.test(nx)))) {
+        if (lead && !final && !DELIM.test(l) && (nx === undefined || (partial && i + 1 === n - 1 && PREFIX.test(nx) && dn < hc))) {
           U.push({ k: 'th', a: i, e: n, b: n, pend: true, al: cells(l).map(() => null) });
           break;
         }
@@ -310,7 +330,20 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
         }
       }
       let j = i + 1;
-      while (j < n && L[j].trim() && !interrupts(L[j], false, !!det)) j++;
+      let wait = -1; // a pipe line that may still turn into a table head: it stays out of the paragraph until it is known
+      for (; j < n && L[j].trim(); j++) {
+        const d = PIPE.test(L[j]) ? pipeHead(L, j, partial, final) : 0;
+        if (d) {
+          if (d === 2) wait = j;
+          break;
+        }
+        if (interrupts(L[j], true, !!det)) break;
+      }
+      if (wait >= 0) {
+        U.push({ k: 'p', a: i, e: wait, b: n });
+        i = n;
+        continue;
+      }
       const bare = !final && partial && j === n && j - 1 > i && BARE.test(L[n - 1]);
       const dbare = !!det && dh && j === n && j - 1 > i && tagPrefix(L[n - 1], false);
       U.push({ k: 'p', a: i, e: bare || dbare ? j - 1 : j, b: j });
