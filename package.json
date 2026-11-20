@@ -1,7 +1,7 @@
 {
   "name": "limmat",
   "version": "0.1.0",
-  "description": "A tiny, safe markdown renderer for streaming LLM output. Builds DOM nodes as text arrives, never HTML strings, with no framework and no dependencies.",
+  "description": "Streaming markdown for LLM chat. Half-typed syntax renders cleanly, safe by default, works with any framework.",
   "type": "module",
   "license": "MIT",
   "author": "Daan Rosendal",
@@ -75,19 +75,15 @@
     "url": "https://github.com/DaanRosendal/limmat/issues"
   },
   "keywords": [
-    "markdown",
-    "streaming",
     "llm",
-    "chat",
-    "dom",
-    "xss",
-    "safe",
+    "markdown",
     "markdown-renderer",
-    "streaming-markdown",
-    "ai",
-    "chatgpt",
+    "streaming",
     "typescript",
-    "sanitize",
-    "zero-dependency"
+    "xss",
+    "ai",
+    "chatbot",
+    "framework-agnostic",
+    "zero-dependencies"
   ]
 }

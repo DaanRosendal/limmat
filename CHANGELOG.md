@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- The package description and keywords match the GitHub About text and topics.
+
 ## [0.1.0] - 2026-11-20
 
 ### Added
