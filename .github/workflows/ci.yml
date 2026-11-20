@@ -34,7 +34,7 @@ jobs:
       - run: npm run check:package
       - run: npm run check:support
       - run: npm run size
-      - run: npm publish --dry-run # the same hooks and file list as a real publish, without publishing
+      - run: npm pack --dry-run # the file list of a real publish (npm publish --dry-run fails once the version is on the registry)
   browsers:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -72,7 +72,7 @@ jobs:
       - run: npm ci --ignore-scripts
         if: steps.changes.outputs.code == 'true'
       # The Ubuntu mirror can stall for minutes, so apt retries and gives up on a silent connection. When the first install
-      # attempt times out, its apt-get keeps running and holds the dpkg lock, so the second attempt waits for the lock.
+      # attempt times out, its apt-get keeps running and holds the dpkg lock, so the second attempt stops it before it starts.
       - name: Make apt retry stalled downloads
         if: steps.changes.outputs.code == 'true'
         run: printf 'Acquire::Retries "5";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\nDPkg::Lock::Timeout "300";\n' | sudo tee /etc/apt/apt.conf.d/80-ci-retries > /dev/null
@@ -84,7 +84,11 @@ jobs:
         continue-on-error: true
       - name: Install the browser (second try)
         if: steps.changes.outputs.code == 'true' && steps.install.outcome != 'success'
-        run: npx playwright install --with-deps ${{ matrix.browser }}
+        run: |
+          sudo pkill -x apt-get || true
+          sudo pkill -x dpkg || true
+          sudo dpkg --configure -a || true
+          npx playwright install --with-deps ${{ matrix.browser }}
         timeout-minutes: 6
       - run: npm run build
         if: steps.changes.outputs.code == 'true'
