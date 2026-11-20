@@ -26,7 +26,7 @@ const FENCE = /^( {0,3})(`{3,}|~{3,})([^\n]*)$/;
 const STAR_BOLD = /^ {0,3}\*[ \t]+\*{2,}$/;
 const BARE = /^ {0,3}(?:[-*+]|\d{1,9}[.)])$/;
 const HR = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
-const BQ = /^ {0,3}>/;
+export const BQ = /^ {0,3}>/;
 const PIPE = /^ {0,3}\|/;
 const DELIM = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*(?:\|[ \t]*)?$/;
 const PREFIX = /^[ \t|:-]*$/;
@@ -123,10 +123,9 @@ function pipeHead(L: string[], j: number, partial: boolean, final: boolean): 0 |
   }
   return growing && PREFIX.test(nx) ? 2 : 0;
 }
-function interrupts(l: string, inTable: boolean, det = false): boolean {
+function interrupts(l: string, det = false): boolean {
   if (det && (opener(l) || CLOSE.test(l))) return true;
   if (fence(l) || atx(l) || HR.test(l) || BQ.test(l)) return true;
-  if (!inTable && PIPE.test(l)) return true;
   const m = LI.exec(l);
   return !!m && !!m[4] && m[1].length < 4 && m[2].length < 4 && (!/\d/.test(m[2]) || parseInt(m[2], 10) === 1);
 }
@@ -151,27 +150,55 @@ function fenceUnit(L: string[], i: number, m: RegExpExecArray, partial: boolean,
   return { k: 'f', a: i, e: hide ? j - 1 : j, b: j, lang: m[3].trim().split(/\s+/)[0], closed, ind: m[1].length };
 }
 
+/** Is `h` a table head with `d` as its delimiter row? Both have the prefix of their container removed. */
+function headOver(h: string, d: string): boolean {
+  return h.includes('|') && !DELIM.test(h) && DELIM.test(d) && (PIPE.test(h) || cells(h).length > 1) && cells(h).length === cells(d).length;
+}
+
+/**
+ * What the last line of a quote or list item is. A line without the container's prefix (a lazy line) can only continue
+ * paragraph text, so it ends the container after a table, a heading, or a fence. A line that opens a container of its
+ * own is never taken for a table head here, because the table would belong to that inner container. So a table that
+ * sits two containers deep (`> - | a |` over `>   |---|`) is not seen, and a lazy line after it stays in the outer
+ * container where CommonMark would end it.
+ */
+interface Last {
+  para: boolean;
+  tbl: boolean; // inside a table
+  prev: string; // the last line, with the prefix removed, or '' if it opens a container
+}
+function step(s: Last, c: string, det: boolean): void {
+  if (s.tbl && c.trim() && !interrupts(c, det)) {
+    s.prev = c; // a row
+    return;
+  }
+  s.tbl = s.para && headOver(s.prev, c);
+  s.para = !s.tbl && !!c.trim() && !atx(c) && !HR.test(c);
+  s.prev = BQ.test(c) || LI.test(c) ? '' : c;
+}
+
 /** End (exclusive) of the blockquote starting at line i. */
 function quoteEnd(L: string[], i: number, det: boolean): number {
   const n = L.length;
   // Lazy continuation (a line without `>`) is only allowed right after paragraph text.
   let j = i;
-  let para = false;
+  const s: Last = { para: false, tbl: false, prev: '' };
   let fe: RegExp | null = null;
   for (; j < n && L[j].trim(); j++) {
     if (!BQ.test(L[j])) {
-      if (!para || interrupts(L[j], false, det)) break;
+      if (!s.para || interrupts(L[j], det)) break;
+      if (s.prev) s.prev = L[j]; // it continues the paragraph of the innermost container, which is not ours if the last line opened one
       continue;
     }
     const c = L[j].replace(/^ {0,3}> ?/, '');
     const f = fe ? null : fence(c);
     if (fe) {
       if (fe.test(c)) fe = null;
-      para = false;
+      s.para = s.tbl = false;
     } else if (f) {
       fe = closer(f, ' {0,3}');
-      para = false;
-    } else para = !!c.trim() && !atx(c) && !HR.test(c);
+      s.para = s.tbl = false;
+    } else step(s, c, det);
   }
   return j;
 }
@@ -186,28 +213,34 @@ function itemEnd(L: string[], i: number, off: number, text: boolean, det: boolea
   let fe: RegExp | null = null;
   let blank = false;
   let last = i + 1;
+  const first = L[i].slice(off);
+  const s: Last = { para: text, tbl: false, prev: BQ.test(first) || LI.test(first) ? '' : first };
   for (; j < n; j++) {
     const x = L[j];
     if (fe) {
       if (x.trim() && spaces(x) < off) break; // the item ended, and its fence with it
       if (fe.test(x)) {
         fe = null;
-        text = false;
+        s.para = false;
       }
       last = j + 1;
       continue;
     }
     if (!x.trim()) {
       blank = true;
+      s.tbl = false;
       continue;
     }
     const xi = spaces(x);
     if (xi >= off) {
       const f = fence(x.slice(off));
-      if (f) fe = closer(f, ' *');
-    } else if (LI.test(x) || interrupts(x, false, det) || blank || !text) break;
+      if (f) {
+        fe = closer(f, ' *');
+        s.para = s.tbl = false;
+      } else step(s, x.slice(off), det);
+    } else if (LI.test(x) || interrupts(x, det) || blank || !s.para) break;
+    else if (s.prev) s.prev = x;
     blank = false;
-    text = !fe;
     last = j + 1;
   }
   return { last, j };
@@ -227,8 +260,11 @@ interface Frame {
  * scan() hold back constructs that the next characters could still turn into something else.
  * `det` is 0 when details blocks are off, 1 while the text can still grow, and 2 once it is settled. `dh` means the
  * last line is still arriving, so a tag that could still become a details opener, closer, or summary is held back.
+ * `lz[k]` says line k is a lazy line: it came without the prefix of its quote or list item, so it continues a paragraph and
+ * cannot be a delimiter row.
  */
-export function scan(L: string[], tbl: Al | null, partial: boolean, final: boolean, det = 0, dh = false): Unit[] {
+export function scan(L: string[], tbl: Al | null, partial: boolean, final: boolean, det = 0, dh = false, lz?: boolean[]): Unit[] {
+  const lazy = (k: number) => !!lz?.[k];
   const U: Unit[] = [];
   const n = L.length;
   const fr: Frame[] = [];
@@ -266,7 +302,7 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       }
     }
     if (tbl) {
-      if (!interrupts(l, true, !!det)) {
+      if (!interrupts(l, !!det)) {
         U.push({ k: 'tr', a: i, e: i + 1, b: i + 1, al: tbl });
         i++;
         continue;
@@ -310,7 +346,7 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       const lead = PIPE.test(l);
       const hc = l.includes('|') ? cells(l).length : -2;
       const dn = nx !== undefined && DELIM.test(nx) ? cells(nx).length : -1; // cells of a delimiter row, or -1 if nx is none
-      if (hc >= 0 && (lead || dn === hc)) {
+      if (hc >= 0 && !lazy(i + 1) && (lead || dn === hc)) {
         if (dn === hc) {
           const al = aligns(nx);
           U.push({ k: 'th', a: i, e: i + 2, b: i + 2, al });
@@ -323,7 +359,7 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
           break;
         }
       }
-      if (!lead && !final && partial && nx !== undefined && i + 1 === n - 1 && l.includes('|') && PREFIX.test(nx)) {
+      if (!lead && !final && partial && nx !== undefined && !lazy(i + 1) && i + 1 === n - 1 && l.includes('|') && PREFIX.test(nx)) {
         // A table without outer pipes whose delimiter row is still arriving: `a | b | c` over `--|-`.
         const dashes = nx.split('-').length - 1;
         if (dashes > 0 && (dashes > 1 || /[|:]/.test(nx)) && cells(nx).length <= cells(l).length) {
@@ -334,12 +370,12 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       let j = i + 1;
       let wait = -1; // a pipe line that may still turn into a table head: it stays out of the paragraph until it is known
       for (; j < n && L[j].trim(); j++) {
-        const d = L[j].includes('|') ? pipeHead(L, j, partial, final) : 0;
+        const d = L[j].includes('|') && !lazy(j + 1) ? pipeHead(L, j, partial, final) : 0;
         if (d) {
           if (d === 2) wait = j;
           break;
         }
-        if (interrupts(L[j], true, !!det)) break;
+        if (interrupts(L[j], !!det)) break;
       }
       if (wait >= 0) {
         U.push({ k: 'p', a: i, e: wait, b: n });

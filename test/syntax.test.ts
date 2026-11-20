@@ -473,6 +473,61 @@ describe('block structure while streaming', () => {
       for (const split of ['whole', 'char'] as const) expect(html(render(md, split)), `${JSON.stringify(md)} ${split}`).toBe(want);
     expect(render('Here:\nfoo |\n---\nx').querySelector('table')).toBeNull();
   });
+  it('an unindented pipe line after a list item or quote line continues its paragraph, as in GFM', () => {
+    const cases: [string, string][] = [
+      ['- item\n| a | b |\n|---|---|\n| 1 | 2 |', '<ul><li>item\n| a | b |\n|---|---|\n| 1 | 2 |</li></ul>'],
+      ['- item\n| x |', '<ul><li>item\n| x |</li></ul>'],
+      ['1. item\n| a | b |', '<ol><li>item\n| a | b |</li></ol>'],
+      ['- a\n- b\n| x |\n- c', '<ul><li>a</li><li>b\n| x |</li><li>c</li></ul>'],
+      ['- item\nmore\n| a | b |\n|---|---|\n| 1 | 2 |', '<ul><li>item\nmore\n| a | b |\n|---|---|\n| 1 | 2 |</li></ul>'],
+      ['- item\n|---|---|', '<ul><li>item\n|---|---|</li></ul>'],
+      ['- a\n  - b\n| x |', '<ul><li>a<ul><li>b\n| x |</li></ul></li></ul>'],
+      ['> quote\n| a | b |\n|---|---|\n| 1 | 2 |', '<blockquote><p>quote\n| a | b |\n|---|---|\n| 1 | 2 |</p></blockquote>'],
+      ['> quote\n| x |', '<blockquote><p>quote\n| x |</p></blockquote>'],
+      ['> > a\n| x |', '<blockquote><blockquote><p>a\n| x |</p></blockquote></blockquote>'],
+      ['> a\n| x |\n\n| a | b |\n|---|---|\n| 1 | 2 |', `<blockquote><p>a\n| x |</p></blockquote>${TBL(['a', 'b'], ['1', '2'])}`],
+      ['- item\n\n| a | b |\n|---|---|\n| 1 | 2 |', `<ul><li>item</li></ul>${TBL(['a', 'b'], ['1', '2'])}`],
+      ['- item\n  | a | b |\n  |---|---|\n  | 1 | 2 |', `<ul><li>item${TBL(['a', 'b'], ['1', '2'])}</li></ul>`],
+    ];
+    for (const [md, want] of cases)
+      for (const split of ['whole', 'char'] as const) expect(html(render(md, split)), `${JSON.stringify(md)} ${split}`).toBe(want);
+  });
+  it('a lazy line is not part of a table head or delimiter row inside an item or quote', () => {
+    const cases: [string, string][] = [
+      ['- | a | b |\n|---|---|\n| 1 | 2 |', '<ul><li>| a | b |\n|---|---|\n| 1 | 2 |</li></ul>'],
+      ['- item\n  | a | b |\n|---|---|', '<ul><li>item\n| a | b |\n|---|---|</li></ul>'],
+      ['> | a | b |\n|---|---|', '<blockquote><p>| a | b |\n|---|---|</p></blockquote>'],
+      ['> a\n| b | c |\n|---|---|\n| 1 | 2 |', '<blockquote><p>a\n| b | c |\n|---|---|\n| 1 | 2 |</p></blockquote>'],
+    ];
+    for (const [md, want] of cases)
+      for (const split of ['whole', 'char'] as const) expect(html(render(md, split)), `${JSON.stringify(md)} ${split}`).toBe(want);
+  });
+  it('a table in an item or quote ends before a line that is not part of it, as in GFM', () => {
+    const cases: [string, string][] = [
+      ['> | a | b |\n> |---|---|\n> | 1 | 2 |\nlazy', `<blockquote>${TBL(['a', 'b'], ['1', '2'])}</blockquote><p>lazy</p>`],
+      ['> a | b\n> --|--\nlazy', `<blockquote>${TBL_OPEN(['a', 'b'])}</blockquote><p>lazy</p>`],
+      ['- | a | b |\n  |---|---|\n  | 1 | 2 |\nlazy', `<ul><li>${TBL(['a', 'b'], ['1', '2'])}</li></ul><p>lazy</p>`],
+      ['> | a | b |\n> |---|---|\n| 1 | 2 |', `<blockquote>${TBL_OPEN(['a', 'b'])}</blockquote><p>| 1 | 2 |</p>`],
+      ['- | a | b |\n  |---|---|\n| 1 | 2 |', `<ul><li>${TBL_OPEN(['a', 'b'])}</li></ul><p>| 1 | 2 |</p>`],
+    ];
+    for (const [md, want] of cases)
+      for (const split of ['whole', 'char'] as const) expect(html(render(md, split)), `${JSON.stringify(md)} ${split}`).toBe(want);
+  });
+  it('a lazy line that starts with a pipe waits for the next line like any pipe line after text, then stays text', () => {
+    expect(html(renderOpen('- item\n| a | b |'))).toBe('<ul><li>item</li></ul>');
+    expect(html(renderOpen('> quote\n| a'))).toBe('<blockquote><p>quote</p></blockquote>');
+    expect(html(renderOpen('- item\n| a | b |\nmore'))).toBe('<ul><li>item\n| a | b |\nmore</li></ul>');
+    expect(html(renderOpen('- item\n| a | b |\n|---'))).toBe('<ul><li>item\n| a | b |\n|---</li></ul>');
+  });
+  it('a lazy header over a delimiter row that is inside the item or quote is a table, as in GFM', () => {
+    const cases: [string, string][] = [
+      ['> a\n| b | c |\n> |---|---|\n> | 1 | 2 |', `<blockquote><p>a</p>${TBL(['b', 'c'], ['1', '2'])}</blockquote>`],
+      ['> a\nfoo | bar\n> --|--\n> 1 | 2', `<blockquote><p>a</p>${TBL(['foo', 'bar'], ['1', '2'])}</blockquote>`],
+      ['- a\n| b | c |\n  |---|---|\n  | 1 | 2 |', `<ul><li>a${TBL(['b', 'c'], ['1', '2'])}</li></ul>`],
+    ];
+    for (const [md, want] of cases)
+      for (const split of ['whole', 'char'] as const) expect(html(render(md, split)), `${JSON.stringify(md)} ${split}`).toBe(want);
+  });
   it('a line with a pipe stays visible while it is the last line, and is hidden only while a delimiter row is arriving', () => {
     expect(html(renderOpen('Intro\nuse a | b here'))).toBe('<p>Intro\nuse a | b here</p>');
     for (const open of ['Intro\na | b\n-', 'Intro\na | b\n--|', 'Intro\na | b\n--|--'])

@@ -1,4 +1,4 @@
-import { type Al, atx, cells, LI, scan, spaces, type Unit } from './block';
+import { type Al, atx, BQ, cells, LI, scan, spaces, type Unit } from './block';
 import { HTML_TAGS, type Inline, parseInline } from './inline';
 import { safeUrl } from './url';
 
@@ -247,7 +247,16 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
    * `settled` means no more input can change it, so code is highlighted now. Fences nested in a quote or list item
    * are queued on `hl` instead, because their parent unit can still change until it is frozen.
    */
-  function build(u: Unit, L: string[], spec: boolean, depth: number, settled: boolean, hl?: Entry['hl'], part = false): Built {
+  function build(
+    u: Unit,
+    L: string[],
+    spec: boolean,
+    depth: number,
+    settled: boolean,
+    hl?: Entry['hl'],
+    part = false,
+    lz?: boolean[],
+  ): Built {
     switch (u.k) {
       case 'p': {
         const el = h('p');
@@ -290,14 +299,16 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       }
       case 'q': {
         const el = h('blockquote');
+        const rows = L.slice(u.a, u.e);
         blocks(
-          L.slice(u.a, u.e).map((x) => x.replace(/^ {0,3}> ?/, '')),
+          rows.map((x) => x.replace(/^ {0,3}> ?/, '')),
           el,
           depth + 1,
           spec,
           false,
           hl,
           part,
+          rows.map((x, k) => !BQ.test(x) || !!lz?.[u.a + k]),
         );
         return { n: el };
       }
@@ -312,7 +323,16 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
           inline(sm, u.sum, false);
           el.append(sm);
         }
-        blocks(L.slice(u.bs, u.closed ? u.e - 1 : u.e), el, depth + 1, spec && !u.closed, false, hl, part);
+        blocks(
+          L.slice(u.bs, u.closed ? u.e - 1 : u.e),
+          el,
+          depth + 1,
+          spec && !u.closed,
+          false,
+          hl,
+          part,
+          lz?.slice(u.bs, u.closed ? u.e - 1 : u.e),
+        );
         return { n: el };
       }
       case 'li': {
@@ -330,7 +350,11 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
           li.append(box);
           body[0] = body[0].slice(tk[0].length);
         }
-        blocks(body, li, depth + 1, spec, true, hl, part);
+        const rows = L.slice(u.a + 1, u.e);
+        blocks(body, li, depth + 1, spec, true, hl, part, [
+          !!lz?.[u.a],
+          ...rows.map((x, k) => (!!x.trim() && spaces(x) < u.off) || !!lz?.[u.a + 1 + k]),
+        ]);
         return { n: li };
       }
       case 'th': {
@@ -387,7 +411,16 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     return { ctx: u.k === 'th' ? { k: 't', el: b.body!, al: u.al } : null };
   }
 
-  function blocks(L: string[], parent: Element, depth: number, spec: boolean, unwrap: boolean, hl?: Entry['hl'], part = false) {
+  function blocks(
+    L: string[],
+    parent: Element,
+    depth: number,
+    spec: boolean,
+    unwrap: boolean,
+    hl?: Entry['hl'],
+    part = false,
+    lz?: boolean[],
+  ) {
     if (depth > MAX_DEPTH) {
       const p = h('p');
       inline(p, joinTrim(L), spec);
@@ -395,11 +428,11 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       return;
     }
     let ctx: Ctx = null;
-    const U = scan(L, null, part, !part, details ? (spec ? 1 : 2) : 0, part);
+    const U = scan(L, null, part, !part, details ? (spec ? 1 : 2) : 0, part, lz);
     U.forEach((u, i) => {
       const sp = spec && i === U.length - 1; // only the last block can still be growing
       if (unwrap && i === 0 && u.k === 'p') return inline(parent, joinTrim(L.slice(u.a, u.e)), sp);
-      ctx = place(parent, ctx, u, build(u, L, sp, depth, true, hl, part && u.b === L.length)).ctx;
+      ctx = place(parent, ctx, u, build(u, L, sp, depth, true, hl, part && u.b === L.length, lz)).ctx;
     });
   }
 

@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- A line without the item's indent or the quote's `>` (a lazy line) stays text in the item or quote, as in GFM. A pipe line right after `- item` or `> quote` used to end it and start a table or paragraph below. A lazy line after a table inside an item or quote used to become a table row, and now ends the item or quote. A table inside an item or quote that is nested two containers deep (`> - | a |` over `>   |---|`) still lets a lazy line after it stay in the outer quote.
 - A table whose header has no outer pipes now splits off from the paragraph above it (`Here:` then `a | b` over `--|--`), as in GFM. It used to stay one paragraph.
 - A line that starts with a pipe stays in the paragraph above it unless it starts a table (the next line is a delimiter row with as many cells), as in GFM. Pipe lines that are not a table used to become one paragraph each. While a pipe line is the last line and might still start a table, it is not shown until the next line arrives.
 - A line continues a list item only if it is indented to the item's content column, as in CommonMark (3 spaces under `1. `, 4 under `10. `, 2 under `- `). Two spaces under `1. ` used to nest a list, a quote, or a paragraph inside the item.
