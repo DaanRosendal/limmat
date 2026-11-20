@@ -601,7 +601,8 @@ test('once a stream is done the raw pane is an editor, and typing renders as a l
 
 test('the play button keeps one width for Play, Pause, and Replay', async ({ page }) => {
   await open(page);
-  const width = () => page.locator('#play').evaluate((e) => e.getBoundingClientRect().width);
+  // The layout width: getBoundingClientRect includes the button's pressed-state scale(0.95), which can still be animating right after a click.
+  const width = () => page.locator('#play').evaluate((e) => parseFloat(getComputedStyle(e).width));
   const seen = new Set([await width()]);
   await page.click('#play');
   seen.add(await width());
