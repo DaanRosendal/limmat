@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createRenderer } from '../src/index';
 import { html, renderOpen } from './helpers/util';
 
 // What a table whose delimiter row is still arriving shows: the header cells and no rows.
@@ -104,6 +105,16 @@ describe('half-open constructs show no raw markers', () => {
     expect(code('1. Step\n\n   ```sh\n   run\n   `')).toBe('run');
     expect(code('1. Step\n\n   ```sh\n   run\n   ``')).toBe('run');
     expect(code('> ```\n> x\n> `')).toBe('x');
+  });
+  it('a fence line that could still turn into text is not a closer yet, and the code node stays', () => {
+    const root = document.createElement('div');
+    const r = createRenderer(root, { throttleMs: 0 });
+    r.write('```md\n# Ex\n```');
+    const node = root.querySelector('code');
+    expect(node?.textContent).toBe('# Ex');
+    r.write('js\nlet a = 1;');
+    expect(root.querySelector('code')).toBe(node);
+    expect(node?.textContent).toBe('# Ex\n```js\nlet a = 1;');
   });
   it('open fence shows code immediately', () => {
     const root = renderOpen('```ts\nfunction add(a: number, b');

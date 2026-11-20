@@ -118,15 +118,16 @@ function fenceUnit(L: string[], i: number, m: RegExpExecArray, partial: boolean,
   let j = i + 1;
   let closed = false;
   while (j < n) {
-    if (close.test(L[j])) {
+    // An unfinished last line that looks like a closer may still grow into text (```js), so it does not close the fence yet.
+    if (close.test(L[j]) && (final || !partial || j < n - 1)) {
       closed = true;
       j++;
       break;
     }
     j++;
   }
-  // While a closing fence is still arriving (a lone backtick run on the unfinished last line), keep it out of the code.
-  const hide = !closed && !final && partial && j === n && j - 1 > i && PARTIAL_CLOSE.test(L[n - 1]);
+  // While a closing fence is still arriving (a backtick run on the unfinished last line), keep it out of the code.
+  const hide = !closed && !final && partial && j === n && j - 1 > i && (PARTIAL_CLOSE.test(L[n - 1]) || close.test(L[n - 1]));
   return { k: 'f', a: i, e: hide ? j - 1 : j, b: j, lang: m[3].trim().split(/\s+/)[0], closed, ind: m[1].length };
 }
 

@@ -99,7 +99,7 @@ describe('lifecycle', () => {
         ),
     );
     const { root, r } = mk({ highlight });
-    r.write('```\nold\n```');
+    r.write('```\nold\n```\n');
     r.reset();
     r.write('new');
     r.end();
@@ -315,13 +315,26 @@ describe('code blocks', () => {
     r.write('```ts\nlet a');
     expect(highlight).not.toHaveBeenCalled();
     r.write(' = 1\n```');
+    expect(highlight).not.toHaveBeenCalled();
+    r.write('\n');
     expect(highlight).toHaveBeenCalledTimes(1);
-    r.write('\n\nmore text\n\nand more');
+    r.write('\nmore text\n\nand more');
     r.end();
     expect(highlight).toHaveBeenCalledTimes(1);
     const [el, code, lang] = highlight.mock.calls[0];
     expect(el).toBe(root.querySelector('code'));
     expect([code, lang]).toEqual(['let a = 1', 'ts']);
+  });
+  it('highlight is called once, with the whole code, when a fence line that starts like a closer turns out to be text', () => {
+    const doc = '```md\n# Ex\n```js\nlet a = 1;\n```\n';
+    const whole = vi.fn();
+    mk({ highlight: whole }).r.write(doc);
+    const streamed = vi.fn();
+    const { r } = mk({ highlight: streamed });
+    for (const c of doc) r.write(c);
+    r.end();
+    expect(streamed.mock.calls.map((c) => c.slice(1))).toEqual([['# Ex\n```js\nlet a = 1;', 'md']]);
+    expect(streamed.mock.calls.map((c) => c.slice(1))).toEqual(whole.mock.calls.map((c) => c.slice(1)));
   });
   it('highlight runs for a fence closed by end(), and errors are swallowed', async () => {
     const highlight = vi.fn().mockRejectedValue(new Error('boom'));
