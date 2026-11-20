@@ -4,9 +4,12 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-20
+
 ### Changed
 
 - The package description and keywords match the GitHub About text and topics.
+- The README demo GIF is recorded at 1080p, one character per chunk, and served from the demo site.
 
 ## [0.1.0] - 2026-11-20
 
@@ -23,5 +26,6 @@ All notable changes to this project are documented here. The format follows [Kee
 - `createRenderer` empties its container, so a remount (React StrictMode) does not duplicate a finished message.
 - Tables are wrapped in `role="group"` with a label, so many tables on a page do not repeat one landmark.
 
-[Unreleased]: https://github.com/DaanRosendal/limmat/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/DaanRosendal/limmat/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/DaanRosendal/limmat/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/DaanRosendal/limmat/releases/tag/v0.1.0
