@@ -73,7 +73,7 @@ Tested in Chromium, Firefox, and WebKit.
 
 ## Safety
 
-Raw HTML shows as text, except attribute-free tags like `<kbd>` and `<sub>`, and collapsible `<details>`. Links must be http, https, mailto, or a site path (every path unless `isInternalPath` says otherwise). The optional highlighter passes code to `@speed-highlight/core`, which builds HTML itself. Images load without a click, so a hostile reply can send data to its own server: pass `images: ['https://your-cdn.example']` or `images: false` to limit that. More in [SECURITY.md](https://github.com/DaanRosendal/limmat/blob/master/SECURITY.md).
+Raw HTML shows as text, except attribute-free tags like `<kbd>` and `<sub>`, and collapsible `<details>`. Links must be http, https, mailto, tel, irc, ircs, xmpp, or a site path (every path unless `isInternalPath` says otherwise). The optional highlighter passes code to `@speed-highlight/core`, which builds HTML itself. Images load without a click, so a hostile reply can send data to its own server: pass `images: ['https://your-cdn.example']` or `images: false` to limit that. More in [SECURITY.md](https://github.com/DaanRosendal/limmat/blob/master/SECURITY.md).
 
 ## What is supported
 
@@ -124,10 +124,10 @@ Pass options as the second argument to `createRenderer`. All are optional.
 | `highlight` | none | `(el, code, lang) => void`, called for each finished code block. `limmat/highlight` provides one. |
 | `onLinkClick` | none | `(href, event) => boolean`. Return `true` to handle the click yourself. |
 | `isInternalPath` | every path | `(path) => boolean`. Site paths like `/docs/x` become links only if this returns `true`. Check the whole path. |
-| `allowedProtocols` | `['https', 'http', 'mailto']` | Protocols that become links. Others show as text. |
+| `allowedProtocols` | `['https', 'http', 'mailto', 'tel', 'irc', 'ircs', 'xmpp']` | Protocols that become links. Others show as text. A protocol you list is trusted, except `javascript`, `data`, and `vbscript`, which are always refused. |
 | `externalLinksNewTab` | `true` | `false` opens links in the same tab. |
-| `classPrefix` | `'limmat'` | Prefix for generated classes. The bundled CSS only styles the default. |
-| `labels` | English | Text for the Copy button and screen readers: `copy`, `copied`, `table`, `done`, `todo`. |
+| `classPrefix` | `'limmat'` | Prefix for generated classes: letters, digits, `_`, and `-`, starting with a letter or `_`. The bundled CSS only styles the default. |
+| `labels` | English | Text for the Copy button and screen readers: `copy`, `copied`, `table`, `done`, `todo`. An empty label uses the default. |
 
 ```ts
 createRenderer(el, {

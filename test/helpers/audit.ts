@@ -26,7 +26,7 @@ export function audit(root: Element): string[] {
     'referrerpolicy',
     'open',
   ];
-  const SAFE_HREF = /^(https?:\/\/[^/?#\s]|mailto:[^\s]|\/(?![/\\]))/i;
+  const SAFE_HREF = /^(https?:\/\/[^/?#\s]|(?:mailto|tel|irc|ircs|xmpp):[^\s]|\/(?![/\\]))/i;
   const SAFE_SRC = /^(https?:\/\/[^/?#\s]|\/(?![/\\]))/i;
   const bad: string[] = [];
   for (const e of Array.from(root.querySelectorAll('*'))) {

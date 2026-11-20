@@ -8,7 +8,7 @@ export interface Options {
   onLinkClick?: (href: string, event: MouseEvent) => boolean | void;
   /** Site-relative paths ('/research/x/') become links only if this returns true. Default: every path is a link. A throw counts as false. It gets the raw path including any query and hash, and may be called more than once per link while the reply streams. Check the whole path, not just a prefix: '/research/../admin' starts with '/research/'. */
   isInternalPath?: (path: string) => boolean;
-  /** Protocols that may become links, with or without the colon and in any case. Default ['https', 'http', 'mailto']. Everything else renders as plain text. */
+  /** Protocols that may become links, with or without the colon and in any case. Default ['https', 'http', 'mailto', 'tel', 'irc', 'ircs', 'xmpp'], also for anything that is not an array. Everything else renders as plain text. A protocol you list is trusted, except javascript, data, and vbscript, which are always refused, so list file, blob, or intent only if your app needs them. */
   allowedProtocols?: string[];
   /** Open http and https links in a new tab with rel="noopener noreferrer". Default true. false adds neither attribute, so links open in the same tab. */
   externalLinksNewTab?: boolean;
@@ -28,11 +28,14 @@ export interface Options {
   highlight?: (el: HTMLElement, code: string, lang: string) => void | Promise<void>;
   /** Minimum ms between re-renders of the open block. Default 50. 0 renders on every write. Non-finite values use the default. */
   throttleMs?: number;
-  /** Prefix for every generated class. Default 'limmat'. The bundled style.css only styles the default prefix. */
+  /** Prefix for every generated class: letters, digits, `_` and `-`, starting with a letter or `_`. Default 'limmat', also for anything else. The bundled style.css only styles the default prefix. */
   classPrefix?: string;
-  /** Visible and accessible text, for translation. Defaults: copy 'Copy', copied 'Copied', table 'Table', done 'Completed', todo 'Not completed'. */
+  /** Visible and accessible text, for translation. Defaults: copy 'Copy', copied 'Copied', table 'Table', done 'Completed', todo 'Not completed'. An empty or blank label uses its default. */
   labels?: { copy?: string; copied?: string; table?: string; done?: string; todo?: string };
 }
+
+// biome-ignore lint/suspicious/noControlCharactersInRegex: removing control characters is the point
+const UNSEEN = /[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g;
 
 /** The type of the `highlight` option, for adapters. */
 export type Highlighter = NonNullable<Options['highlight']>;
@@ -88,7 +91,9 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   if (!container || typeof container.addEventListener !== 'function') throw new TypeError('limmat: container must be an element');
   container.replaceChildren(); // a remount (React StrictMode runs effects twice) would otherwise append to the last render
   const o = options;
-  const protocols = (o.allowedProtocols ?? ['https', 'http', 'mailto']).map((p) => `${p}`.toLowerCase().replace(/:?$/, ':'));
+  const protocols = (
+    Array.isArray(o.allowedProtocols) ? o.allowedProtocols : ['https', 'http', 'mailto', 'tel', 'irc', 'ircs', 'xmpp']
+  ).map((p) => `${p}`.toLowerCase().replace(/:?$/, ':'));
   const internal = o.isInternalPath
     ? (p: string) => {
         try {
@@ -125,14 +130,17 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   const details =
     o.html === undefined || o.html === true || (Array.isArray(o.html) && o.html.some((x) => `${x}`.toLowerCase() === 'details'));
   const throttle = Number.isFinite(o.throttleMs) ? (o.throttleMs as number) : 50;
-  const px = o.classPrefix ?? 'limmat';
+  // A prefix that is not a plain class name (spaces, quotes, dots) would break the selectors and the class list.
+  const px = typeof o.classPrefix === 'string' && /^[A-Za-z_][\w-]*$/.test(o.classPrefix) ? o.classPrefix : 'limmat';
   const lb = o.labels ?? {};
+  // An empty label would leave a button or a table with no accessible name.
+  const lab = (v: unknown, d: string) => (typeof v === 'string' && v.trim() ? v : d);
   const label = {
-    copy: lb.copy ?? 'Copy',
-    copied: lb.copied ?? 'Copied',
-    table: lb.table ?? 'Table',
-    done: lb.done ?? 'Completed',
-    todo: lb.todo ?? 'Not completed',
+    copy: lab(lb.copy, 'Copy'),
+    copied: lab(lb.copied, 'Copied'),
+    table: lab(lb.table, 'Table'),
+    done: lab(lb.done, 'Completed'),
+    todo: lab(lb.todo, 'Not completed'),
   };
   const cls = (name: string) => `${px}-${name}`;
   const timers = new Set<ReturnType<typeof setTimeout>>();
@@ -272,17 +280,18 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         return { n: h('hr') };
       case 'f': {
         const lang = u.lang;
+        const shown = lang.replace(UNSEEN, ''); // a bidi override in the label would reorder the text next to it
         const text = fenceText(u, L);
         const wrap = h('div', cls('code'));
         const head = h('div', cls('code-head'));
-        if (lang) {
-          const l = h('span', cls('lang'), lang);
+        if (shown) {
+          const l = h('span', cls('lang'), shown);
           l.setAttribute('aria-hidden', 'true');
           head.append(l);
         }
         const btn = h('button', cls('copy'), label.copy);
         btn.setAttribute('type', 'button');
-        btn.setAttribute('aria-label', `${label.copy} ${lang || 'code'}`);
+        btn.setAttribute('aria-label', `${label.copy} ${shown || 'code'}`);
         const status = h('span', cls('status'));
         status.setAttribute('role', 'status');
         head.append(btn, status);

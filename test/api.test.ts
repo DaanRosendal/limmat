@@ -314,6 +314,15 @@ describe('code blocks', () => {
     expect(btn.textContent).toBe('Kopieren');
     expect(root.querySelector('[role="status"]')!.textContent).toBe('');
   });
+  it('the language label drops bidi and invisible characters, and so does the button name', () => {
+    const root = render('```ab\u202ecd\u200bef\u2066\nx\n```');
+    expect(root.querySelector('.limmat-lang')!.textContent).toBe('abcdef');
+    expect(root.querySelector('button')!.getAttribute('aria-label')).toBe('Copy abcdef');
+    const hl = vi.fn();
+    render('```ab\u202ecd\nx\n```', 'whole', { highlight: hl });
+    expect(hl.mock.calls[0][2]).toBe('ab\u202ecd');
+    expect(render('```\u202e\nx\n```').querySelector('.limmat-lang')).toBeNull();
+  });
   it('falls back to execCommand without the Clipboard API, and never claims success when copying failed', async () => {
     Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });
     const exec = vi.fn().mockReturnValue(true);
@@ -629,11 +638,79 @@ describe('options', () => {
     expect(root.querySelector('button')!.getAttribute('aria-label')).toBe('C code');
     expect(root.querySelector('[role=group]')!.getAttribute('aria-label')).toBe('T');
   });
+  it('a classPrefix that is not a plain class name uses the default, so no selector and no class list breaks', async () => {
+    vi.useFakeTimers();
+    for (const prefix of ['a b', 'a"b', "a'b", 'a.b', 'a]b', '', ' ', '1x', 'a>b']) {
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      const { root, r } = mk({ classPrefix: prefix });
+      r.write('```js\nx()\n```\n\n[l](/p/)');
+      r.end();
+      const classes = Array.from(root.querySelectorAll('[class]')).flatMap((e) => Array.from(e.classList));
+      expect(classes.length, JSON.stringify(prefix)).toBeGreaterThan(3);
+      expect(
+        classes.filter((c) => !c.startsWith('limmat-')),
+        JSON.stringify(prefix),
+      ).toEqual([]);
+      root.querySelector('button')!.click();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(writeText, JSON.stringify(prefix)).toHaveBeenCalledWith('x()');
+      document.body.replaceChildren();
+    }
+    const { root, r } = mk({ classPrefix: 'my_app-1' });
+    r.write('[l](/p/)');
+    r.end();
+    expect(root.querySelector('a')!.className).toBe('my_app-1-link');
+  });
+  it('an empty or blank label keeps the default, so a button never has no name', () => {
+    const { root, r } = mk({ labels: { copy: '', copied: ' ', table: '', done: '', todo: '  ' } });
+    r.write('- [x] a\n- [ ] b\n\n```js\nx\n```\n\n| a |\n|---|\n| b |');
+    r.end();
+    const btn = root.querySelector('button')!;
+    expect(btn.textContent).toBe('Copy');
+    expect(btn.getAttribute('aria-label')).toBe('Copy js');
+    expect(Array.from(root.querySelectorAll('input')).map((i) => i.getAttribute('aria-label'))).toEqual(['Completed', 'Not completed']);
+    expect(root.querySelector('[role=group]')!.getAttribute('aria-label')).toBe('Table');
+  });
   it('partial labels keep defaults for the rest', () => {
     const { root, r } = mk({ labels: { copy: 'C' } });
     r.write('- [x] a');
     r.end();
     expect(root.querySelector('input')!.getAttribute('aria-label')).toBe('Completed');
+  });
+  it('the default protocols are https, http, mailto, tel, irc, ircs, and xmpp', () => {
+    const md =
+      '[a](https://e.com) [b](http://e.com) [c](mailto:a@b.c) [d](tel:+31201234567) [e](irc://h/c) [f](ircs://h/c) [g](xmpp:a@b.c) [h](ftp://e.com) [i](sms:1) [j](file:x) [k](intent:x) [l](vscode://x) [m](magnet:?xt=1)';
+    const hrefs = (el: Element) => Array.from(el.querySelectorAll('a'), (a) => a.getAttribute('href'));
+    expect(hrefs(render(md))).toEqual([
+      'https://e.com',
+      'http://e.com',
+      'mailto:a@b.c',
+      'tel:+31201234567',
+      'irc://h/c',
+      'ircs://h/c',
+      'xmpp:a@b.c',
+    ]);
+  });
+  it('allowedProtocols that is not an array uses the default instead of throwing', () => {
+    for (const bad of ['https', 'https:', 123, {}, true, null]) {
+      const root = render('[a](https://e.com) [b](tel:1) [c](ftp://e.com)', 'whole', { allowedProtocols: bad as any });
+      expect(
+        Array.from(root.querySelectorAll('a'), (a) => a.getAttribute('href')),
+        String(bad),
+      ).toEqual(['https://e.com', 'tel:1']);
+    }
+  });
+  it('a protocol you list is trusted, except javascript, data, and vbscript, which are always refused', () => {
+    const hrefs = (p: string[]) =>
+      Array.from(
+        render('[a](file:x) [b](blob:x) [c](intent:x) [d](tel:1) [e](javascript:x) [f](data:x) [g](vbscript:x)', 'whole', {
+          allowedProtocols: p,
+        }).querySelectorAll('a'),
+        (a) => a.getAttribute('href'),
+      );
+    expect(hrefs(['file', 'blob', 'intent', 'tel', 'javascript', 'data:', 'VBScript'])).toEqual(['file:x', 'blob:x', 'intent:x', 'tel:1']);
+    expect(hrefs([])).toEqual([]);
   });
   it('allowedProtocols variants', () => {
     const f = (md: string, p: string[]) => render(md, 'whole', { allowedProtocols: p }).querySelectorAll('a').length;
