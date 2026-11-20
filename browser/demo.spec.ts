@@ -34,7 +34,7 @@ test('the Showcase plays first, and it is the stream that is checked in the dock
 
 test('loads with no errors, no CSP violations, and only same-origin requests', async ({ page, seen }) => {
   await open(page);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Streaming markdown');
+  await expect(page.locator('h1.brand')).toContainText('Streaming markdown');
   expect(seen.errors).toEqual([]);
   expect(await page.evaluate(() => (window as any).__csp ?? [])).toEqual([]);
   expect(seen.requests.filter((u) => !u.startsWith('https://limmat.test/'))).toEqual([]);
