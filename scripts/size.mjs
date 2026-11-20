@@ -1,5 +1,5 @@
-// Size ratchet: no fixed target, but a jump of more than 10% over the recorded baseline fails the build.
-// After an intentional change, run `npm run size -- --update` and say why in the commit message.
+// Size report: no target, but a jump of more than 10% over the recorded baseline fails the build, so it gets noticed.
+// Size never blocks a change: run `npm run size -- --update` and say what grew in the commit message.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { build } from 'esbuild';
