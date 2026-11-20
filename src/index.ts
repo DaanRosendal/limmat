@@ -20,7 +20,7 @@ export interface Options {
   html?: boolean | string[];
   /**
    * Images. Default true: `![alt](url)` becomes an <img> when the URL passes the same checks as a link, limited to http, https, and site paths.
-   * An array of origins ('https://cdn.example.com') loads only from those, and site paths still work. false renders the alt text only.
+   * An array of origins ('https://cdn.example.com') loads only from those, and site paths still work. false, or an image that is refused, shows `Image not shown: alt` (see `labels.imageNotShown`) instead.
    * An image loads as soon as it renders, with no click, so a hostile reply can use one to send data to a server it controls. If that matters, pass an origin list or false, or set a CSP img-src.
    */
   images?: boolean | string[];
@@ -30,8 +30,8 @@ export interface Options {
   throttleMs?: number;
   /** Prefix for every generated class: letters, digits, `_` and `-`, starting with a letter or `_`. Default 'limmat', also for anything else. The bundled style.css only styles the default prefix. */
   classPrefix?: string;
-  /** Visible and accessible text, for translation. Defaults: copy 'Copy', copied 'Copied', table 'Table', done 'Completed', todo 'Not completed'. An empty or blank label uses its default. */
-  labels?: { copy?: string; copied?: string; table?: string; done?: string; todo?: string };
+  /** Visible and accessible text, for translation. Defaults: copy 'Copy', copied 'Copied', table 'Table', done 'Completed', todo 'Not completed', imageNotShown 'Image not shown'. An empty or blank label uses its default. */
+  labels?: { copy?: string; copied?: string; table?: string; done?: string; todo?: string; imageNotShown?: string };
 }
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: removing control characters is the point
@@ -141,6 +141,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     table: lab(lb.table, 'Table'),
     done: lab(lb.done, 'Completed'),
     todo: lab(lb.todo, 'Not completed'),
+    imageNotShown: lab(lb.imageNotShown, 'Image not shown'),
   };
   const cls = (name: string) => `${px}-${name}`;
   const timers = new Set<ReturnType<typeof setTimeout>>();
@@ -196,7 +197,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
             f.el.append(kept);
             continue;
           }
-          const im = h('img', cls('image'));
+          const im = h('img', cls('image')) as HTMLImageElement;
           for (const [k, v] of [
             ['alt', alt],
             ['loading', 'lazy'],
@@ -205,7 +206,16 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
             ['src', src],
           ])
             im.setAttribute(k, v); // src last, so the other attributes are in place when the request starts
+          if (im.complete && im.naturalWidth > 0) im.classList.add(cls('image-loaded')); // from the cache: no load event may follow
           f.el.append(im);
+          continue;
+        }
+        if (isImg && !f.il) {
+          // An image that is not shown (images off, an origin or a URL that is refused) says so, then gives its alt text.
+          const b = h('span', cls('image-blocked'));
+          b.append(label.imageNotShown + (x.k === 'l' && x.kids.length ? ': ' : ''));
+          f.el.append(b);
+          st.push({ nodes: x.kids, i: 0, el: b, il: true });
           continue;
         }
         const href = isImg ? null : safeUrl(x.href, protocols, internal);
@@ -675,6 +685,15 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   }
   container.addEventListener('click', onClick);
 
+  // load and error do not bubble, so they are caught on the way down. The classes let a stylesheet show a placeholder and a failure.
+  function onImage(ev: Event) {
+    const t = ev.target as Element | null;
+    if (t?.tagName === 'IMG' && t.classList.contains(cls('image')) && container.contains(t))
+      t.classList.add(cls(ev.type === 'load' ? 'image-loaded' : 'image-failed'));
+  }
+  container.addEventListener('load', onImage, true);
+  container.addEventListener('error', onImage, true);
+
   return {
     write(chunk) {
       if (dead || ended || !chunk) return;
@@ -716,6 +735,8 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       stopCopy();
       dead = true;
       container.removeEventListener('click', onClick);
+      container.removeEventListener('load', onImage, true);
+      container.removeEventListener('error', onImage, true);
     },
   };
 }

@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- An image that is not shown (`images: false`, an origin that is not in your list, or a refused URL) now renders `Image not shown: alt text` in a `limmat-image-blocked` span, so a reader can tell that an image was removed. It used to leave the bare alt text. The words are the new `labels.imageNotShown`. An image inside a link label still shows only its alt text.
+- An `<img>` gets the class `limmat-image-loaded` when it has loaded and `limmat-image-failed` when it fails. The optional `style.css` uses them: an image holds a placeholder box until it loads, so the text below does not jump, and a failed image shows its alt text in a soft pill.
+
 ### Changed
 
 - `[call](tel:+31201234567)`, `irc:`, `ircs:`, and `xmpp:` links are now links by default, the same list as Streamdown. To keep the old default, pass `allowedProtocols: ['https', 'http', 'mailto']`.

@@ -17,7 +17,7 @@ Streaming markdown for LLM chat. Half-typed syntax like `[docs](https://example`
 - **Predictable.** However the text is cut into chunks, the page ends up the same as rendering it all at once.
 - **Safe.** It builds DOM nodes, never HTML strings, so hostile input shows up as plain text. Images load unless you limit them, see [Safety](#safety).
 - **Any framework.** Give it any DOM element: React, Vue, Svelte, or plain JavaScript.
-- **Small and fast.** 10.2 kB gzip, no dependencies. A 100 KB reply streamed in small chunks takes about 20 ms in total in Chromium.
+- **Small and fast.** 10.5 kB gzip, no dependencies. A 100 KB reply streamed in small chunks takes about 20 ms in total in Chromium.
 
 ## Install
 
@@ -119,7 +119,7 @@ Pass options as the second argument to `createRenderer`. All are optional.
 | Option | Default | What it does |
 |---|---|---|
 | `throttleMs` | `50` | Minimum ms between re-renders of the open block. `0` renders on every write. |
-| `images` | `true` | Allowed image origins, like `['https://cdn.example.com']`, or `false` for alt text only. See [Safety](#safety). |
+| `images` | `true` | Allowed image origins, like `['https://cdn.example.com']`, or `false` to show "Image not shown: alt text" instead. See [Safety](#safety). |
 | `html` | `true` | Which safe tags become elements, like `<kbd>` and `<details>`. A list keeps only those, `false` shows them as text, except `<br>`. |
 | `highlight` | none | `(el, code, lang) => void`, called for each finished code block. `limmat/highlight` provides one. |
 | `onLinkClick` | none | `(href, event) => boolean`. Return `true` to handle the click yourself. |
@@ -127,7 +127,7 @@ Pass options as the second argument to `createRenderer`. All are optional.
 | `allowedProtocols` | `['https', 'http', 'mailto', 'tel', 'irc', 'ircs', 'xmpp']` | Protocols that become links. Others show as text. A protocol you list is trusted, except `javascript`, `data`, and `vbscript`, which are always refused. |
 | `externalLinksNewTab` | `true` | `false` opens links in the same tab. |
 | `classPrefix` | `'limmat'` | Prefix for generated classes: letters, digits, `_`, and `-`, starting with a letter or `_`. The bundled CSS only styles the default. |
-| `labels` | English | Text for the Copy button and screen readers: `copy`, `copied`, `table`, `done`, `todo`. An empty label uses the default. |
+| `labels` | English | Text for the Copy button and screen readers: `copy`, `copied`, `table`, `done`, `todo`, `imageNotShown`. An empty label uses the default. |
 
 ```ts
 createRenderer(el, {

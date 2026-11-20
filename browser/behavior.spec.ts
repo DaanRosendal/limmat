@@ -209,3 +209,46 @@ test('right-to-left pages keep code left to right and list indents on the right 
   });
   expect(css).toEqual({ pre: 'ltr', left: '0px', right: '24px', align: 'start' });
 });
+
+test('an image holds a box until it loads, and a failed image is marked and styled', async ({ page }) => {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="30"><rect width="40" height="30" fill="red"/></svg>';
+  await page.route('https://limmat.test/ok.svg', (route) => route.fulfill({ contentType: 'image/svg+xml', body: svg }));
+  const r = await page.evaluate(async () => {
+    const root = document.getElementById('root')!;
+    root.replaceChildren();
+    const r = (window as any).limmat.createRenderer(root);
+    r.write('![ok](/ok.svg) ![gone](/missing.png) ![](/missing2.png)');
+    r.end();
+    const [ok, gone, bare] = Array.from(root.querySelectorAll('img'));
+    const before = { w: ok.getBoundingClientRect().width, h: ok.getBoundingClientRect().height };
+    await Promise.all([ok, gone, bare].map((i) => (i.complete ? 0 : new Promise((res) => (i.onload = i.onerror = res)))));
+    await new Promise((res) => setTimeout(res, 50));
+    return {
+      before,
+      okClass: ok.className,
+      goneClass: gone.className,
+      okSize: { w: ok.getBoundingClientRect().width, h: ok.getBoundingClientRect().height },
+      goneBorder: getComputedStyle(gone).borderTopStyle,
+      bareDisplay: getComputedStyle(bare).display,
+    };
+  });
+  expect(r.okClass).toBe('limmat-image limmat-image-loaded');
+  expect(r.goneClass).toBe('limmat-image limmat-image-failed');
+  expect(r.before.h).toBeGreaterThanOrEqual(120); // the 8rem placeholder box
+  expect(r.okSize).toEqual({ w: 40, h: 30 });
+  expect(r.goneBorder).toBe('solid');
+  expect(r.bareDisplay).toBe('none'); // a failed image with no alt text leaves no empty pill
+});
+
+test('an image that is not shown is a pill that says so', async ({ page }) => {
+  const r = await page.evaluate(() => {
+    const root = document.getElementById('root')!;
+    root.replaceChildren();
+    const r = (window as any).limmat.createRenderer(root, { images: false });
+    r.write('See ![a *chart*](https://e.com/c.png) here.');
+    r.end();
+    const b = root.querySelector('.limmat-image-blocked') as HTMLElement;
+    return { text: b.textContent, border: getComputedStyle(b).borderTopStyle, radius: getComputedStyle(b).borderTopLeftRadius !== '0px' };
+  });
+  expect(r).toEqual({ text: 'Image not shown: a chart', border: 'solid', radius: true });
+});

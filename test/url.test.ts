@@ -61,7 +61,7 @@ describe('link destinations', () => {
       for (const md of [`[go](${u})`, `![go](${u})`]) {
         const root = render(md);
         expect(root.querySelector('a, img'), md).toBeNull();
-        expect(root.textContent, md).toBe('go');
+        expect(root.textContent, md).toBe(md.startsWith('!') ? 'Image not shown: go' : 'go');
       }
     expect(render('[go](/page)').querySelector('a')?.getAttribute('href')).toBe('/page');
   });

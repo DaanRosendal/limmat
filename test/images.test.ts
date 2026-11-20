@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { createRenderer, type Options } from '../src/index';
 import { audit, html, render, renderOpen } from './helpers/util';
 
@@ -53,14 +53,59 @@ describe('images are on by default', () => {
   });
 });
 
-describe('images: false', () => {
-  it('renders only the alt text and creates no img', () => {
-    const root = render('![the alt](https://e.com/t.png)', 'whole', { images: false });
-    expect(root.innerHTML).toBe('<p>the alt</p>');
+describe('an image that is not shown says so', () => {
+  const NOT = (inner: string) => `<p><span>${inner}</span></p>`;
+  it('images: false, a refused origin, and a refused URL show "Image not shown" and the alt text', () => {
+    const cases: [string, Options][] = [
+      ['![the alt](https://e.com/t.png)', { images: false }],
+      ['![the alt](https://e.com/t.png)', { images: ['https://cdn.e.com'] }],
+      ['![the alt](ftp://e.com/t.png)', {}],
+      ['![the alt](javascript:alert(1))', {}],
+    ];
+    for (const [md, o] of cases)
+      for (const split of ['whole', 'char'] as const)
+        expect(html(render(md, split, o)), `${md} ${split}`).toBe(NOT('Image not shown: the alt'));
   });
-  it('keeps formatting in the alt text and leaves links inside it as text', () => {
+  it('an image with no alt text shows just "Image not shown"', () => {
+    expect(html(render('![](https://e.com/t.png)', 'whole', { images: false }))).toBe(NOT('Image not shown'));
+  });
+  it('keeps formatting in the alt text and flattens links in it', () => {
+    expect(html(render('![a *b* [c](https://l.com)](https://e.com/t.png)', 'whole', { images: false }))).toBe(
+      NOT('Image not shown: a <em>b</em> c'),
+    );
+  });
+  it('the label can be translated, and a blank one keeps the default', () => {
+    expect(html(render('![x](/a.png)', 'whole', { images: false, labels: { imageNotShown: 'Bild nicht angezeigt' } }))).toBe(
+      NOT('Bild nicht angezeigt: x'),
+    );
+    expect(html(render('![x](/a.png)', 'whole', { images: false, labels: { imageNotShown: ' ' } }))).toBe(NOT('Image not shown: x'));
+  });
+  it('the span has the limmat-image-blocked class and follows the class prefix', () => {
+    expect(render('![x](/a.png)', 'whole', { images: false }).querySelector('span')!.className).toBe('limmat-image-blocked');
+    expect(render('![x](/a.png)', 'whole', { images: false, classPrefix: 'zz' }).querySelector('span')!.className).toBe('zz-image-blocked');
+  });
+  it('an image that is still arriving shows its alt text only, and the label comes with the closing bracket', () => {
+    expect(html(renderOpen('x ![alt](https://e.com/a.p', { images: false }))).toBe('<p>x alt</p>');
+    expect(html(renderOpen('x ![alt te', { images: false }))).toBe('<p>x alt te</p>');
+    expect(html(renderOpen('x ![alt](https://e.com/a.png)', { images: false }))).toBe('<p>x <span>Image not shown: alt</span></p>');
+  });
+  it('an image inside a link label stays plain alt text, so the link keeps a readable label', () => {
+    const root = render('[![alt](https://e.com/i.png)](https://l.com)', 'whole', { images: false });
+    expect(root.querySelector('a')!.textContent).toBe('alt');
+    expect(root.querySelector('span')).toBeNull();
+  });
+});
+
+describe('images: false', () => {
+  it('creates no img and shows the alt text', () => {
+    const root = render('![the alt](https://e.com/t.png)', 'whole', { images: false });
+    expect(root.querySelector('img')).toBeNull();
+    expect(root.textContent).toBe('Image not shown: the alt');
+  });
+  it('leaves links inside the alt text as text', () => {
     const root = render('![a *b* [c](https://l.com)](https://e.com/t.png)', 'whole', { images: false });
-    expect(html(root)).toBe('<p>a <em>b</em> c</p>');
+    expect(root.querySelector('a')).toBeNull();
+    expect(root.textContent).toBe('Image not shown: a b c');
   });
   it('an image inside a link label becomes the label text', () => {
     const root = render('[![alt](https://e.com/i.png)](https://l.com)', 'whole', { images: false });
@@ -78,7 +123,7 @@ describe('images with an origin allow-list', () => {
       'https://cdn.e.com/a.png',
       'http://plain.e.com:8080/c.png',
     ]);
-    expect(render('![b](https://other.com/b.png)', 'whole', opt).innerHTML).toBe('<p>b</p>');
+    expect(render('![b](https://other.com/b.png)', 'whole', opt).textContent).toBe('Image not shown: b');
   });
 
   it('matches the whole origin: scheme, host, and port', () => {
@@ -219,5 +264,61 @@ describe('an image in a block that is still open keeps its element', () => {
     const [p2, q2] = write(' tail');
     expect(p2).toBe(p);
     expect(q2).toBe(q);
+  });
+});
+
+describe('an image reports whether it loaded', () => {
+  const setup = (md: string) => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const r = createRenderer(root, { throttleMs: 0 });
+    r.write(md);
+    return { root, r };
+  };
+  afterEach(() => document.body.replaceChildren());
+
+  it('a load event adds limmat-image-loaded, and an error event adds limmat-image-failed', () => {
+    const { root, r } = setup('![a](https://e.com/a.png) ![b](https://e.com/b.png) ![c](https://e.com/c.png)\n\ntext');
+    r.end();
+    const [a, b, c] = img(root);
+    expect(Array.from(a.classList)).toEqual(['limmat-image']);
+    a.dispatchEvent(new Event('load'));
+    b.dispatchEvent(new Event('error'));
+    expect(Array.from(a.classList)).toEqual(['limmat-image', 'limmat-image-loaded']);
+    expect(Array.from(b.classList)).toEqual(['limmat-image', 'limmat-image-failed']);
+    expect(Array.from(c.classList)).toEqual(['limmat-image']);
+  });
+
+  it('the state stays on the element while the block it is in keeps growing', () => {
+    const { root, r } = setup('See ![a](https://e.com/a.png) and');
+    const [a] = img(root);
+    a.dispatchEvent(new Event('error'));
+    r.write(' more text');
+    r.write(' and ![b](https://e.com/b.png)');
+    const [a2, b2] = img(root);
+    expect(a2).toBe(a);
+    expect(a2.classList.contains('limmat-image-failed')).toBe(true);
+    expect(Array.from(b2.classList)).toEqual(['limmat-image']);
+  });
+
+  it('only images of this renderer count, and nothing is added after destroy()', () => {
+    const { root, r } = setup('![a](https://e.com/a.png)');
+    const other = document.createElement('img');
+    other.className = 'limmat-image';
+    document.body.append(other);
+    other.dispatchEvent(new Event('error'));
+    expect(other.className).toBe('limmat-image');
+    const [a] = img(root);
+    r.destroy();
+    a.dispatchEvent(new Event('load'));
+    expect(a.className).toBe('limmat-image');
+  });
+
+  it('the class prefix applies to the state classes', () => {
+    const root = document.createElement('div');
+    const r = createRenderer(root, { throttleMs: 0, classPrefix: 'zz' });
+    r.write('![a](https://e.com/a.png)');
+    img(root)[0].dispatchEvent(new Event('error'));
+    expect(img(root)[0].className).toBe('zz-image zz-image-failed');
   });
 });

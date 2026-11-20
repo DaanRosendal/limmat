@@ -10,7 +10,8 @@
      a.limmat-link
      details.limmat-details[open] > summary.limmat-summary, then the content blocks
      kbd.limmat-kbd, b, strong, i, em, u, s, del, ins, mark, small, sub, sup (from the HTML tags, no attributes)
-     img.limmat-image[loading=lazy][decoding=async][referrerpolicy=no-referrer]
+     img.limmat-image[loading=lazy][decoding=async][referrerpolicy=no-referrer], plus limmat-image-loaded or limmat-image-failed once it has loaded or failed
+     span.limmat-image-blocked (an image that is not shown: its label, then the alt text)
      code.limmat-inline-code (inline code)
 */
 :root,
@@ -78,6 +79,45 @@
 .limmat-image {
   max-width: 100%;
   height: auto;
+}
+/* Until it has loaded the image holds a box, so the text below moves less when it arrives. */
+.limmat-image:not(.limmat-image-loaded):not(.limmat-image-failed) {
+  min-width: min(14rem, 100%);
+  min-height: 8rem;
+  border-radius: var(--limmat-radius);
+  background: var(--limmat-border);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .limmat-image:not(.limmat-image-loaded):not(.limmat-image-failed) {
+    animation: limmat-pulse 1.6s ease-in-out infinite;
+  }
+}
+@keyframes limmat-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+/* An image that failed to load (the browser draws its broken-image icon, then the alt text) and one that is not shown. */
+.limmat-image-failed,
+.limmat-image-blocked {
+  display: inline-block;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 0.2em 0.8em 0.2em 0.6em;
+  border: 1px solid var(--limmat-border);
+  border-radius: 0.75em;
+  background: var(--limmat-code-bg);
+  color: var(--limmat-muted);
+  font-size: 0.875em;
+  line-height: 1.5;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+.limmat-image-failed {
+  text-indent: 0.55em; /* a gap between the browser's icon and the alt text */
+}
+.limmat-image-failed[alt=""] {
+  display: none; /* with no alt text there is nothing to put in the pill */
 }
 .limmat-inline-code {
   padding: 0.12em 0.4em;
