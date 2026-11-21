@@ -496,6 +496,10 @@ test('with reduced motion nothing autoplays and the finished state is shown', as
   await open(page);
   await expect(page.locator('#play')).toHaveText('Replay');
   await expect(page.locator('#out h2')).toBeVisible();
+  // An image adds its loaded or failed class when it settles, which is the one change that may still come.
+  await page.waitForFunction(() =>
+    Array.from(document.querySelectorAll('#out img')).every((i) => /limmat-image-(loaded|failed)/.test(i.className)),
+  );
   const before = await page.locator('#out').innerHTML();
   await page.waitForTimeout(300);
   expect(await page.locator('#out').innerHTML()).toBe(before);

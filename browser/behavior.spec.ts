@@ -10,6 +10,8 @@ test('chunked output equals whole output, with real timers and the default throt
     const out: number[] = [];
     let seed = 7;
     const rnd = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32;
+    // The loaded and failed classes of an image arrive when its request settles, so they may differ between two renders.
+    const norm = (h: string) => h.replace(/ limmat-image-(loaded|failed)/g, '');
     const mk = () => {
       const root = document.createElement('div');
       return { root, r: (window as any).limmat.createRenderer(root, {}) };
@@ -27,7 +29,7 @@ test('chunked output equals whole output, with real timers and the default throt
           if (d % 4 === 0 && rnd() < 0.01) await new Promise((r) => setTimeout(r, 60));
         }
         c.r.end();
-        if (c.root.innerHTML !== whole.root.innerHTML) out.push(d);
+        if (norm(c.root.innerHTML) !== norm(whole.root.innerHTML)) out.push(d);
       }
     }
     return out;
