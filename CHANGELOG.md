@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-21
+
 ### Added
 
 - An image that is not shown (`images: false`, an origin that is not in your list, or a refused URL) now renders `Image not shown: alt text` in a `limmat-image-blocked` span, so a reader can tell that an image was removed. It used to leave the bare alt text. The words are the new `labels.imageNotShown`. An image inside a link label still shows only its alt text.
@@ -56,6 +58,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - `createRenderer` empties its container, so a remount (React StrictMode) does not duplicate a finished message.
 - Tables are wrapped in `role="group"` with a label, so many tables on a page do not repeat one landmark.
 
-[Unreleased]: https://github.com/DaanRosendal/limmat/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/DaanRosendal/limmat/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/DaanRosendal/limmat/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/DaanRosendal/limmat/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/DaanRosendal/limmat/releases/tag/v0.1.0
