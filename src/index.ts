@@ -1,4 +1,4 @@
-import { type Al, atx, BQ, cells, LI, scan, spaces, type Unit } from './block';
+import { type Al, atx, BQ, cells, dedent4, LI, scan, spaces, type Unit } from './block';
 import { HTML_TAGS, type Inline, parseInline } from './inline';
 import { safeUrl } from './url';
 
@@ -276,8 +276,8 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       .trimEnd();
 
   function fenceText(u: Extract<Unit, { k: 'f' }>, L: string[]) {
-    return L.slice(u.a + 1, u.closed ? u.e - 1 : u.e)
-      .map((x) => dedent(x, u.ind))
+    return L.slice(u.ic ? u.a : u.a + 1, u.closed && !u.ic ? u.e - 1 : u.e)
+      .map((x) => (u.ic ? dedent4(x) : dedent(x, u.ind)))
       .join('\n');
   }
 
@@ -380,7 +380,9 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       }
       case 'li': {
         const m = LI.exec(L[u.a])!;
-        const body = [m[4] ?? '', ...L.slice(u.a + 1, u.e).map((x) => dedent(x, u.off))];
+        // A lazy line keeps its indent: with it removed, `    - x` under a list item would turn into a nested list.
+        const lazyRow = (x: string, k: number) => (!!x.trim() && spaces(x) < u.off) || !!lz?.[u.a + 1 + k];
+        const body = [m[4] ?? '', ...L.slice(u.a + 1, u.e).map((x, k) => (lazyRow(x, k) ? x : dedent(x, u.off)))];
         const li = h('li');
         const tk = /^\[([ xX])\](?:[ \t]+|$)/.exec(body[0]);
         if (tk) {
@@ -394,10 +396,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
           body[0] = body[0].slice(tk[0].length);
         }
         const rows = L.slice(u.a + 1, u.e);
-        blocks(body, li, depth + 1, spec, true, hl, part, [
-          !!lz?.[u.a],
-          ...rows.map((x, k) => (!!x.trim() && spaces(x) < u.off) || !!lz?.[u.a + 1 + k]),
-        ]);
+        blocks(body, li, depth + 1, spec, true, hl, part, [!!lz?.[u.a], ...rows.map(lazyRow)]);
         return { n: li };
       }
       case 'th': {
@@ -512,7 +511,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     while (p < tail.length && p < U.length && tail[p].key === keys[p]) p++;
     const e = tail[p];
     const u = U[p];
-    if (e?.open && e.code && p < U.length && u.k === 'f' && e.u.k === 'f' && u.lang === e.u.lang) {
+    if (e?.open && e.code && p < U.length && u.k === 'f' && e.u.k === 'f' && u.lang === e.u.lang && !u.ic === !e.u.ic) {
       const text2 = fenceText(u, L);
       const node = e.code.firstChild as Text;
       // appendData keeps a selection in the text, assigning to `data` collapses it.

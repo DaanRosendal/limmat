@@ -252,7 +252,7 @@ describe('edge cases', () => {
     expect(html(render('a ~b~ c'))).toBe('<p>a ~b~ c</p>');
     expect(html(render('a ~~b~ c'))).toBe('<p>a ~~b~ c</p>');
   });
-  it('list item content with 5+ spaces after marker', () => {
+  it('deliberate: list item content with 5+ spaces after marker is text, where the spec makes it indented code', () => {
     expect(html(render('-     a'))).toBe('<ul><li>a</li></ul>');
     expect(html(render('1.      a\n        b'))).toBe('<ol><li>a\nb</li></ol>');
   });
@@ -915,5 +915,134 @@ describe('setext headings', () => {
   it('when the message ends on an underline, it is a heading', () => {
     expect(html(render('Foo\n=='))).toBe('<h1>Foo</h1>');
     expect(html(render('Foo\n--'))).toBe('<h2>Foo</h2>');
+  });
+});
+
+describe('indented code and tabs', () => {
+  // Expected output comes from cmark-gfm 0.29. A code block is written as <pre>text</pre> to keep the strings short.
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const shape = (n: Node): string => {
+    if (n.nodeType === 3) return esc(n.textContent ?? '');
+    const e = n as Element;
+    const tag = e.tagName.toLowerCase();
+    if (e.classList.contains('limmat-code')) return `<pre>${esc(e.querySelector('code')!.textContent ?? '')}</pre>`;
+    const kids = Array.from(e.childNodes).map(shape).join('');
+    return tag === 'hr' || tag === 'br' ? `<${tag}>` : `<${tag}>${kids}</${tag}>`;
+  };
+  const kids = (root: Element) => Array.from(root.childNodes).map(shape).join('');
+  const view = (md: string, split: 'whole' | 'char' = 'whole') => kids(render(md, split));
+  const both = (cases: [string, string][]) => {
+    for (const [md, want] of cases)
+      for (const split of ['whole', 'char'] as const) expect(view(md, split), `${JSON.stringify(md)} ${split}`).toBe(want);
+  };
+  it('a line indented four spaces or more, after a blank line or a block, is a code block', () => {
+    both([
+      ['    a simple\n      indented code block', '<pre>a simple\n  indented code block</pre>'],
+      ['Paragraph\n\n    code\n\nAfter', '<p>Paragraph</p><pre>code</pre><p>After</p>'],
+      ['# Heading\n    foo\nHeading\n------\n    foo\n----', '<h1>Heading</h1><pre>foo</pre><h2>Heading</h2><pre>foo</pre><hr>'],
+      ['```\ncode\n```\n    after', '<pre>code</pre><pre>after</pre>'],
+      ['a\n\n        deep', '<p>a</p><pre>    deep</pre>'],
+      ['    code\n- list', '<pre>code</pre><ul><li>list</li></ul>'],
+      [
+        '| a |\n|---|\n| 1 |\n    x',
+        '<div><table><thead><tr><th>a</th></tr></thead><tbody><tr><td>1</td></tr></tbody></table></div><pre>x</pre>',
+      ],
+    ]);
+  });
+  it('the text is taken as written: no markup, no entities, trailing spaces kept', () => {
+    both([
+      ['    <a/>\n    *hi*\n\n    - one', '<pre>&lt;a/&gt;\n*hi*\n\n- one</pre>'],
+      ['    # not a heading', '<pre># not a heading</pre>'],
+      ['    > not a quote', '<pre>&gt; not a quote</pre>'],
+      ['    | a | b |\n    |---|---|', '<pre>| a | b |\n|---|---|</pre>'],
+      ['    ```\n    x\n    ```', '<pre>```\nx\n```</pre>'],
+      ['    foo  ', '<pre>foo  </pre>'],
+      ['    &amp; &#35;', '<pre>&amp;amp; &amp;#35;</pre>'],
+      ['Options:\n\n    - a\n    - b', '<p>Options:</p><pre>- a\n- b</pre>'],
+    ]);
+  });
+  it('blank lines stay inside the block, and the blank lines around it are dropped', () => {
+    both([
+      ['    chunk1\n\n    chunk2\n  \n \n \n    chunk3', '<pre>chunk1\n\nchunk2\n\n\n\nchunk3</pre>'],
+      ['    a\n\n\n    b\nx', '<pre>a\n\n\nb</pre><p>x</p>'],
+      ['\n    \n    foo\n    \n', '<pre>foo</pre>'],
+      ['para\n\n    code\n    more\n\nafter\n\n    again', '<p>para</p><pre>code\nmore</pre><p>after</p><pre>again</pre>'],
+      ['    code\n\n- list', '<pre>code</pre><ul><li>list</li></ul>'],
+      ['    foo\nbar', '<pre>foo</pre><p>bar</p>'],
+    ]);
+  });
+  it('an indented line cannot interrupt a paragraph, so it continues it', () => {
+    both([
+      ['Foo\n    bar', '<p>Foo\nbar</p>'],
+      ['text\n    ===', '<p>text\n===</p>'],
+      ['> a\n    lazy', '<blockquote><p>a\nlazy</p></blockquote>'],
+    ]);
+  });
+  it('it works in a quote, and a line without > does not continue it', () => {
+    both([
+      ['>     code', '<blockquote><pre>code</pre></blockquote>'],
+      ['> a\n>\n>     code', '<blockquote><p>a</p><pre>code</pre></blockquote>'],
+      ['>     code\nlazy', '<blockquote><pre>code</pre></blockquote><p>lazy</p>'],
+      ['>- --\n    1. -', '<blockquote><hr></blockquote><pre>1. -</pre>'],
+    ]);
+  });
+  it('in a list item the code needs four more columns than the item text, and 4-space nesting still nests', () => {
+    both([
+      ['1. a\n    - b', '<ol><li>a<ul><li>b</li></ul></li></ol>'],
+      ['- a\n    - b', '<ul><li>a<ul><li>b</li></ul></li></ul>'],
+      ['   - x\n    *', '<ul><li>x\n*</li></ul>'],
+      ['  1. x\n    -', '<ol><li>x\n-</li></ol>'],
+      ['  1. x\n    - x', '<ol><li>x\n- x</li></ol>'],
+      ['  1. x\n    # head', '<ol><li>x\n# head</li></ol>'],
+      ['  1. x\n    ---', '<ol><li>x\n---</li></ol>'],
+      ['  1. x\n    >', '<ol><li>x\n&gt;</li></ol>'],
+      ['> * x\n    >', '<blockquote><ul><li>x\n&gt;</li></ul></blockquote>'],
+    ]);
+    const code = (md: string) => render(md).querySelector('li .limmat-code code')?.textContent;
+    expect(code('- a\n\n      - b')).toBe('- b');
+    expect(code('- a\n\n    text')).toBeUndefined();
+  });
+  it('a tab counts to the next multiple of four columns when it decides whether a line is indented code', () => {
+    both([
+      ['\tfoo\tbaz\t\tbim', '<pre>foo\tbaz\t\tbim</pre>'],
+      ['  \tfoo\tbaz\t\tbim', '<pre>foo\tbaz\t\tbim</pre>'],
+      ['    a\ta\n    \u1f50\ta', '<pre>a\ta\n\u1f50\ta</pre>'],
+      ['    foo\n\tbar', '<pre>foo\nbar</pre>'],
+      ['\t\tfoo', '<pre>\tfoo</pre>'],
+      ['  \t  foo', '<pre>  foo</pre>'],
+      ['Foo\n\tbar', '<p>Foo\nbar</p>'],
+      ['    a\n\t\n\tb', '<pre>a\n\nb</pre>'],
+    ]);
+  });
+  it('a tab inside code is kept, in a fence at the top level, in a list item, in a quote, and in details', () => {
+    both([
+      ['```\n\tx\n```', '<pre>\tx</pre>'],
+      ['- a\n  ```\n  \tx\n  ```', '<ul><li>a<pre>\tx</pre></li></ul>'],
+      ['> ```\n> \tx\n> ```', '<blockquote><pre>\tx</pre></blockquote>'],
+      ['```make\nall:\n\tgcc x.c\n```', '<pre>all:\n\tgcc x.c</pre>'],
+    ]);
+    const details = render('<details>\n<summary>S</summary>\n\n```\n\tx\n```\n\n</details>').querySelector('code')!.textContent;
+    expect(details).toBe('\tx');
+  });
+  it('while it is arriving: one to three spaces show nothing, the fourth space and a character make code', () => {
+    const open = (md: string) => kids(renderOpen(md));
+    for (const [md, want] of [
+      ['a\n\n ', '<p>a</p>'],
+      ['a\n\n   ', '<p>a</p>'],
+      ['a\n\n    ', '<p>a</p>'],
+      ['a\n\n    x', '<p>a</p><pre>x</pre>'],
+      ['a\n\n    x\n\n', '<p>a</p><pre>x</pre>'],
+      ['a\n\n    x\n  ', '<p>a</p><pre>x</pre>'],
+      ['a\n\n    x\n\n    y', '<p>a</p><pre>x\n\ny</pre>'],
+      ['a\n\n    x\nb', '<p>a</p><pre>x</pre><p>b</p>'],
+      ['a\n    x', '<p>a\nx</p>'],
+      ['\tfoo', '<pre>foo</pre>'],
+    ] as [string, string][])
+      expect(open(md), JSON.stringify(md)).toBe(want);
+  });
+  it('the Copy button copies the text without the indent', () => {
+    const root = render('    a\n      b');
+    expect(root.querySelector('.limmat-code code')!.textContent).toBe('a\n  b');
+    expect(root.querySelector('.limmat-copy')).not.toBeNull();
   });
 });

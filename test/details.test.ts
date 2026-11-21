@@ -42,7 +42,6 @@ describe('details blocks', () => {
     '< details>',
     '<details >',
     '<details\nopen>',
-    '    <details>',
     '<details>x',
     '<detailſ>',
     '<DETAİLS>',
@@ -175,6 +174,12 @@ describe('details blocks', () => {
     });
     it('a summary alone is enough content', () => {
       expect(html(render('<details>\n<summary>S</summary>'))).toBe('<details open=""><summary>S</summary></details>');
+    });
+    it('an opener indented four spaces is indented code, so no details element appears', () => {
+      const root = render('    <details>\nB\n</details>');
+      expect(details(root).length).toBe(0);
+      expect(root.querySelector('code')!.textContent).toBe('<details>');
+      expect(Array.from(root.querySelectorAll('p')).map((p) => p.textContent)).toEqual(['B', '</details>']);
     });
     it('a lone opener with nothing after it stays text at the end, and shows nothing while streaming', () => {
       expect(html(render('<details>'))).toBe('<p>&lt;details&gt;</p>');

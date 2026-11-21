@@ -1,16 +1,16 @@
 {
   "Tabs": {
-    "pass": 2,
+    "pass": 6,
     "total": 11,
-    "scope": "out"
+    "scope": "in"
   },
   "Backslash escapes": {
-    "pass": 9,
+    "pass": 10,
     "total": 13,
     "scope": "in"
   },
   "Entity and numeric character references": {
-    "pass": 12,
+    "pass": 13,
     "total": 17,
     "scope": "out"
   },
@@ -20,27 +20,27 @@
     "scope": "in"
   },
   "Thematic breaks": {
-    "pass": 18,
+    "pass": 19,
     "total": 19,
     "scope": "in"
   },
   "ATX headings": {
-    "pass": 17,
+    "pass": 18,
     "total": 18,
     "scope": "in"
   },
   "Setext headings": {
-    "pass": 25,
+    "pass": 27,
     "total": 27,
-    "scope": "out"
+    "scope": "in"
   },
   "Indented code blocks": {
-    "pass": 1,
+    "pass": 10,
     "total": 12,
-    "scope": "out"
+    "scope": "in"
   },
   "Fenced code blocks": {
-    "pass": 28,
+    "pass": 29,
     "total": 29,
     "scope": "in"
   },
@@ -50,12 +50,12 @@
     "scope": "out"
   },
   "Link reference definitions": {
-    "pass": 5,
+    "pass": 6,
     "total": 27,
     "scope": "out"
   },
   "Paragraphs": {
-    "pass": 7,
+    "pass": 8,
     "total": 8,
     "scope": "in"
   },
@@ -65,17 +65,17 @@
     "scope": "in"
   },
   "Block quotes": {
-    "pass": 22,
+    "pass": 25,
     "total": 25,
     "scope": "in"
   },
   "List items": {
-    "pass": 25,
+    "pass": 30,
     "total": 48,
     "scope": "in"
   },
   "Lists": {
-    "pass": 15,
+    "pass": 17,
     "total": 26,
     "scope": "in"
   },

@@ -12,7 +12,7 @@ export type Unit = Span &
   (
     | { k: 'p' | 'hr' | 'q' } // paragraph, thematic break, blockquote (its inner lines are scanned again when built)
     | { k: 'h'; lv: number; se?: true } // heading, level 1 to 6 (`se`: setext, its text is the lines before the underline on the last line)
-    | { k: 'f'; lang: string; closed: boolean; ind: number } // fenced code, `ind` is the opening fence indent to strip
+    | { k: 'f'; lang: string; closed: boolean; ind: number; ic?: true } // fenced code, `ind` is the opening fence indent to strip (`ic`: indented code, with no fence lines, `ind` is 4)
     | { k: 'li'; ord: boolean; num: number; off: number; mk: string } // list item, `off` is the content column, `num` the start number, `mk` the bullet or the number delimiter
     | { k: 'th'; al: Al; pend?: boolean } // table header, `pend` while the delimiter row is still arriving
     | { k: 'tr'; al: Al } // table body row
@@ -175,6 +175,23 @@ interface Last {
 }
 // Nesting deeper than the renderer builds (MAX_DEPTH in index.ts) is text, so no more containers are tracked, which keeps `step` cheap on deep input.
 const MAX_PRE = 12;
+/** Does the line start with four columns of indent? A tab counts to the next multiple of four, so a line that starts with a tab is indented. */
+const isCode = (l: string) => {
+  for (let i = 0, col = 0; i < l.length; i++) {
+    if (l[i] === ' ') col++;
+    else if (l[i] === '\t') col += 4 - (col % 4);
+    else return false;
+    if (col >= 4) return true;
+  }
+  return false;
+};
+/** The line without its first four columns of indent. A tab that is only partly used leaves its spaces. */
+export function dedent4(l: string): string {
+  let col = 0;
+  let i = 0;
+  for (; i < l.length && col < 4 && (l[i] === ' ' || l[i] === '\t'); i++) col += l[i] === ' ' ? 1 : 4 - (col % 4);
+  return ' '.repeat(Math.max(0, col - 4)) + l.slice(i);
+}
 const newLast = (): Last => ({ para: false, tbl: false, prev: '', pre: [], fe: null });
 const dropQuote = (c: string) => c.replace(/^ {0,3}> ?/, '');
 /** The column where the content of the list item that line `l` (matched by `m`) opens starts. */
@@ -199,7 +216,7 @@ function step(s: Last, c: string, det: boolean): void {
     if (s.fe.test(c)) s.fe = null;
     return;
   }
-  if (s.tbl && c.trim() && !interrupts(c, det)) {
+  if (s.tbl && c.trim() && !interrupts(c, det) && !isCode(c)) {
     s.prev = c; // a row
     return;
   }
@@ -208,7 +225,7 @@ function step(s: Last, c: string, det: boolean): void {
     if (BQ.test(c)) {
       s.pre.push(0);
       c = dropQuote(c);
-    } else if ((m = LI.exec(c)) && (!s.para || interrupts(c, det))) {
+    } else if ((m = LI.exec(c)) && m[1].length < 4 && !HR.test(c) && (!s.para || interrupts(c, det))) {
       s.pre.push(itemOff(m));
       c = c.slice(s.pre[s.pre.length - 1]);
     } else break;
@@ -217,8 +234,17 @@ function step(s: Last, c: string, det: boolean): void {
   const f = fence(c);
   if (f) s.fe = closer(f, ' {0,3}');
   s.tbl = s.para && headOver(s.prev, c);
-  s.para = !f && !s.tbl && !!c.trim() && !atx(c) && !HR.test(c) && !(s.para && SETEXT.test(c)); // an underline closes the paragraph into a heading
+  // An underline closes the paragraph into a heading, and a line indented four spaces that is not paragraph text is code.
+  s.para = !f && !s.tbl && !!c.trim() && !atx(c) && !HR.test(c) && !(s.para && SETEXT.test(c)) && (s.para || !isCode(c));
   s.prev = c;
+}
+
+/** The indented code that starts at line i: lines indented four spaces, with blank lines between them. `e` ends its text, and `j` includes the blank lines after it. */
+function indentEnd(L: string[], i: number): { e: number; j: number } {
+  let e = i + 1;
+  let j = i + 1;
+  for (; j < L.length && (!L[j].trim() || isCode(L[j])); j++) if (L[j].trim()) e = j + 1;
+  return { e, j };
 }
 
 /** End (exclusive) of the blockquote starting at line i. */
@@ -284,7 +310,8 @@ function itemEnd(L: string[], i: number, off: number, text: boolean, det: boolea
         fe = closer(f, ' *');
         s.para = s.tbl = false;
       } else step(s, x.slice(off), det);
-    } else if (LI.test(x) || interrupts(x, det) || blank || !s.para) break;
+    } else if ((LI.test(x) && !isCode(x)) || interrupts(x, det) || blank || !s.para)
+      break; // four spaces is too much for a new item, so it continues the paragraph
     else s.prev = x;
     blank = false;
     last = j + 1;
@@ -348,12 +375,19 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       }
     }
     if (tbl) {
-      if (!interrupts(l, !!det)) {
+      if (!interrupts(l, !!det) && !isCode(l)) {
         U.push({ k: 'tr', a: i, e: i + 1, b: i + 1, al: tbl });
         i++;
         continue;
       }
       tbl = null;
+    }
+    if (!lazy(i) && isCode(l)) {
+      // Here no paragraph is open (a paragraph takes every line up to a blank one or a block start), so this is indented code.
+      const { e, j } = indentEnd(L, i);
+      U.push({ k: 'f', a: i, e, b: j, lang: '', closed: j < n, ind: 4, ic: true });
+      i = j;
+      continue;
     }
     let m: RegExpExecArray | null;
     let h: [number, string] | null;

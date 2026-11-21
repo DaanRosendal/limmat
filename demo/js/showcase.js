@@ -52,7 +52,7 @@ md.end();
 - [x] Headings, lists, quotes, alerts, and tables with alignment
 - [x] Task lists and fenced code with a Copy button
 - [x] Collapsible sections and safe tags like <kbd>Ctrl</kbd>
-- [ ] Indented code
+- [ ] Reference links
 - [ ] Math and footnotes
 
 > Unsupported syntax renders as literal text, never as markup.

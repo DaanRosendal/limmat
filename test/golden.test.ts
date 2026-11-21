@@ -18,6 +18,7 @@ const docs: Record<string, string> = {
   alerts: CORPUS.find((d) => d.startsWith('Alerts:'))!,
   entities: CORPUS.find((d) => d.startsWith('Entities:'))!,
   setext: CORPUS.find((d) => d.startsWith('Setext:'))!,
+  indented: CORPUS.find((d) => d.startsWith('Indented code:'))!,
 };
 
 describe('golden output', () => {

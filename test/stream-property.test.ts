@@ -78,7 +78,9 @@ function block(r: R): string {
       const text = spans(r, 1) + (r() < 0.4 ? `\n${spans(r, 1)}` : '');
       return r() < 0.3 ? `> ${text.replace(/\n/g, '\n> ')}\n> ${under}` : `${text}\n${under}`;
     },
-  ][Math.floor(r() * 11)]();
+    () =>
+      `${spans(r, 1)}\n\n    ${words(r, 3)}${r() < 0.5 ? `\n\n      ${words(r, 2)}` : ''}${r() < 0.3 ? `\n${pick(r, ['\t', '    '])}${words(r, 2)}` : ''}`,
+  ][Math.floor(r() * 12)]();
 }
 
 const genBlocks = (r: R) => Array.from({ length: 2 + Math.floor(r() * 4) }, () => block(r));

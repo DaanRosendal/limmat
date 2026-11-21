@@ -15,10 +15,7 @@ const SECTIONS = join(process.cwd(), 'test/fixtures/commonmark-sections.json');
 
 // Sections that are out of scope (listed in the README table as not yet or partial).
 const OUT_OF_SCOPE: Record<string, string> = {
-  Tabs: 'tabs are not expanded',
   'Entity and numeric character references': 'entities are shown literally',
-  'Setext headings': 'setext headings are not supported',
-  'Indented code blocks': 'indented code blocks are not supported',
   'HTML blocks': 'raw HTML is shown as text',
   'Raw HTML': 'raw HTML is shown as text',
   'Link reference definitions': 'reference links are not supported',

@@ -51,7 +51,7 @@ write(chunk) --> src --> flush() --> sync() --> scan() --> units --> build() -->
                                      +-- key diff against `tail` -------+
 ```
 
-- `src/block.ts`: `scan(lines, ...)` splits lines into `Unit`s (paragraph, heading, thematic break, fence, quote, list item, table header, table row, details). Forward-only: a unit followed by a unit that starts on a complete line is final.
+- `src/block.ts`: `scan(lines, ...)` splits lines into `Unit`s (paragraph, heading, thematic break, fence or indented code, quote, list item, table header, table row, details). Forward-only: a unit followed by a unit that starts on a complete line is final.
 - `src/inline.ts`: `parseInline(text, spec, tags)` turns one block's text into an `Inline` tree (CommonMark's delimiter stack for emphasis, a bracket stack for links, `pairTags()` for the allowed HTML tags). Linear time, with depth and work caps.
 - `src/url.ts`: `safeUrl()`, the only gate between parsed link text and an `href`.
 - `src/index.ts`: `createRenderer()`: the buffer, throttle, `flush()` (cuts the buffer into lines), `sync()` (diff and freeze, one level at a time), `build()` and `place()` (DOM), the Copy button, and the click listener.
