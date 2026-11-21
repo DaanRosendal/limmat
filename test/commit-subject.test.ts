@@ -37,7 +37,9 @@ describe('commit subject rule', () => {
     } catch {
       return; // not a git checkout (a source tarball)
     }
-    const bad = log.split('\n').filter((s) => s && !isConventional(s));
+    // 55f4180 has git's automatic revert subject, and master cannot be rewritten, so this one commit is let through.
+    const old = 'Revert "fix(demo): wrap long code lines"';
+    const bad = log.split('\n').filter((s) => s && s !== old && !isConventional(s));
     expect(bad).toEqual([]);
   });
 });
