@@ -250,7 +250,7 @@ Pass options as the second argument to `createRenderer`. All are optional, and t
 | `throttleMs` | `50` | Minimum ms between re-renders of the open block. `0` renders on every write. |
 | `images` | `true` | Allowed image origins, like `['https://cdn.example.com']`, or `false` to show "Image not shown: alt text" instead. See [Safety](#safety). |
 | `html` | `true` | Which safe tags become elements, like `<kbd>` and `<details>`: `true` for all, a list to keep only some, or `false` to show them as text (except `<br>`). |
-| `highlight` | none | `(el, code, lang) => void`, called for each finished code block. `limmat/highlight` provides one. |
+| `highlight` | none | `(el, code, lang) => void`, called for each finished code block. `limmat/highlight` provides one. It can also draw diagrams ([mermaid recipe](https://github.com/DaanRosendal/limmat/blob/master/docs/mermaid.md)). |
 | `onLinkClick` | none | `(href, event) => boolean`. Return `true` to handle the click yourself. |
 | `isInternalPath` | all paths | `(path) => boolean`. Decides which site paths like `/docs/x` become links. Check the whole path. |
 | `allowedProtocols` | `https`, `http`, `mailto`, and 4 more | Protocols that become links. The default also includes `tel`, `irc`, `ircs`, and `xmpp`. Others show as text. A protocol you list is trusted, except `javascript`, `data`, and `vbscript`, which are always refused. |

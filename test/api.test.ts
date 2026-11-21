@@ -296,6 +296,30 @@ describe('links', () => {
 });
 
 describe('code blocks', () => {
+  it('a highlight hook can swap a closed block for a diagram once, and Copy still copies the source', async () => {
+    // The recipe for mermaid (or any diagram library): hide the <pre>, put the drawing after it, keep the <code> text for Copy.
+    vi.useFakeTimers();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const highlight = vi.fn((el: HTMLElement, _code: string, lang: string) => {
+      if (lang !== 'mermaid') return;
+      const out = document.createElement('div');
+      out.className = 'diagram';
+      el.parentElement!.hidden = true;
+      el.parentElement!.after(out);
+    });
+    const { root, r } = mk({ highlight });
+    for (const ch of 'Intro\n\n```mermaid\ngraph TD\n  A --> B\n```\n\nAfter text that keeps streaming') r.write(ch);
+    expect(highlight).toHaveBeenCalledTimes(1);
+    expect(highlight.mock.calls[0].slice(1)).toEqual(['graph TD\n  A --> B', 'mermaid']);
+    r.end();
+    expect(highlight).toHaveBeenCalledTimes(1);
+    expect(root.querySelectorAll('.diagram').length).toBe(1);
+    expect(root.querySelector('pre')!.hidden).toBe(true);
+    root.querySelector('button')!.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(writeText).toHaveBeenCalledWith('graph TD\n  A --> B');
+  });
   it('copy button writes to the clipboard and shows the copied label', async () => {
     vi.useFakeTimers();
     const writeText = vi.fn().mockResolvedValue(undefined);
