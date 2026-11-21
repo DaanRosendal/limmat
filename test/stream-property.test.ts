@@ -9,7 +9,7 @@ const N = Number(process.env.FUZZ_N ?? 60);
 const SEED = Number(process.env.FUZZ_SEED ?? 4242);
 const WORDS = ['alpha', 'beta', 'gamma', 'delta', 'omega', 'x'];
 // A lone `!` or `|` can be real text ("great!", "a | b"), so only `![` and a table delimiter row count as leaks.
-const MARKERS = /[*_~[\]()<>#\\`]|!\[|--|:-|-:/;
+const MARKERS = /[*_~[\]()<>#\\`=]|!\[|--|:-|-:/;
 
 type R = () => number;
 const pick = <T>(r: R, xs: T[]): T => xs[Math.floor(r() * xs.length)];
@@ -73,7 +73,12 @@ function block(r: R): string {
     () => table(r),
     () => `<details>\n<summary>${words(r, 3)}</summary>\n\n${spans(r, 1)}\n\n</details>`,
     () => `> [!${pick(r, ['NOTE', 'tip', 'IMPORTANT', 'Warning', 'CAUTION'])}]\n> ${spans(r, 1)}${r() < 0.4 ? `\n> - ${spans(r, 1)}` : ''}`,
-  ][Math.floor(r() * 10)]();
+    () => {
+      const under = pick(r, ['===', '=', '---', '-', '--', '=====']);
+      const text = spans(r, 1) + (r() < 0.4 ? `\n${spans(r, 1)}` : '');
+      return r() < 0.3 ? `> ${text.replace(/\n/g, '\n> ')}\n> ${under}` : `${text}\n${under}`;
+    },
+  ][Math.floor(r() * 11)]();
 }
 
 const genBlocks = (r: R) => Array.from({ length: 2 + Math.floor(r() * 4) }, () => block(r));

@@ -10,6 +10,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - HTML entities: numeric references (`&#35;`, `&#x23;`) and the names `&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`, and `&nbsp;` now show as their character, in text and in a link destination (checked after decoding, so `&#106;avascript:` is still refused). The result is always plain text, so `&lt;b&gt;` never becomes a tag and `&#42;` never becomes emphasis. Code, autolinks, and bare URLs keep the text as written. Other names, like `&copy;`, still show literally. While one is arriving (`&`, `&am`, `&#12`) it is held back.
 
+- Underlined headings: a paragraph over a line of `=` is an `h1`, and over a line of `-` is an `h2`, as in CommonMark. The heading holds every line of the paragraph, the underline may be indented up to three spaces, and a lazy line in a quote or list item is never an underline. While the underline is still arriving it is held back, so no `=` or `-` shows. A line of `---` right under a paragraph used to be a rule and is now an underline, so `Text` over `---` is a heading, not text and a rule.
+
 ### Fixed
 
 - A lazy line after a table that sits two containers deep (`> > | a |` over `> > |---|`, or `> - | a |` over `>   |---|`) now ends the outer quote or item too, as in GFM. It used to stay in the outer container.

@@ -17,6 +17,7 @@ const docs: Record<string, string> = {
   tasks: CORPUS[8],
   alerts: CORPUS.find((d) => d.startsWith('Alerts:'))!,
   entities: CORPUS.find((d) => d.startsWith('Entities:'))!,
+  setext: CORPUS.find((d) => d.startsWith('Setext:'))!,
 };
 
 describe('golden output', () => {

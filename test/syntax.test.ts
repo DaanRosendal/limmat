@@ -145,7 +145,6 @@ describe('conformance, own cases for the supported subset', () => {
     expect(root.querySelector('h1')).not.toBeNull();
   });
   it('unsupported things degrade to text', () => {
-    expect(html(render('Setext\n===')).startsWith('<p>')).toBe(true);
     const root = render('[ref]: http://x.com\n\n[ref]');
     expect(root.children.length).toBe(2);
     expect(root.children[0].textContent).toBe('[ref]: http://x.com');
@@ -805,5 +804,116 @@ describe('entities', () => {
     expect(html(render('a &am'))).toBe('<p>a &amp;am</p>');
     expect(html(render('a &#12'))).toBe('<p>a &amp;#12</p>');
     expect(html(render('a &'))).toBe('<p>a &amp;</p>');
+  });
+});
+
+describe('setext headings', () => {
+  // Expected output comes from cmark-gfm 0.29.
+  const raw = (md: string, split: 'whole' | 'char' = 'whole') => html(render(md, split));
+  const both = (cases: [string, string][], fn: (s: string, split: 'whole' | 'char') => string = raw) => {
+    for (const [md, want] of cases)
+      for (const split of ['whole', 'char'] as const) expect(fn(md, split), `${JSON.stringify(md)} ${split}`).toBe(want);
+  };
+  it('a paragraph over a line of = is a level 1 heading, and over a line of - a level 2 heading', () => {
+    both([
+      ['Foo\n===', '<h1>Foo</h1>'],
+      ['Foo\n---', '<h2>Foo</h2>'],
+      ['Foo\n=', '<h1>Foo</h1>'],
+      ['Foo\n-', '<h2>Foo</h2>'],
+      ['Foo\n--', '<h2>Foo</h2>'],
+      ['Foo\n==========', '<h1>Foo</h1>'],
+      ['Foo\n===\n', '<h1>Foo</h1>'],
+    ]);
+  });
+  it('the heading holds every line of the paragraph, with inline markup across them', () => {
+    both([
+      ['Foo\nbar\n---', '<h2>Foo\nbar</h2>'],
+      ['Foo *bar\nbaz*\n====', '<h1>Foo <em>bar\nbaz</em></h1>'],
+      ['  Foo\n  bar\n  ===', '<h1>Foo\nbar</h1>'],
+      ['Foo  \n===', '<h1>Foo</h1>'],
+      ['Foo\\\n===', '<h1>Foo\\</h1>'],
+    ]);
+  });
+  it('the underline may be indented up to three spaces and followed by spaces', () => {
+    both([
+      ['Foo\n ===', '<h1>Foo</h1>'],
+      ['Foo\n   ---', '<h2>Foo</h2>'],
+      ['Foo\n===   ', '<h1>Foo</h1>'],
+      ['Foo\n    ===', '<p>Foo\n===</p>'],
+    ]);
+  });
+  it('anything else on the underline line keeps it paragraph text', () => {
+    both([
+      ['Foo\n= =', '<p>Foo\n= =</p>'],
+      ['Foo\n==x', '<p>Foo\n==x</p>'],
+      ['Foo\n=-=', '<p>Foo\n=-=</p>'],
+      ['Foo\n--- x', '<p>Foo\n--- x</p>'],
+      ['Foo\n***', '<p>Foo</p><hr>'],
+      ['Foo\n___', '<p>Foo</p><hr>'],
+    ]);
+  });
+  it('a line of --- with no paragraph above is still a rule, and a blank line keeps it one', () => {
+    both([
+      ['---', '<hr>'],
+      ['Foo\n\n---', '<p>Foo</p><hr>'],
+      ['Foo\n\n===', '<p>Foo</p><p>===</p>'],
+      ['===', '<p>===</p>'],
+      ['# Foo\n===', '<h1>Foo</h1><p>===</p>'],
+      ['# Foo\n---', '<h1>Foo</h1><hr>'],
+    ]);
+  });
+  it('the blocks around a setext heading are unchanged', () => {
+    both([
+      ['Foo\n---\nbar', '<h2>Foo</h2><p>bar</p>'],
+      ['Foo\n===\nbar\nbaz\n---', '<h1>Foo</h1><h2>bar\nbaz</h2>'],
+      ['Foo\n---\n\nbar', '<h2>Foo</h2><p>bar</p>'],
+      ['before\n\nFoo\n===\n\n- a', '<p>before</p><h1>Foo</h1><ul><li>a</li></ul>'],
+    ]);
+  });
+  it('it works inside a quote, a list item, and a details block, but a lazy line is never an underline', () => {
+    both([
+      ['> Foo\n> ===', '<blockquote><h1>Foo</h1></blockquote>'],
+      ['> Foo\n===', '<blockquote><p>Foo\n===</p></blockquote>'],
+      ['> foo\nbar\n===', '<blockquote><p>foo\nbar\n===</p></blockquote>'],
+      ['> a\n---', '<blockquote><p>a</p></blockquote><hr>'],
+      ['- Foo\n  ===', '<ul><li><h1>Foo</h1></li></ul>'],
+      ['- Foo\n  ---', '<ul><li><h2>Foo</h2></li></ul>'],
+      ['- Foo\n---', '<ul><li>Foo</li></ul><hr>'],
+      ['- Foo\n===', '<ul><li>Foo\n===</li></ul>'],
+      ['<details>\n<summary>S</summary>\n\nFoo\n---\n\n</details>', '<details><summary>S</summary><h2>Foo</h2></details>'],
+      ['- Foo\n  ===\nbar', '<ul><li><h1>Foo</h1></li></ul><p>bar</p>'],
+      ['> Foo\n> ===\nbar', '<blockquote><h1>Foo</h1></blockquote><p>bar</p>'],
+    ]);
+  });
+  it('a line with a pipe over one run of dashes is a heading, and a real table is still a table', () => {
+    both([
+      ['a | b\n---', '<h2>a | b</h2>'],
+      ['a | b\n-', '<h2>a | b</h2>'],
+    ]);
+    expect(render('a | b\n--|--\n1 | 2').querySelector('table')).not.toBeNull();
+    expect(render('| a | b |\n|---|---|\n| 1 | 2 |').querySelector('table')).not.toBeNull();
+  });
+  it('while the underline is still arriving it is held back, so no = or - shows', () => {
+    const open = (md: string) => html(renderOpen(md));
+    for (const [md, want] of [
+      ['Foo\n=', '<p>Foo</p>'],
+      ['Foo\n==', '<p>Foo</p>'],
+      ['Foo\n-', '<p>Foo</p>'],
+      ['Foo\n--', '<p>Foo</p>'],
+      ['Foo\n---', '<p>Foo</p>'],
+      ['Foo\nbar\n==', '<p>Foo\nbar</p>'],
+      ['Foo\n  ==', '<p>Foo</p>'],
+      ['Foo\n==\n', '<h1>Foo</h1>'],
+      ['Foo\n---\n', '<h2>Foo</h2>'],
+      ['Foo\n==x', '<p>Foo\n==x</p>'],
+      ['Foo\n--- x', '<p>Foo\n--- x</p>'],
+      ['> Foo\n> ==', '<blockquote><p>Foo</p></blockquote>'],
+      ['- Foo\n  --', '<ul><li>Foo</li></ul>'],
+    ] as [string, string][])
+      expect(open(md), JSON.stringify(md)).toBe(want);
+  });
+  it('when the message ends on an underline, it is a heading', () => {
+    expect(html(render('Foo\n=='))).toBe('<h1>Foo</h1>');
+    expect(html(render('Foo\n--'))).toBe('<h2>Foo</h2>');
   });
 });

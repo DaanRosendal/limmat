@@ -11,7 +11,7 @@ interface Span {
 export type Unit = Span &
   (
     | { k: 'p' | 'hr' | 'q' } // paragraph, thematic break, blockquote (its inner lines are scanned again when built)
-    | { k: 'h'; lv: number } // ATX heading, level 1 to 6
+    | { k: 'h'; lv: number; se?: true } // heading, level 1 to 6 (`se`: setext, its text is the lines before the underline on the last line)
     | { k: 'f'; lang: string; closed: boolean; ind: number } // fenced code, `ind` is the opening fence indent to strip
     | { k: 'li'; ord: boolean; num: number; off: number; mk: string } // list item, `off` is the content column, `num` the start number, `mk` the bullet or the number delimiter
     | { k: 'th'; al: Al; pend?: boolean } // table header, `pend` while the delimiter row is still arriving
@@ -25,6 +25,8 @@ export const LI = /^( *)([-*+]|\d{1,9}[.)])(?:( +)([^\n]*)|$)/;
 const FENCE = /^( {0,3})(`{3,}|~{3,})([^\n]*)$/;
 const STAR_BOLD = /^ {0,3}\*[ \t]+\*{2,}$/;
 const BARE = /^ {0,3}(?:[-*+]|\d{1,9}[.)])$/;
+// The underline of a setext heading: one run of = (level 1) or - (level 2), which may not be a lazy line.
+const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
 const HR = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
 export const BQ = /^ {0,3}>/;
 const PIPE = /^ {0,3}\|/;
@@ -215,7 +217,7 @@ function step(s: Last, c: string, det: boolean): void {
   const f = fence(c);
   if (f) s.fe = closer(f, ' {0,3}');
   s.tbl = s.para && headOver(s.prev, c);
-  s.para = !f && !s.tbl && !!c.trim() && !atx(c) && !HR.test(c);
+  s.para = !f && !s.tbl && !!c.trim() && !atx(c) && !HR.test(c) && !(s.para && SETEXT.test(c)); // an underline closes the paragraph into a heading
   s.prev = c;
 }
 
@@ -410,14 +412,27 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
         }
       }
       let j = i + 1;
-      let wait = -1; // a pipe line that may still turn into a table head: it stays out of the paragraph until it is known
+      let wait = -1; // a pipe line or underline that may still turn the paragraph into something else: it stays out until it is known
+      let se = 0;
       for (; j < n && L[j].trim(); j++) {
+        const ul = lazy(j) ? null : SETEXT.exec(L[j]);
+        if (ul) {
+          // An underline still arriving may grow into text (`==x`), so it waits. A finished one turns the paragraph into a heading.
+          if (!final && partial && j === n - 1) wait = j;
+          else se = ul[1][0] === '=' ? 1 : 2;
+          break;
+        }
         const d = L[j].includes('|') && !lazy(j + 1) ? pipeHead(L, j, partial, final) : 0;
         if (d) {
           if (d === 2) wait = j;
           break;
         }
         if (interrupts(L[j], !!det)) break;
+      }
+      if (se) {
+        U.push({ k: 'h', a: i, e: j + 1, b: j + 1, lv: se, se: true });
+        i = j + 1;
+        continue;
       }
       if (wait >= 0) {
         U.push({ k: 'p', a: i, e: wait, b: n });

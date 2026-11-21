@@ -304,7 +304,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       }
       case 'h': {
         const el = h('h' + u.lv);
-        inline(el, atx(L[u.a])![1], spec);
+        inline(el, u.se ? joinTrim(L.slice(u.a, u.e - 1)) : atx(L[u.a])![1], spec);
         return { n: el };
       }
       case 'hr':

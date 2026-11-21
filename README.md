@@ -237,7 +237,7 @@ limmat follows [CommonMark](https://spec.commonmark.org/0.31.2/) and GFM for the
 | Links and bare URLs | ⚠️&nbsp;Partial | Only http, https, and mailto. Titles are dropped. Unsafe URLs show as text. |
 | Images | ⚠️&nbsp;Partial | On by default and loaded without a click, so limit them with `images`. No titles. |
 | Raw HTML | ⚠️&nbsp;Partial | Shown as text, except a few tags like `<kbd>` and `<sub>`. |
-| Underlined headings, indented code, reference links, tab indentation | ❌&nbsp;Not&nbsp;yet |  |
+| Indented code, reference links, tab indentation | ❌&nbsp;Not&nbsp;yet |  |
 | Math, footnotes, citations, emoji codes | ❌&nbsp;Not&nbsp;yet | Math, footnotes, and citations are planned as opt-ins. |
 <!-- support:end -->
 

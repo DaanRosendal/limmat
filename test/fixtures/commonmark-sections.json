@@ -20,7 +20,7 @@
     "scope": "in"
   },
   "Thematic breaks": {
-    "pass": 17,
+    "pass": 18,
     "total": 19,
     "scope": "in"
   },
@@ -30,7 +30,7 @@
     "scope": "in"
   },
   "Setext headings": {
-    "pass": 12,
+    "pass": 25,
     "total": 27,
     "scope": "out"
   },
@@ -40,7 +40,7 @@
     "scope": "out"
   },
   "Fenced code blocks": {
-    "pass": 27,
+    "pass": 28,
     "total": 29,
     "scope": "in"
   },
