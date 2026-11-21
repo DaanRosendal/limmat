@@ -32,7 +32,7 @@ Bare addresses like https://example.com/docs, www.example.com, and hi@example.co
 | \`labels\` | English | Button text |
 | \`highlight\` | none | Code colours |
 
-### Three lines to use it
+### Using it
 
 \`\`\`sh
 npm install limmat
@@ -41,8 +41,12 @@ npm install limmat
 \`\`\`ts
 import { createRenderer } from 'limmat';
 
-const md = createRenderer(document.querySelector('#answer')!);
-for await (const chunk of stream) md.write(chunk);
+const md = createRenderer(
+  document.querySelector('#answer')!,
+);
+for await (const chunk of stream) {
+  md.write(chunk);
+}
 md.end();
 \`\`\`
 
