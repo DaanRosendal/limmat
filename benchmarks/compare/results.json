@@ -69,7 +69,7 @@
       "output": "react",
       "directDeps": 15,
       "gzipBytes": 165588,
-      "gzipNote": "react and react-dom excluded; initial chunks only, lazy-loaded shiki and mermaid not counted",
+      "gzipNote": "react and react-dom excluded, initial chunks only, lazy-loaded shiki and mermaid not counted",
       "defaultConfig": "`<Streamdown isAnimating={true}>` while text arrives and `isAnimating={false}` once the stream has ended, as its README shows, no plugins.",
       "releaseDate": "2026-11-17",
       "firstRelease": "2025-08-14",

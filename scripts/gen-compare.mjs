@@ -22,28 +22,16 @@ const RESULTS = ['pass', 'partial', 'fail', 'error'];
 // Reasons are chosen by the probe result only, never from detail strings.
 const REASON = {
   'p1-raw-html': {
-    pass: 'raw HTML shown as text',
-    partial: 'some raw HTML kept as elements',
-    fail: 'script runs',
-    error: 'probe did not run',
+    pass: 'showed raw HTML as text',
+    partial: 'kept some raw HTML as elements',
+    fail: 'ran a script',
+    error: 'could not be tested',
   },
   'p2-link-schemes': {
-    pass: 'unsafe link schemes blocked',
-    partial: 'some unsafe link schemes kept',
-    fail: 'unsafe link scheme kept',
-    error: 'probe did not run',
-  },
-  'p3-remote-html': {
-    pass: 'remote HTML not loaded',
-    partial: 'some remote HTML loads',
-    fail: 'remote HTML loads',
-    error: 'probe did not run',
-  },
-  'p4-remote-md-image': {
-    pass: 'markdown image not loaded',
-    partial: 'markdown image loads in some cases',
-    fail: 'markdown image loads without a click',
-    error: 'probe did not run',
+    pass: 'blocked unsafe link schemes',
+    partial: 'kept some unsafe link schemes',
+    fail: 'kept an unsafe link scheme',
+    error: 'could not be tested',
   },
 };
 const PROBES = ['p1-raw-html', 'p2-link-schemes', 'p3-remote-html', 'p4-remote-md-image', 'p5-link-target', 'p6-markers', 'p7-commonmark'];
@@ -236,7 +224,7 @@ function combine(results) {
 function reasons(keys, t) {
   const rs = keys.map((k) => [k, t.probes[k].result]);
   const shown = rs.every(([, r]) => r === 'pass') ? rs : rs.filter(([, r]) => r !== 'pass');
-  return shown.map(([k, r]) => REASON[k][r]).join(', ');
+  return shown.map(([k, r]) => REASON[k][r]).join(' and ');
 }
 
 function cells(t, data, checkedOn) {
@@ -264,7 +252,7 @@ function details(tools, data) {
   const notSafe = tools.filter((t) => combine([t.probes['p1-raw-html'].result, t.probes['p2-link-schemes'].result]) !== 'pass');
   if (notSafe.length)
     out.push(
-      `Safe by default: ${notSafe.map((t) => `${data.tools[t.id].name}: ${reasons(['p1-raw-html', 'p2-link-schemes'], t)}`).join('; ')}.`,
+      `Safe by default: ${notSafe.map((t) => `${data.tools[t.id].name} ${reasons(['p1-raw-html', 'p2-link-schemes'], t)}.`).join(' ')}`,
     );
   const leaky = tools.filter((t) => t.probes['p6-markers'].leaked > 0);
   const own = leaky.map((t) => data.details?.markersNotes?.[t.id]).filter(Boolean);
@@ -335,6 +323,7 @@ export function lint(text) {
   const p = [];
   text.split('\n').forEach((line, i) => {
     if (DASH.test(line)) p.push(`output line ${i + 1}: em or en dash`);
+    if (/;/.test(line.replace(/`[^`]*`/g, '').replace(/&#?\w+;/g, ''))) p.push(`output line ${i + 1}: semicolon in prose`);
     if (PLACEHOLDER_WORD.test(line)) p.push(`output line ${i + 1}: placeholder word`);
     if (/^\|/.test(line)) {
       for (const cell of line.split('|').slice(1, -1)) {

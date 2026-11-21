@@ -108,7 +108,7 @@ async function gzipBytes(t) {
 function gzipNote(t) {
   if (t.id === 'limmat') return '`src/index.ts`, esbuild minify, same target as `scripts/size.mjs`';
   const base = t.external ? 'react and react-dom excluded' : 'quick-start import only, esbuild minify';
-  return t.initialChunkOnly ? `${base}; initial chunks only, lazy-loaded shiki and mermaid not counted` : base;
+  return t.initialChunkOnly ? `${base}, initial chunks only, lazy-loaded shiki and mermaid not counted` : base;
 }
 
 export async function localMeta() {

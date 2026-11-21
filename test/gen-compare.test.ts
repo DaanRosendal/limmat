@@ -212,7 +212,7 @@ describe('compare table: render', () => {
   });
 
   it('lists the reasons, marker counts, and remote loads in the bullets under the table', () => {
-    expect(bullet(out, 'Safe by default:')).toBe('- Safe by default: marked: script runs.');
+    expect(bullet(out, 'Safe by default:')).toBe('- Safe by default: marked ran a script.');
     expect(bullet(out, 'Raw markers while streaming:')).toBe(
       `- Raw markers while streaming: marked 12 of 20 constructs. ${data.details.markersNote}`,
     );
@@ -227,7 +227,7 @@ describe('compare table: render', () => {
     r.tools[3].probes['p2-link-schemes'] = { result: 'fail', detail: 'x' };
     r.tools[4].probes['p1-raw-html'] = { result: 'error', detail: 'x' };
     expect(bullet(render(r, data), 'Safe by default:')).toBe(
-      '- Safe by default: streaming-markdown: some unsafe link schemes kept; marked: script runs, unsafe link scheme kept; react-markdown: probe did not run.',
+      '- Safe by default: streaming-markdown kept some unsafe link schemes. marked ran a script and kept an unsafe link scheme. react-markdown could not be tested.',
     );
   });
 
@@ -294,7 +294,7 @@ describe('compare table: render', () => {
       'Versions: limmat 0.2.0, streaming-markdown 1.2.3, Streamdown 1.2.3, marked 1.2.3, react-markdown 1.2.3. Node 22.22.2, Playwright 1.60.0, Chromium 140.0.7339.16.',
     );
     expect(out).toContain('[probes and raw results](https://github.com/DaanRosendal/limmat/blob/master/benchmarks/compare/README.md)');
-    expect(out).toContain('Wrong or out of date? Open an issue or pull request.');
+    expect(out).toContain('Open an issue or pull request if something is wrong or out of date.');
     expect(out).toContain('https://github.com/DaanRosendal/limmat/blob/master/benchmarks/compare/README.md');
   });
 
@@ -452,5 +452,12 @@ describe('compare table: command line', () => {
     old.tools[0].gzipBytes = -1;
     writeFileSync(results, JSON.stringify(old));
     expect(run('--check').status).toBe(1);
+  });
+});
+
+describe('compare table: prose rules', () => {
+  it('flags a semicolon in prose but not in a code span or an HTML entity', () => {
+    expect(lint('Some text; more text')).toEqual(['output line 1: semicolon in prose']);
+    expect(lint('Use `a; b` here and &nbsp; there')).toEqual([]);
   });
 });
