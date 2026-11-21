@@ -47,8 +47,22 @@ const AUTO = /<([A-Za-z][A-Za-z0-9+.-]*:[^\s<>]*|[\w.+-]+@[\w-]+(?:\.[\w-]+)+)>/
 const PARTIAL_AUTO = /<(?:[A-Za-z][\w.+-]*:[^\s<>]*|[\w.+-]+@[\w.-]*)$/y;
 const URLRE = /(?:https?:\/\/|www\.)[^\s<\]]+/iy;
 const DOMAIN = /[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/y;
+// A numeric reference (1 to 7 digits, or x and 1 to 6 hex digits) or one of six names. The full HTML name table is too big to ship.
+const ENT = /&(?:#([0-9]{1,7})|#[xX]([0-9a-fA-F]{1,6})|(amp|lt|gt|quot|apos|nbsp));/y;
+const NAMES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0' };
+// The same references and the backslash escapes, decoded in a link destination.
+const DEST_ESC = /\\([!-/:-@[-`{-~])|&(?:#([0-9]{1,7})|#[xX]([0-9a-fA-F]{1,6})|(amp|lt|gt|quot|apos|nbsp));/g;
+// The text from a `&` to the end that could still become a reference, held back while streaming.
+const PARTIAL_ENT = /^&(?:#(?:[0-9]{0,7}|[xX][0-9a-fA-F]{0,6})|[a-z]{0,4})$/;
 const MAXDEST = 8192; // most servers refuse longer request lines (Apache 8190, nginx 8 KB), so a longer link would be dead anyway
 const MAXDEPTH = 30;
+
+/** The character a reference stands for. A code point that does not exist (zero, a surrogate, past U+10FFFF) is U+FFFD. */
+const entChar = (dec?: string, hex?: string, name?: string): string => {
+  if (name) return NAMES[name];
+  const cp = dec ? +dec : parseInt(hex!, 16);
+  return cp && cp <= 0x10ffff && (cp < 0xd800 || cp > 0xdfff) ? String.fromCodePoint(cp) : '\uFFFD';
+};
 
 const lastCp = (s: string, i: number) => {
   const c = s.charCodeAt(i - 1);
@@ -107,7 +121,7 @@ function parseDest(s: string, j: number, w: { n: number }): { end: number; href:
   const skip = () => {
     while (s[j] === ' ' || s[j] === '\t' || s[j] === '\n') j++;
   };
-  const href = () => dest.replace(/\\([!-/:-@[-`{-~])/g, '$1');
+  const href = () => dest.replace(DEST_ESC, (_m, e, d, h, nm) => e ?? entChar(d, h, nm));
   skip();
   if (j >= n) return 'p';
   if (s[j] === ')') return { end: j + 1, href: href() };
@@ -301,6 +315,11 @@ function partialTag(r: string, tags: ReadonlySet<string>): boolean {
   return full.some((f) => f.length > r.length && f.startsWith(r));
 }
 
+/** True if `r` (the text from a `&` to the end) is a numeric reference or the start of one of the names. */
+function partialEnt(r: string): boolean {
+  return r[1] === '#' || Object.keys(NAMES).some((k) => k.startsWith(r.slice(1)));
+}
+
 function partialAuto(s: string, i: number): boolean {
   PARTIAL_AUTO.lastIndex = i;
   return PARTIAL_AUTO.test(s);
@@ -474,6 +493,19 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
         i += m[0].length;
         ts = i;
       } else if (spec && ((n - i <= 9 && partialTag(s.slice(i), tags)) || partialAuto(s, i))) {
+        text(i);
+        i = n;
+        ts = n;
+      } else i++;
+    } else if (c === '&') {
+      ENT.lastIndex = i;
+      const m = ENT.exec(s);
+      if (m) {
+        text(i);
+        out.push({ k: 't', s: entChar(m[1], m[2], m[3]) });
+        i += m[0].length;
+        ts = i;
+      } else if (spec && n - i <= 9 && PARTIAL_ENT.test(s.slice(i)) && partialEnt(s.slice(i))) {
         text(i);
         i = n;
         ts = n;

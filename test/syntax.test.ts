@@ -689,3 +689,121 @@ describe('alerts', () => {
     }
   });
 });
+
+describe('entities', () => {
+  // Expected output comes from cmark-gfm 0.29 (numeric references, and the names amp, lt, gt, quot, apos, nbsp).
+  const raw = (md: string, split: 'whole' | 'char' = 'whole') => html(render(md, split));
+  const both = (cases: [string, string][], fn: (s: string, split: 'whole' | 'char') => string = raw) => {
+    for (const [md, want] of cases)
+      for (const split of ['whole', 'char'] as const) expect(fn(md, split), `${JSON.stringify(md)} ${split}`).toBe(want);
+  };
+  it('numeric references and the names amp, lt, gt, quot, apos, and nbsp become their character', () => {
+    both([
+      ['&amp; &lt; &gt; &quot; &apos;', '<p>&amp; &lt; &gt; " \'</p>'],
+      ['a&nbsp;b', '<p>a&nbsp;b</p>'],
+      ['&#35; &#x23; &#X23; &#0000065; &#x1F600;', '<p># # # A \u{1F600}</p>'],
+      ['AT&amp;T and R&#38;D', '<p>AT&amp;T and R&amp;D</p>'],
+    ]);
+  });
+  it('a code point that does not exist becomes the replacement character', () => {
+    both([
+      ['&#0; &#xD800; &#x110000; &#1234567;', '<p>\uFFFD \uFFFD \uFFFD \uFFFD</p>'],
+      ['&#xDFFF; &#xD7FF;', '<p>\uFFFD \uD7FF</p>'],
+    ]);
+  });
+  it('anything that is not one of those stays literal, like the spec says for a bad reference', () => {
+    both([
+      [
+        '&copy; &foo; &amp &AMP; &Amp; &#; &#x; &#xZ; &#abc;',
+        '<p>&amp;copy; &amp;foo; &amp;amp &amp;AMP; &amp;Amp; &amp;#; &amp;#x; &amp;#xZ; &amp;#abc;</p>',
+      ],
+      ['&#12345678; &#x1234567;', '<p>&amp;#12345678; &amp;#x1234567;</p>'],
+      ['\\&amp; \\\\&amp;', '<p>&amp;amp; \\&amp;</p>'],
+    ]);
+  });
+  it('a decoded character is only text: it never starts markup, a block, or a tag', () => {
+    both([
+      ['&lt;b&gt;x&lt;/b&gt;', '<p>&lt;b&gt;x&lt;/b&gt;</p>'],
+      ['&#42;foo&#42; and &#95;bar&#95;', '<p>*foo* and _bar_</p>'],
+      ['&#35; not a heading', '<p># not a heading</p>'],
+      ['&#45; not a list', '<p>- not a list</p>'],
+      ['&gt; not a quote', '<p>&gt; not a quote</p>'],
+      ['&#96;not code&#96;', '<p>`not code`</p>'],
+      ['&#91;a&#93;(/p/)', '<p>[a](/p/)</p>'],
+      ['&#60;script&#62;alert(1)&#60;/script&#62;', '<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>'],
+    ]);
+  });
+  it('code spans and fenced code keep the text as written', () => {
+    both([
+      ['`&amp; &#35;`', '<p><code>&amp;amp; &amp;#35;</code></p>'],
+      ['``&lt;``', '<p><code>&amp;lt;</code></p>'],
+    ]);
+    const code = (md: string) => render(md).querySelector('code')!.textContent;
+    expect(code('```\n&amp; &#35;\n```')).toBe('&amp; &#35;');
+  });
+  it('they decode inside headings, emphasis, list items, quotes, tables, link text, and details', () => {
+    both([
+      ['# a &amp; b', '<h1>a &amp; b</h1>'],
+      ['**a &lt; b**', '<p><strong>a &lt; b</strong></p>'],
+      ['- a &gt; b', '<ul><li>a &gt; b</li></ul>'],
+      ['> a &amp; b', '<blockquote><p>a &amp; b</p></blockquote>'],
+      ['[a &amp; b](/p/)', '<p><a href="/p/">a &amp; b</a></p>'],
+    ]);
+    const cell = render('| a |\n|---|\n| x &amp; y |').querySelector('td')!.textContent;
+    expect(cell).toBe('x & y');
+    const sum = render('<details>\n<summary>a &amp; b</summary>\n\nbody\n\n</details>').querySelector('summary')!.textContent;
+    expect(sum).toBe('a & b');
+  });
+  it('a link destination decodes them before the URL check, so a disguised javascript: is still refused', () => {
+    both([
+      ['[a](https://x.com/?a=1&amp;b=2)', '<p><a href="https://x.com/?a=1&amp;b=2" target="_blank" rel="noopener noreferrer">a</a></p>'],
+      ['[a](<https://x.com/?a&#38;b>)', '<p><a href="https://x.com/?a&amp;b" target="_blank" rel="noopener noreferrer">a</a></p>'],
+      ['[a](&#106;avascript:alert(1))', '<p>a</p>'],
+      ['[a](&#x6A;avascript&colon;alert(1))', '<p>a</p>'],
+      ['[a](java&#9;script:alert(1))', '<p>a</p>'],
+      ['[a](java&#10;script:alert(1))', '<p>a</p>'],
+      ['[a](&#47;&#47;evil.example)', '<p>a</p>'],
+      ['![a](&#106;avascript:alert(1))', '<p><span>Image not shown: a</span></p>'],
+    ]);
+  });
+  it('an autolink and a bare URL are not decoded', () => {
+    both([
+      [
+        '<https://x.com/?a&amp;b>',
+        '<p><a href="https://x.com/?a&amp;amp;b" target="_blank" rel="noopener noreferrer">https://x.com/?a&amp;amp;b</a></p>',
+      ],
+      [
+        'https://x.com/?a&amp;b',
+        '<p><a href="https://x.com/?a&amp;amp;b" target="_blank" rel="noopener noreferrer">https://x.com/?a&amp;amp;b</a></p>',
+      ],
+    ]);
+  });
+  it('while streaming, a reference that is still arriving is held back, and it shows as written once it cannot complete', () => {
+    const open = (md: string) => html(renderOpen(md));
+    for (const [md, want] of [
+      ['a &', '<p>a </p>'],
+      ['a &a', '<p>a </p>'],
+      ['a &am', '<p>a </p>'],
+      ['a &amp', '<p>a </p>'],
+      ['a &amp;', '<p>a &amp;</p>'],
+      ['a &#', '<p>a </p>'],
+      ['a &#12', '<p>a </p>'],
+      ['a &#x', '<p>a </p>'],
+      ['a &#x1F60', '<p>a </p>'],
+      ['a &#x1F600;', '<p>a \u{1F600}</p>'],
+      ['AT&T', '<p>AT&amp;T</p>'],
+      ['a &foo', '<p>a &amp;foo</p>'],
+      ['a &#12345678', '<p>a &amp;#12345678</p>'],
+      ['a &#xZ', '<p>a &amp;#xZ</p>'],
+      ['**a &am', '<p><strong>a </strong></p>'],
+      ['- a &am', '<ul><li>a </li></ul>'],
+      ['> a &am', '<blockquote><p>a </p></blockquote>'],
+    ] as [string, string][])
+      expect(open(md), JSON.stringify(md)).toBe(want);
+  });
+  it('at the end of the message a half-typed reference is plain text', () => {
+    expect(html(render('a &am'))).toBe('<p>a &amp;am</p>');
+    expect(html(render('a &#12'))).toBe('<p>a &amp;#12</p>');
+    expect(html(render('a &'))).toBe('<p>a &amp;</p>');
+  });
+});

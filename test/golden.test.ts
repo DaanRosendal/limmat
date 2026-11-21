@@ -15,7 +15,8 @@ const docs: Record<string, string> = {
   quotes: CORPUS[6],
   inline: CORPUS[7],
   tasks: CORPUS[8],
-  alerts: CORPUS[CORPUS.length - 1],
+  alerts: CORPUS.find((d) => d.startsWith('Alerts:'))!,
+  entities: CORPUS.find((d) => d.startsWith('Entities:'))!,
 };
 
 describe('golden output', () => {

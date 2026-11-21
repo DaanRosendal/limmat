@@ -10,7 +10,7 @@
     "scope": "in"
   },
   "Entity and numeric character references": {
-    "pass": 5,
+    "pass": 12,
     "total": 17,
     "scope": "out"
   },

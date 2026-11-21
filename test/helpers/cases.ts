@@ -60,6 +60,10 @@ export const XSS: [string, string][] = [
   ['nested malformed', '<div><p><b><script>alert(1)</p></b>'],
   ['alert marker breakout', '> [!NOTE" class="x" onclick="alert(1)]\n> text'],
   ['alert marker with markup', '> [!NOTE]<script>alert(1)</script>\n> text'],
+  ['entity disguised javascript link', '[a](&#106;avascript:alert(1))'],
+  ['entity tab in javascript link', '[a](java&#x9;script:alert(1))'],
+  ['entity quote breakout', '[a](https://x.com/&#34;onmouseover=&#34;alert(1))'],
+  ['entity markup is text', '&#60;img src=x onerror=alert(1)&#62; &lt;script&gt;alert(1)&lt;/script&gt;'],
   ['html in link text', '[<img src=x onerror=alert(1)>](https://ok.com)'],
   ['image js:', '![x](javascript:alert(1))'],
   ['iframe js:', '<iframe src="javascript:alert(1)"></iframe>'],
@@ -170,4 +174,5 @@ export const CORPUS: string[] = [
   'Lazy pipe lines:\n\n- item\n| a | b |\n|---|---|\n| 1 | 2 |\n\n> quote\n| a | b |\n|---|---|\n| 1 | 2 |\n\n- | a | b |\n  |---|---|\n  | 1 | 2 |\nlazy text\n\n> | a | b |\n> |---|---|\n| 1 | 2 |\n\n> a\n| b | c |\n> |---|---|\n> | 1 | 2 |\n\n- a\n- b\n| x | y |\n- c',
   'Deep tables:\n\n> > | a | b |\n> > |---|---|\n> > | 1 | 2 |\nlazy text\n\n> - | a | b |\n>   |---|---|\nmore lazy\n\n- > | a | b |\n  > |---|---|\n  > | 1 | 2 |\nafter\n\n| | a | b |\n- |---|---|\n\n> | a | b |\n> - |---|---|',
   'Alerts:\n\n> [!NOTE]\n> **Useful** info with `code`\n\n> [!WARNING]\n> - a\n> - b\n\n> [!tip]\n\n> [!INFO]\n> not one\n\n> [!CAUTION]\nlazy line\n\n> [!NOTE] same line\n\n> [!IMPORTANT]\n> ```js\n> x\n> ```\n\n- > [!NOTE]\n  > in a list\n\n> a\n> [!NOTE]\n\n> [!NOTE]',
+  'Entities: AT&amp;T, R&D, a &lt; b, &#35; and &#x1F600; and &nbsp;x, &copy; &foo; &#0; &#12345678;, `&amp;` and ``&lt;``.\n\n[q](https://x.com/?a=1&amp;b=2) [bad](&#106;avascript:alert(1)) <https://x.com/?a&amp;b> https://x.com/?a&amp;b\n\n| a &amp; b |\n|---|\n| &lt;i&gt; |\n\n&#42;not em&#42; and &#35; not a heading\n\n> &gt; q\n- &amp; item\n\nEnds half-typed: &am',
 ];

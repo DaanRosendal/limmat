@@ -22,7 +22,7 @@ function spans(r: R, depth: number, inLink = false): string {
   const out: string[] = [];
   for (let i = 0, n = 1 + Math.floor(r() * 3); i < n; i++) {
     const deep = depth >= 2;
-    const k = Math.floor(r() * (deep ? 4 : inLink ? 7 : 11));
+    const k = Math.floor(r() * (deep ? 4 : inLink ? 7 : 12));
     const wrap = (mark: string) => {
       const inner = deep ? words(r, 2) : spans(r, depth + 1, inLink);
       return `${mark}${inner[0] === mark[0] ? `${pick(r, WORDS)} ` : ''}${inner}${inner.endsWith(mark[0]) ? ` ${pick(r, WORDS)}` : ''}${mark}`;
@@ -40,6 +40,7 @@ function spans(r: R, depth: number, inLink = false): string {
         () => `[${spans(r, depth + 1, true)}](https://example.com/p)`,
         () => `![${pick(r, WORDS)}](https://example.com/a.png)`,
         () => pick(r, ['<https://example.com/a>', 'https://example.com/a', 'www.example.com']),
+        () => `${pick(r, WORDS)} ${pick(r, ['&amp;', '&#38;', '&#x26;', '&nbsp;'])} ${pick(r, WORDS)}`,
       ][k](),
     );
   }
