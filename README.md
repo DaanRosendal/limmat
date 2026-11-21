@@ -16,7 +16,7 @@ Streaming markdown for LLM chat. Half-typed syntax like `[docs](https://example`
 - **No raw markers.** Unfinished markdown shows as clean text until it is complete.
 - **Predictable.** However the text is cut into chunks, the page ends up the same as rendering it all at once.
 - **Safe.** It builds DOM nodes, never HTML strings, so hostile text stays text. Remote images load by default, so limit them with `images` (see [Safety](#safety)).
-- **Any framework.** Give it any DOM element: React, Vue, Svelte, Angular, or plain JavaScript. It needs a DOM, so it runs in the browser.
+- **Any framework.** Give it any DOM element: React, Vue, Svelte, Angular, or plain JavaScript.
 - **Small and fast.** 11.7 kB gzip and no dependencies ([how it compares](#how-it-compares)). A 100 KB reply streamed in small chunks takes about 20 ms in total in Chromium.
 
 ## Install and usage

@@ -94,7 +94,7 @@ const ALERT = /^\[!(note|tip|important|warning|caution)\][ \t]*$/i;
 const alertStart = (l: string) => !!l && Object.keys(ALERTS).some((k) => `[!${k}]`.startsWith(l.toLowerCase()));
 
 /**
- * Render streaming markdown into `container`, which is emptied first. Use one renderer per message and per container (two renderers on one container mix their output), and call `destroy()` when the element goes away.
+ * Render streaming markdown into `container`, which is emptied first. The container can be an element of any DOM implementation, such as jsdom, linkedom, or happy-dom: nodes are created with its own document, so no globals are needed on a server. For an HTML string, see `renderToString` in `limmat/server`. Use one renderer per message and per container (two renderers on one container mix their output), and call `destroy()` when the element goes away.
  * The container has no live region, because announcing every chunk is noisy: to have the finished reply announced, set
  * `aria-busy` on your own element while streaming, or announce once after `end()`. The Copy button names the language,
  * tables and code blocks are keyboard-scrollable, task checkboxes have names, and the copy result goes to a polite status element.
@@ -105,6 +105,7 @@ const alertStart = (l: string) => !!l && Object.keys(ALERTS).some((k) => `[!${k}
  */
 export function createRenderer(container: HTMLElement, options: Options = {}): Renderer {
   if (!container || typeof container.addEventListener !== 'function') throw new TypeError('limmat: container must be an element');
+  const doc = container.ownerDocument; // not the global `document`, so an element of jsdom, linkedom, or happy-dom works on a server
   container.replaceChildren(); // a remount (React StrictMode runs effects twice) would otherwise append to the last render
   const o = options;
   const protocols = (
@@ -181,7 +182,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   const imgKey = (e: Element) => `${e.getAttribute('src')}\n${e.getAttribute('alt')}`;
 
   const h = (tag: string, c?: string, text?: string) => {
-    const e = document.createElement(tag);
+    const e = doc.createElement(tag);
     if (c) e.className = c;
     if (text) e.textContent = text;
     return e;
@@ -330,7 +331,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         pre.setAttribute('tabindex', '0');
         // A language name that is longer than 20 characters or has other characters than these gets no class.
         const code = h('code', /^[\w+#-]{1,20}$/.test(lang) ? cls('lang-' + lang.toLowerCase()) : '');
-        code.append(document.createTextNode(text));
+        code.append(doc.createTextNode(text));
         pre.append(code);
         wrap.append(head, pre);
         if (depth > 0) hl?.push([code, text, lang]);
@@ -388,9 +389,10 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         if (tk) {
           li.className = cls('task');
           const box = h('input') as HTMLInputElement;
-          box.type = 'checkbox';
-          box.disabled = true;
-          box.defaultChecked = tk[1] !== ' ';
+          // Attributes, not properties: they are what a server DOM (linkedom) serializes, and a browser reads them as the same state.
+          box.setAttribute('type', 'checkbox');
+          box.setAttribute('disabled', '');
+          if (tk[1] !== ' ') box.setAttribute('checked', '');
           box.setAttribute('aria-label', tk[1] === ' ' ? label.todo : label.done);
           li.append(box);
           body[0] = body[0].slice(tk[0].length);
@@ -545,7 +547,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         pool.set(k, [...(pool.get(k) ?? []), im]);
       }
       for (const d of old.node.tagName === 'DETAILS' ? [old.node] : Array.from(old.node.querySelectorAll('details')))
-        toggled.push((d as HTMLDetailsElement).open !== opened.has(d) ? (d as HTMLDetailsElement).open : null);
+        toggled.push(d.hasAttribute('open') !== opened.has(d) ? d.hasAttribute('open') : null);
       old.node.remove();
       old.made?.remove();
     }
@@ -584,7 +586,8 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       for (const t of tail.slice(p))
         for (const d of t.node.tagName === 'DETAILS' ? [t.node] : Array.from(t.node.querySelectorAll('details'))) {
           const was = toggled[k++];
-          if (was !== null && was !== undefined) (d as HTMLDetailsElement).open = was;
+          if (was === true) d.setAttribute('open', '');
+          else if (was === false) d.removeAttribute('open');
         }
     }
     if (final)
@@ -669,12 +672,12 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       const ta = h('textarea') as HTMLTextAreaElement;
       ta.value = text;
       ta.style.cssText = 'position:fixed;opacity:0'; // CSSOM, so a strict style-src policy allows it
-      const prev = document.activeElement as HTMLElement | null;
+      const prev = doc.activeElement as HTMLElement | null;
       container.append(ta); // not document.body: behind a modal dialog the body is inert and the copy fails
       ta.select();
       let ok = false;
       try {
-        ok = document.execCommand('copy');
+        ok = doc.execCommand('copy');
       } catch {
         /* not allowed */
       }

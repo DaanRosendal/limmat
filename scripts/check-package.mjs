@@ -12,7 +12,7 @@ const want = [
   'LICENSE',
   'README.md',
   'package.json',
-  ...['highlight.d.ts', 'highlight.js', 'index.d.ts', 'index.js', 'limmat.min.js', 'style.css', 'style.css.d.ts'].map((f) => `dist/${f}`),
+  ...['highlight.d.ts', 'highlight.js', 'index.d.ts', 'index.js', 'limmat.min.js', 'server.d.ts', 'server.js', 'style.css', 'style.css.d.ts'].map((f) => `dist/${f}`),
 ];
 const bad = files.filter((f) => !want.includes(f));
 const missing = want.filter((f) => !files.includes(f));
@@ -40,6 +40,11 @@ try {
     `import { createRenderer, type Highlighter, type Options, type Renderer } from 'limmat';
 import 'limmat/style.css';
 import { speedHighlight } from 'limmat/highlight';
+import { renderToString, type ServerOptions } from 'limmat/server';
+const so: ServerOptions = { images: false, classPrefix: 'x' };
+const html: string = renderToString('# x', so);
+// @ts-expect-error a page is needed for highlight, so the server options leave it out
+const noHl: ServerOptions = { highlight: speedHighlight() };
 const el = null as unknown as HTMLElement;
 const hl: Highlighter = speedHighlight();
 const opts: Options = { highlight: hl, onLinkClick: () => {}, throttleMs: 0 };
@@ -92,7 +97,31 @@ if (a !== b) throw new Error('dist/index.js and dist/limmat.min.js render differ
 `,
   );
   execFileSync(process.execPath, ['run.mjs'], { stdio: 'inherit', cwd: dir });
-  console.log(`package ok: ${files.length} files, NodeNext consumer type-checks, packed code renders`);
+
+  // The server entry in a fresh process with no DOM at all, and the same output as the DOM path above.
+  writeFileSync(
+    join(dir, 'server.mjs'),
+    `import { renderToString } from 'limmat/server';
+if (typeof document !== 'undefined' || typeof window !== 'undefined') throw new Error('a DOM global exists, so this proves nothing');
+const md = '# Hi\\n\\nSome **bold** and a [link](https://example.com).\\n\\n- a\\n- b\\n\\n| x | y |\\n|---|---|\\n| 1 | 2 |\\n';
+const out = renderToString(md);
+for (const want of ['<h1', '<strong>bold</strong>', 'href="https://example.com"', '<li>a</li>', '<table']) {
+  if (!out.includes(want)) throw new Error('the packed server output lacks ' + want + ': ' + out);
+}
+`,
+  );
+  execFileSync(process.execPath, ['server.mjs'], { stdio: 'inherit', cwd: dir });
+
+  // There is no CommonJS build: Node 22.12 and newer load an ES module from require(), which this checks.
+  writeFileSync(
+    join(dir, 'require.cjs'),
+    `const { renderToString } = require('limmat/server');
+const { createRenderer } = require('limmat');
+if (typeof createRenderer !== 'function' || renderToString('# x') !== '<h1>x</h1>') throw new Error('require() does not load the package');
+`,
+  );
+  execFileSync(process.execPath, ['require.cjs'], { stdio: 'inherit', cwd: dir });
+  console.log(`package ok: ${files.length} files, NodeNext consumer type-checks, packed code renders, server entry renders with no DOM, and require() loads both entries`);
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

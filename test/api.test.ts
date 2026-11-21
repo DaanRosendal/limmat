@@ -806,3 +806,39 @@ describe('strict Content-Security-Policy', () => {
     expect(seen).toEqual([]);
   });
 });
+
+describe('another document', () => {
+  const md =
+    '# Title\n\n**bold** `code` [a](https://x.com) ![i](https://x.com/i.png)\n\n```ts\nlet x;\n```\n\n- [x] done\n\n| a |\n|---|\n| 1 |';
+  it("nodes are created by the container's document, never by the global one", () => {
+    const other = document.implementation.createHTMLDocument('');
+    const root = other.createElement('div');
+    const mine = vi.spyOn(document, 'createElement');
+    const mineText = vi.spyOn(document, 'createTextNode');
+    const theirs = vi.spyOn(other, 'createElement');
+    const theirsText = vi.spyOn(other, 'createTextNode');
+    try {
+      const r = createRenderer(root, { throttleMs: 0 });
+      r.write(md);
+      r.end();
+      expect(root.querySelector('h1')).not.toBeNull();
+      expect(root.querySelector('pre code')!.textContent).toBe('let x;');
+      expect(mine).not.toHaveBeenCalled();
+      expect(mineText).not.toHaveBeenCalled();
+      expect(theirs).toHaveBeenCalled();
+      expect(theirsText).toHaveBeenCalled();
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+  it('the output is the same as in the main document, and end() leaves it in place with no timer', () => {
+    vi.useFakeTimers();
+    const other = document.implementation.createHTMLDocument('');
+    const root = other.createElement('div');
+    const r = createRenderer(root); // the default throttle: later writes wait for a timer
+    for (let i = 0; i < md.length; i += 7) r.write(md.slice(i, i + 7));
+    r.end();
+    expect(vi.getTimerCount()).toBe(0);
+    expect(root.innerHTML).toBe(render(md).innerHTML);
+  });
+});

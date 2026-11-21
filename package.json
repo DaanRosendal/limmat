@@ -23,6 +23,10 @@
       "types": "./dist/highlight.d.ts",
       "default": "./dist/highlight.js"
     },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
+    },
     "./style.css": {
       "types": "./dist/style.css.d.ts",
       "default": "./dist/style.css"
@@ -69,7 +73,9 @@
     "@speed-highlight/core": "^2.1.0",
     "@types/node": "^26.6.6",
     "esbuild": "^0.28.2",
+    "happy-dom": "21.0.4",
     "jsdom": "^31.0.1",
+    "linkedom": "0.18.15",
     "typescript": "^7.0.2",
     "vitest": "^5.1.1"
   },
