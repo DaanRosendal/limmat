@@ -20,7 +20,6 @@ Bare addresses like https://example.com/docs, www.example.com, and hi@example.co
    - A chunk can end inside a word, a marker, or a URL.
    - Only the open block is re-rendered.
 2. Once a later block has started on a complete line, the block before it is **frozen**.
-3. Chunked output always equals the output of a single write.
 
 ### Options that matter
 
@@ -29,8 +28,6 @@ Bare addresses like https://example.com/docs, www.example.com, and hi@example.co
 | \`throttleMs\` | \`50\` | Redraw pause |
 | \`images\` | \`true\` | Origin list or \`false\` |
 | \`html\` | \`true\` | Which safe tags |
-| \`labels\` | English | Button text |
-| \`highlight\` | none | Code colours |
 
 ### Using it
 
@@ -87,7 +84,5 @@ It stays inert. Watch the next section.
 
 ![tracker](https://evil.example/track.png)
 
-Every payload above stayed plain text. No script ran, and the tracker image stayed text because this page limits \`images\` to an allow-list.
-
-That is limmat: \`npm install limmat\`.
+Every payload above stayed plain text, and the tracker image was blocked by the \`images\` allow-list.
 `;
