@@ -479,11 +479,6 @@ input[type="range"] {
   outline-offset: 4px;
   border-radius: 2px;
 }
-/* Wrap long code lines here, so the demo never cuts a line off at the edge (limmat's own style.css scrolls them). */
-.rendered .limmat-code pre {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
 /* Browsers indent a quote by 40px, so 13 nested quotes leave no width. Keep nesting visible but cheap. */
 .rendered blockquote {
   margin: 0.25em 0 0.25em 0.25em;
