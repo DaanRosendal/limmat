@@ -12,7 +12,17 @@ const want = [
   'LICENSE',
   'README.md',
   'package.json',
-  ...['highlight.d.ts', 'highlight.js', 'index.d.ts', 'index.js', 'limmat.min.js', 'server.d.ts', 'server.js', 'style.css', 'style.css.d.ts'].map((f) => `dist/${f}`),
+  ...[
+    'highlight.d.ts',
+    'highlight.js',
+    'index.d.ts',
+    'index.js',
+    'limmat.min.js',
+    'server.d.ts',
+    'server.js',
+    'style.css',
+    'style.css.d.ts',
+  ].map((f) => `dist/${f}`),
 ];
 const bad = files.filter((f) => !want.includes(f));
 const missing = want.filter((f) => !files.includes(f));
@@ -121,7 +131,9 @@ if (typeof createRenderer !== 'function' || renderToString('# x') !== '<h1>x</h1
 `,
   );
   execFileSync(process.execPath, ['require.cjs'], { stdio: 'inherit', cwd: dir });
-  console.log(`package ok: ${files.length} files, NodeNext consumer type-checks, packed code renders, server entry renders with no DOM, and require() loads both entries`);
+  console.log(
+    `package ok: ${files.length} files, NodeNext consumer type-checks, packed code renders, server entry renders with no DOM, and require() loads both entries`,
+  );
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
