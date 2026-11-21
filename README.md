@@ -34,14 +34,12 @@ for await (const chunk of stream) md.write(chunk); // any source of text chunks
 md.end();
 ```
 
-`createRenderer` gives you an object, `md` above, with four methods:
+Create one renderer per message with `createRenderer` (`md` above). It has four methods:
 
 - `md.write(chunk)`: add new text only. Chunks can split anywhere.
 - `md.end()`: call it when the stream is over.
 - `md.reset()`: clear the element and start a new message.
 - `md.destroy()`: stop timers and listeners, for example on unmount. The rendered text stays.
-
-Use one renderer per message, or `reset()` to reuse one. Creating a renderer empties the element.
 
 For colored code, add the optional highlighter (it needs `@speed-highlight/core`, plus one of its theme stylesheets):
 
