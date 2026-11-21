@@ -30,6 +30,9 @@ export const BQ = /^ {0,3}>/;
 const PIPE = /^ {0,3}\|/;
 const DELIM = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*(?:\|[ \t]*)?$/;
 const PREFIX = /^[ \t|:-]*$/;
+// A delimiter row, or the start of one still arriving. A line that is a list item (`- |---|`) is neither, because a list item interrupts the paragraph before the table check.
+const delim = (l: string) => DELIM.test(l) && !LI.exec(l)?.[4];
+const prefix = (l: string) => PREFIX.test(l) && !LI.exec(l)?.[4];
 // `<details>` or `<details open>`, alone on its line or followed by `<summary>text</summary>`. No other attribute, spacing, or text.
 const OPEN = /^ {0,3}<details( open)?>(?:<summary>((?:(?!<\/summary>)[^\n])*)<\/summary>)?[ \t]*$/i;
 const CLOSE = /^ {0,3}<\/details>[ \t]*$/i;
@@ -116,12 +119,12 @@ function pipeHead(L: string[], j: number, partial: boolean, final: boolean): 0 |
   if (!lead && hc < 2) return 0; // one cell over dashes is a setext heading in CommonMark, not a table
   if (nx === undefined) return final || !lead ? 0 : 2; // a last line with no outer pipes is shown, only a pipe-led one waits
   const growing = !final && partial && j + 1 === n - 1; // nx is the unfinished last line
-  if (DELIM.test(nx)) {
+  if (delim(nx)) {
     const dn = cells(nx).length;
     if (growing) return dn > hc ? 0 : 2; // more characters can still change a line that is arriving, even one that looks complete
     return dn === hc ? 1 : 0;
   }
-  return growing && PREFIX.test(nx) ? 2 : 0;
+  return growing && prefix(nx) ? 2 : 0;
 }
 function interrupts(l: string, det = false): boolean {
   if (det && (opener(l) || CLOSE.test(l))) return true;
@@ -152,7 +155,7 @@ function fenceUnit(L: string[], i: number, m: RegExpExecArray, partial: boolean,
 
 /** Is `h` a table head with `d` as its delimiter row? Both have the prefix of their container removed. */
 function headOver(h: string, d: string): boolean {
-  return h.includes('|') && !DELIM.test(h) && DELIM.test(d) && (PIPE.test(h) || cells(h).length > 1) && cells(h).length === cells(d).length;
+  return h.includes('|') && !DELIM.test(h) && delim(d) && (PIPE.test(h) || cells(h).length > 1) && cells(h).length === cells(d).length;
 }
 
 /**
@@ -345,7 +348,7 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       const nx = L[i + 1];
       const lead = PIPE.test(l);
       const hc = l.includes('|') ? cells(l).length : -2;
-      const dn = nx !== undefined && DELIM.test(nx) ? cells(nx).length : -1; // cells of a delimiter row, or -1 if nx is none
+      const dn = nx !== undefined && delim(nx) ? cells(nx).length : -1; // cells of a delimiter row, or -1 if nx is none
       if (hc >= 0 && !lazy(i + 1) && (lead || dn === hc)) {
         if (dn === hc) {
           const al = aligns(nx);
@@ -354,12 +357,12 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
           i += 2;
           continue;
         }
-        if (lead && !final && !DELIM.test(l) && (nx === undefined || (partial && i + 1 === n - 1 && PREFIX.test(nx) && dn < hc))) {
+        if (lead && !final && !DELIM.test(l) && (nx === undefined || (partial && i + 1 === n - 1 && prefix(nx) && dn < hc))) {
           U.push({ k: 'th', a: i, e: n, b: n, pend: true, al: cells(l).map(() => null) });
           break;
         }
       }
-      if (!lead && !final && partial && nx !== undefined && !lazy(i + 1) && i + 1 === n - 1 && l.includes('|') && PREFIX.test(nx)) {
+      if (!lead && !final && partial && nx !== undefined && !lazy(i + 1) && i + 1 === n - 1 && l.includes('|') && prefix(nx)) {
         // A table without outer pipes whose delimiter row is still arriving: `a | b | c` over `--|-`.
         const dashes = nx.split('-').length - 1;
         if (dashes > 0 && (dashes > 1 || /[|:]/.test(nx)) && cells(nx).length <= cells(l).length) {

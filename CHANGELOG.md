@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+
+- A line such as `- |---|---|` under a pipe line is a list item, not a table delimiter row, as in GFM. The line above stays a paragraph. It used to become a table with an empty first header cell.
+
 ## [0.2.0] - 2026-11-21
 
 ### Added

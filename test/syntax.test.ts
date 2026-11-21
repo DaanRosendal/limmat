@@ -513,6 +513,16 @@ describe('block structure while streaming', () => {
     for (const [md, want] of cases)
       for (const split of ['whole', 'char'] as const) expect(html(render(md, split)), `${JSON.stringify(md)} ${split}`).toBe(want);
   });
+  it('a delimiter row that starts with a list marker is a list item, as in GFM', () => {
+    const cases: [string, string][] = [
+      ['| | a | b |\n- |---|---|', '<p>| | a | b |</p><ul><li>|---|---|</li></ul>'],
+      ['a | b\n- |---|', '<p>a | b</p><ul><li>|---|</li></ul>'],
+      ['> | a | b |\n> - |---|---|', '<blockquote><p>| a | b |</p><ul><li>|---|---|</li></ul></blockquote>'],
+      ['| a | b |\n-|-', `${TBL_OPEN(['a', 'b'])}`],
+    ];
+    for (const [md, want] of cases)
+      for (const split of ['whole', 'char'] as const) expect(html(render(md, split)), `${JSON.stringify(md)} ${split}`).toBe(want);
+  });
   it('a lazy line that starts with a pipe waits for the next line like any pipe line after text, then stays text', () => {
     expect(html(renderOpen('- item\n| a | b |'))).toBe('<ul><li>item</li></ul>');
     expect(html(renderOpen('> quote\n| a'))).toBe('<blockquote><p>quote</p></blockquote>');
