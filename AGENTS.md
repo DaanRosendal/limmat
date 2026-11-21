@@ -16,6 +16,7 @@ limmat is a tiny, safe, streaming markdown renderer for LLM chat UIs (TypeScript
 
 ## Rules that are easy to get wrong
 
+- The README is kept short on purpose, and the maintainer rarely wants anything added to it. Before you add anything to `README.md` (a line, bullet, section, row, link, badge, or toggle, including a new table row or option), show the diff in chat and wait for a yes. Edits and removals do not need a preview. This holds for every README change the work causes, such as a new option row or a new `docs/support.json` row.
 - The DOM is built with `createElement` and text nodes only. Never use `innerHTML`, `insertAdjacentHTML`, or `outerHTML` in `src/`. Every `href` goes through `safeUrl()` in `src/url.ts`.
 - Never silently render wrong output. Syntax limmat does not support must fall back to plain text or a simpler element, never raw HTML, and half-open constructs must never show raw markers while streaming.
 - Chunked output must equal whole output. Anything that changes parsing needs a case in `test/helpers/cases.ts`, which feeds the chunk-split fuzz, the golden output, the XSS tests, and the benchmarks. Append to `CORPUS` only, because `golden.test.ts` picks documents by index. The half-open table is at the top of `test/half-open.test.ts`. `test/stream-property.test.ts` generates random documents and checks that no marker shows and that every prefix renders like the whole (`FUZZ_N` and `FUZZ_SEED` set the size and seed): extend its generator when you add syntax.
