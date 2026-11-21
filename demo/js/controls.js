@@ -10,7 +10,12 @@ import { STREAMS } from './streams.js';
 
 /** Make the controls show the state (after a share link, or after a change made elsewhere). */
 export function syncControls() {
-  for (const i of $$('input[name="stream"]')) i.checked = i.value === s.stream;
+  for (const i of $$('input[name="stream"]')) {
+    i.checked = i.value === s.stream;
+    // On a phone the presets scroll sideways: bring the chosen one into view without moving the page.
+    const row = i.closest('.seg');
+    if (i.checked && row) row.scrollLeft = i.parentElement.offsetLeft - (row.clientWidth - i.parentElement.offsetWidth) / 2;
+  }
   syncSliders();
   syncMarks();
 }

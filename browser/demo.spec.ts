@@ -565,6 +565,24 @@ test('a phone-width screen has no sideways scroll and keeps every control reacha
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
 });
 
+test('on a phone the stream presets are chips that do not overlap, and the chosen one is in view', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await open(page, '#v=1&stream=hostile');
+  const m = await page.evaluate(() => {
+    const row = document.querySelector('.seg.n9') as HTMLElement;
+    const rect = (e: Element) => e.getBoundingClientRect();
+    const labels = [...row.querySelectorAll('label')];
+    const chosen = labels.find((l) => (l.querySelector('input') as HTMLInputElement).checked)!;
+    return {
+      overlaps: labels.filter((l, i) => i > 0 && rect(l).left < rect(labels[i - 1]).right - 1).length,
+      textTooWide: labels.filter((l) => rect(l.querySelector('span')!).width > rect(l).width).length,
+      scrolls: row.scrollWidth > row.clientWidth,
+      inView: rect(chosen).left >= rect(row).left - 1 && rect(chosen).right <= rect(row).right + 1,
+    };
+  });
+  expect(m).toEqual({ overlaps: 0, textTooWide: 0, scrolls: true, inView: true });
+});
+
 test('choosing another stream puts the paste editor away', async ({ page }) => {
   await open(page);
   await pick(page, 'stream', 'custom');
