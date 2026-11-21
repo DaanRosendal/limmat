@@ -33,6 +33,7 @@ jobs:
       - run: npm run build:demo
       - run: npm run check:package
       - run: npm run check:support
+      - run: npm run check:compare
       - run: npm run size
       - run: npm pack --dry-run # the file list of a real publish (npm publish --dry-run fails once the version is on the registry)
   commits:

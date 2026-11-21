@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "order": [
+    "limmat",
+    "streaming-markdown",
+    "streamdown",
+    "marked",
+    "react-markdown"
+  ],
+  "tools": {
+    "limmat": {
+      "name": "limmat",
+      "docs": "https://github.com/DaanRosendal/limmat#readme"
+    },
+    "streamdown": {
+      "name": "Streamdown",
+      "docs": "https://github.com/vercel/streamdown#readme"
+    },
+    "streaming-markdown": {
+      "name": "streaming-markdown",
+      "docs": "https://github.com/thetarnav/streaming-markdown#readme"
+    },
+    "marked": {
+      "name": "marked",
+      "docs": "https://github.com/markedjs/marked#readme"
+    },
+    "react-markdown": {
+      "name": "react-markdown",
+      "docs": "https://github.com/remarkjs/react-markdown#readme"
+    }
+  },
+  "frameworkNames": {
+    "react": "React",
+    "vue": "Vue",
+    "svelte": "Svelte",
+    "solid": "Solid",
+    "angular": "Angular",
+    "preact": "Preact"
+  },
+  "rows": {
+    "corner": "Compared on",
+    "framework": "No framework needed",
+    "deps": "Runtime dependencies",
+    "size": "Size (gzip)",
+    "safe": "Safe by default",
+    "markers": "No raw markers while streaming",
+    "commonmark": "CommonMark examples passed",
+    "release": "Last release"
+  },
+  "footer": {
+    "intro": "Checked on {checkedOn} against the latest releases, each in its default quick-start setup ([probes and raw results](https://github.com/DaanRosendal/limmat/blob/master/benchmarks/compare/README.md)). Wrong or out of date? Open an issue or pull request.",
+    "detailsSummary": "How this was measured",
+    "versions": "Versions: {versions}. Node {node}, Playwright {playwright}, Chromium {chromium}.",
+    "metrics": [
+      "Rules: safe means no script ran and no unsafe link scheme (such as `javascript:`) was kept. The markers mark is a check for none, a warning for 1 to 3 leaked constructs, and a cross for more. CommonMark is tag structure and text on the {cmTotal} examples of spec 0.31.2, approximate, with a check over 80 percent, a warning from 50 to 80, and a cross below. Dependencies are all packages installed below the library, not counting React. Bold means more than a year ago."
+    ]
+  },
+  "details": {
+    "markersNote": "marked and react-markdown are not streaming renderers.",
+    "limmatImages": "limmat can turn this off with `images: false`.",
+    "markersNotes": {
+      "streamdown": "Streamdown's leaks are brief, a lone opening marker, a half-typed table, or a link's brackets, with its remend option on as in its README."
+    }
+  }
+}
