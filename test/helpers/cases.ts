@@ -166,4 +166,5 @@ export const CORPUS: string[] = [
   'Pipes in prose:\n| a | b |\n| c | d |\nand more text\n\nHere is a table right after text:\n| x | y |\n|---|---|\n| 1 | 2 |\n\n| a | b | c |\n|---|---|\n| 1 | 2 | 3 |\n\n- item\n| in an item |\n\n> quote\n| in a quote |\n\nlast | line',
   'Tables without outer pipes after text:\nName | Qty\n:--|--:\nApple | 3\n\nHere is one:\na | b | c\n--|--|--\n1 | 2 | 3\n\nUse a | b in prose, then foo |\n---\nand a | b | c\n--|--\n1 | 2',
   'Lazy pipe lines:\n\n- item\n| a | b |\n|---|---|\n| 1 | 2 |\n\n> quote\n| a | b |\n|---|---|\n| 1 | 2 |\n\n- | a | b |\n  |---|---|\n  | 1 | 2 |\nlazy text\n\n> | a | b |\n> |---|---|\n| 1 | 2 |\n\n> a\n| b | c |\n> |---|---|\n> | 1 | 2 |\n\n- a\n- b\n| x | y |\n- c',
+  'Deep tables:\n\n> > | a | b |\n> > |---|---|\n> > | 1 | 2 |\nlazy text\n\n> - | a | b |\n>   |---|---|\nmore lazy\n\n- > | a | b |\n  > |---|---|\n  > | 1 | 2 |\nafter\n\n| | a | b |\n- |---|---|\n\n> | a | b |\n> - |---|---|',
 ];

@@ -160,24 +160,63 @@ function headOver(h: string, d: string): boolean {
 
 /**
  * What the last line of a quote or list item is. A line without the container's prefix (a lazy line) can only continue
- * paragraph text, so it ends the container after a table, a heading, or a fence. A line that opens a container of its
- * own is never taken for a table head here, because the table would belong to that inner container. So a table that
- * sits two containers deep (`> - | a |` over `>   |---|`) is not seen, and a lazy line after it stays in the outer
- * container where CommonMark would end it.
+ * paragraph text, so it ends the container after a table, a heading, or a fence. `pre` lists the containers that the
+ * lines so far opened inside this one (0 for a quote, the content column for a list item), so `para`, `tbl`, and
+ * `prev` always describe the innermost container, where a table two levels down (`> - | a |` over `>   |---|`) is seen.
  */
 interface Last {
   para: boolean;
   tbl: boolean; // inside a table
-  prev: string; // the last line, with the prefix removed, or '' if it opens a container
+  prev: string; // the last line, with the prefix of every container removed
+  pre: number[];
+  fe: RegExp | null; // closing fence of a code block inside one of those containers
 }
+// Nesting deeper than the renderer builds (MAX_DEPTH in index.ts) is text, so no more containers are tracked, which keeps `step` cheap on deep input.
+const MAX_PRE = 12;
+const newLast = (): Last => ({ para: false, tbl: false, prev: '', pre: [], fe: null });
+const dropQuote = (c: string) => c.replace(/^ {0,3}> ?/, '');
+/** The column where the content of the list item that line `l` (matched by `m`) opens starts. */
+const itemOff = (m: RegExpExecArray) => m[1].length + m[2].length + (!m[4] || (m[3]?.length ?? 1) > 4 ? 1 : (m[3]?.length ?? 1));
 function step(s: Last, c: string, det: boolean): void {
+  let k = 0;
+  for (; k < s.pre.length; k++) {
+    const w = s.pre[k];
+    if (w === 0 ? !BQ.test(c) : spaces(c) < w) break;
+    c = w === 0 ? dropQuote(c) : c.slice(w);
+  }
+  if (k < s.pre.length) {
+    if (s.para && c.trim() && !interrupts(c, det)) {
+      s.prev = c; // a lazy line continues the paragraph of the innermost container
+      return;
+    }
+    s.pre.length = k; // the inner containers end here
+    s.tbl = s.para = false;
+    s.fe = null;
+  }
+  if (s.fe) {
+    if (s.fe.test(c)) s.fe = null;
+    return;
+  }
   if (s.tbl && c.trim() && !interrupts(c, det)) {
     s.prev = c; // a row
     return;
   }
+  s.tbl = false;
+  for (let m: RegExpExecArray | null; s.pre.length < MAX_PRE; ) {
+    if (BQ.test(c)) {
+      s.pre.push(0);
+      c = dropQuote(c);
+    } else if ((m = LI.exec(c)) && (!s.para || interrupts(c, det))) {
+      s.pre.push(itemOff(m));
+      c = c.slice(s.pre[s.pre.length - 1]);
+    } else break;
+    s.para = false;
+  }
+  const f = fence(c);
+  if (f) s.fe = closer(f, ' {0,3}');
   s.tbl = s.para && headOver(s.prev, c);
-  s.para = !s.tbl && !!c.trim() && !atx(c) && !HR.test(c);
-  s.prev = BQ.test(c) || LI.test(c) ? '' : c;
+  s.para = !f && !s.tbl && !!c.trim() && !atx(c) && !HR.test(c);
+  s.prev = c;
 }
 
 /** End (exclusive) of the blockquote starting at line i. */
@@ -185,15 +224,15 @@ function quoteEnd(L: string[], i: number, det: boolean): number {
   const n = L.length;
   // Lazy continuation (a line without `>`) is only allowed right after paragraph text.
   let j = i;
-  const s: Last = { para: false, tbl: false, prev: '' };
+  const s = newLast();
   let fe: RegExp | null = null;
   for (; j < n && L[j].trim(); j++) {
     if (!BQ.test(L[j])) {
       if (!s.para || interrupts(L[j], det)) break;
-      if (s.prev) s.prev = L[j]; // it continues the paragraph of the innermost container, which is not ours if the last line opened one
+      s.prev = L[j];
       continue;
     }
-    const c = L[j].replace(/^ {0,3}> ?/, '');
+    const c = dropQuote(L[j]);
     const f = fe ? null : fence(c);
     if (fe) {
       if (fe.test(c)) fe = null;
@@ -216,8 +255,8 @@ function itemEnd(L: string[], i: number, off: number, text: boolean, det: boolea
   let fe: RegExp | null = null;
   let blank = false;
   let last = i + 1;
-  const first = L[i].slice(off);
-  const s: Last = { para: text, tbl: false, prev: BQ.test(first) || LI.test(first) ? '' : first };
+  const s = newLast();
+  if (text) step(s, L[i].slice(off), det);
   for (; j < n; j++) {
     const x = L[j];
     if (fe) {
@@ -231,7 +270,9 @@ function itemEnd(L: string[], i: number, off: number, text: boolean, det: boolea
     }
     if (!x.trim()) {
       blank = true;
-      s.tbl = false;
+      s.tbl = s.para = false;
+      s.pre.length = 0;
+      s.fe = null;
       continue;
     }
     const xi = spaces(x);
@@ -242,7 +283,7 @@ function itemEnd(L: string[], i: number, off: number, text: boolean, det: boolea
         s.para = s.tbl = false;
       } else step(s, x.slice(off), det);
     } else if (LI.test(x) || interrupts(x, det) || blank || !s.para) break;
-    else if (s.prev) s.prev = x;
+    else s.prev = x;
     blank = false;
     last = j + 1;
   }
@@ -337,10 +378,8 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
         i++; // a bare marker on the unfinished last line: wait to see what it becomes
         continue;
       }
-      const ind = m[1].length;
       const ord = /\d/.test(m[2]);
-      const sp = m[3]?.length ?? 1;
-      const off = ind + m[2].length + (!m[4] || sp > 4 ? 1 : sp);
+      const off = itemOff(m);
       const { last, j } = itemEnd(L, i, off, !!m[4], !!det);
       U.push({ k: 'li', a: i, e: last, b: j, ord, num: ord ? parseInt(m[2], 10) : 0, off, mk: m[2].slice(-1) });
       i = j;

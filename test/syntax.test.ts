@@ -513,6 +513,23 @@ describe('block structure while streaming', () => {
     for (const [md, want] of cases)
       for (const split of ['whole', 'char'] as const) expect(html(render(md, split)), `${JSON.stringify(md)} ${split}`).toBe(want);
   });
+  it('a table two containers deep ends before a lazy line, as in GFM', () => {
+    const q = (x: string) => `<blockquote>${x}</blockquote>`;
+    const li = (x: string) => `<ul><li>${x}</li></ul>`;
+    const T = TBL_OPEN(['a', 'b']);
+    const cases: [string, string][] = [
+      ['> > | a | b |\n> > |---|---|\nlazy', `${q(q(T))}<p>lazy</p>`],
+      ['> - | a | b |\n>   |---|---|\nlazy', `${q(li(T))}<p>lazy</p>`],
+      ['- > | a | b |\n  > |---|---|\nlazy', `${li(q(T))}<p>lazy</p>`],
+      ['> > | a | b |\n> > |---|---|\n> > | 1 | 2 |\nlazy', `${q(q(TBL(['a', 'b'], ['1', '2'])))}<p>lazy</p>`],
+      ['> > | a | b |\n> > |---|---|\n> lazy', `${q(`${q(T)}<p>lazy</p>`)}`],
+      ['> - - | a | b |\n>     |---|---|\nlazy', `${q(li(li(T)))}<p>lazy</p>`],
+      ['> > a\nlazy', '<blockquote><blockquote><p>a\nlazy</p></blockquote></blockquote>'],
+      ['> - a\nlazy', '<blockquote><ul><li>a\nlazy</li></ul></blockquote>'],
+    ];
+    for (const [md, want] of cases)
+      for (const split of ['whole', 'char'] as const) expect(html(render(md, split)), `${JSON.stringify(md)} ${split}`).toBe(want);
+  });
   it('a delimiter row that starts with a list marker is a list item, as in GFM', () => {
     const cases: [string, string][] = [
       ['| | a | b |\n- |---|---|', '<p>| | a | b |</p><ul><li>|---|---|</li></ul>'],

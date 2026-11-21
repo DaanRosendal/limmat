@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- A lazy line after a table that sits two containers deep (`> > | a |` over `> > |---|`, or `> - | a |` over `>   |---|`) now ends the outer quote or item too, as in GFM. It used to stay in the outer container.
 - A line such as `- |---|---|` under a pipe line is a list item, not a table delimiter row, as in GFM. The line above stays a paragraph. It used to become a table with an empty first header cell.
 
 ## [0.2.0] - 2026-11-21
