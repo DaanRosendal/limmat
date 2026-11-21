@@ -71,7 +71,8 @@ function block(r: R): string {
     () => `\`\`\`ts\nconst ${pick(r, WORDS)} = ${pick(r, WORDS)};${r() < 0.5 ? `\nreturn ${pick(r, WORDS)};` : ''}\n\`\`\``,
     () => table(r),
     () => `<details>\n<summary>${words(r, 3)}</summary>\n\n${spans(r, 1)}\n\n</details>`,
-  ][Math.floor(r() * 9)]();
+    () => `> [!${pick(r, ['NOTE', 'tip', 'IMPORTANT', 'Warning', 'CAUTION'])}]\n> ${spans(r, 1)}${r() < 0.4 ? `\n> - ${spans(r, 1)}` : ''}`,
+  ][Math.floor(r() * 10)]();
 }
 
 const genBlocks = (r: R) => Array.from({ length: 2 + Math.floor(r() * 4) }, () => block(r));

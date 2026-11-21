@@ -238,7 +238,7 @@ limmat follows [CommonMark](https://spec.commonmark.org/0.31.2/) and GFM for the
 | Images | ⚠️&nbsp;Partial | On by default and loaded without a click, so limit them with `images`. No titles. |
 | Raw HTML | ⚠️&nbsp;Partial | Shown as text, except a few tags like `<kbd>` and `<sub>`. |
 | Underlined headings, indented code, reference links, HTML entities, tab indentation | ❌&nbsp;Not&nbsp;yet |  |
-| Math, footnotes, alerts, citations, emoji codes | ❌&nbsp;Not&nbsp;yet | Math, footnotes, and citations are planned as opt-ins. |
+| Math, footnotes, citations, emoji codes | ❌&nbsp;Not&nbsp;yet | Math, footnotes, and citations are planned as opt-ins. |
 <!-- support:end -->
 
 ## Options
@@ -256,7 +256,7 @@ Pass options as the second argument to `createRenderer`. All are optional, and t
 | `allowedProtocols` | `https`, `http`, `mailto`, and 4 more | Protocols that become links. The default also includes `tel`, `irc`, `ircs`, and `xmpp`. Others show as text. A protocol you list is trusted, except `javascript`, `data`, and `vbscript`, which are always refused. |
 | `externalLinksNewTab` | `true` | `false` opens links in the same tab. |
 | `classPrefix` | `'limmat'` | Prefix for generated classes: letters, digits, `_`, and `-`, starting with a letter or `_`. The bundled CSS only styles the default. |
-| `labels` | English | Text for the Copy button and screen readers: `copy`, `copied`, `table`, `done`, `todo`, `imageNotShown`. An empty label uses the default. |
+| `labels` | English | Text for the Copy button, screen readers, and alert titles: `copy`, `copied`, `table`, `done`, `todo`, `imageNotShown`, `note`, `tip`, `important`, `warning`, `caution`. An empty label uses the default. |
 
 For example:
 

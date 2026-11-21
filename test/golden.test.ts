@@ -15,6 +15,7 @@ const docs: Record<string, string> = {
   quotes: CORPUS[6],
   inline: CORPUS[7],
   tasks: CORPUS[8],
+  alerts: CORPUS[CORPUS.length - 1],
 };
 
 describe('golden output', () => {

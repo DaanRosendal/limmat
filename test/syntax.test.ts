@@ -582,3 +582,110 @@ describe('block structure while streaming', () => {
     expect(html(renderOpen('a ~~~x'))).toBe('<p>a ~~~x</p>');
   });
 });
+
+describe('alerts', () => {
+  const A = (kind: string, title: string, body = '') =>
+    `<blockquote class="limmat-alert limmat-alert-${kind}"><p class="limmat-alert-title">${title}</p>${body}</blockquote>`;
+  const raw = (md: string, split: 'whole' | 'char' = 'whole') => render(md, split).innerHTML;
+  const both = (cases: [string, string][], fn: (s: string, split: 'whole' | 'char') => string = raw) => {
+    for (const [md, want] of cases)
+      for (const split of ['whole', 'char'] as const) expect(fn(md, split), `${JSON.stringify(md)} ${split}`).toBe(want);
+  };
+  it('a block quote that starts with [!TYPE] on its own line is an alert, for all five types and any letter case', () => {
+    both([
+      ['> [!NOTE]\n> Useful', A('note', 'Note', '<p>Useful</p>')],
+      ['> [!TIP]\n> Useful', A('tip', 'Tip', '<p>Useful</p>')],
+      ['> [!IMPORTANT]\n> Useful', A('important', 'Important', '<p>Useful</p>')],
+      ['> [!WARNING]\n> Useful', A('warning', 'Warning', '<p>Useful</p>')],
+      ['> [!CAUTION]\n> Useful', A('caution', 'Caution', '<p>Useful</p>')],
+      ['> [!note]\n> Useful', A('note', 'Note', '<p>Useful</p>')],
+      ['> [!Warning]  \n> Useful', A('warning', 'Warning', '<p>Useful</p>')],
+      ['>[!NOTE]\n>Useful', A('note', 'Note', '<p>Useful</p>')],
+    ]);
+  });
+  it('the body can hold any blocks, and a lazy line continues its paragraph', () => {
+    both([
+      ['> [!WARNING]\n> - a\n> - b', A('warning', 'Warning', '<ul class="limmat-list"><li>a</li><li>b</li></ul>')],
+      ['> [!NOTE]\n> a\n>\n> b', A('note', 'Note', '<p>a</p><p>b</p>')],
+      ['> [!NOTE]\n> **a** and `b`', A('note', 'Note', '<p><strong>a</strong> and <code class="limmat-inline-code">b</code></p>')],
+      ['> [!NOTE]\nlazy', A('note', 'Note', '<p>lazy</p>')],
+      ['> [!NOTE]\n> a\n\nafter', `${A('note', 'Note', '<p>a</p>')}<p>after</p>`],
+    ]);
+  });
+  it('a marker with no content after it is no alert, as on GitHub', () => {
+    const q = (x: string) => `<blockquote>${x}</blockquote>`;
+    both([
+      ['> [!NOTE]', q('<p>[!NOTE]</p>')],
+      ['> [!NOTE]\n', q('<p>[!NOTE]</p>')],
+      ['> [!NOTE]\n>', q('<p>[!NOTE]</p>')],
+      ['> [!NOTE]\n> ', q('<p>[!NOTE]</p>')],
+      ['> [!NOTE]\n\nafter', `${q('<p>[!NOTE]</p>')}<p>after</p>`],
+      ['> [!NOTE]\n> \n> x', A('note', 'Note', '<p>x</p>')],
+    ]);
+  });
+  it('anything else stays a plain block quote, as before', () => {
+    const q = (x: string) => `<blockquote>${x}</blockquote>`;
+    both([
+      ['> [!NOTE] same line', q('<p>[!NOTE] same line</p>')],
+      ['> [!NOTES]\n> x', q('<p>[!NOTES]\nx</p>')],
+      ['> [!INFO]\n> x', q('<p>[!INFO]\nx</p>')],
+      ['> [!NOTE\n> x', q('<p>[!NOTE\nx</p>')],
+      ['> [! NOTE]\n> x', q('<p>[! NOTE]\nx</p>')],
+      ['> text\n> [!NOTE]', q('<p>text\n[!NOTE]</p>')],
+      ['> [!NOTE', q('<p>[!NOTE</p>')],
+      ['[!NOTE]\n> x', `<p>[!NOTE]</p>${q('<p>x</p>')}`],
+      ['> > [!NOTE]\n> > x', q(q('<p>[!NOTE]\nx</p>'))],
+      ['- > [!NOTE]\n  > x', `<ul class="limmat-list"><li>${q('<p>[!NOTE]\nx</p>')}</li></ul>`],
+    ]);
+  });
+  it('an alert inside another quote, a list item, or a details block is a plain quote, as on GitHub', () => {
+    expect(render('> a\n>\n> > [!NOTE]\n> > x').innerHTML).not.toContain('alert');
+    expect(render('<details>\n\n> [!NOTE]\n> x\n\n</details>').innerHTML).not.toContain('alert');
+  });
+  it('the title uses labels, and a blank label keeps the English word', () => {
+    const r = (labels: Record<string, string>) => {
+      const root = document.createElement('div');
+      const x = createRenderer(root, { throttleMs: 0, labels });
+      x.write('> [!TIP]\n> a\n\n> [!CAUTION]\n> b');
+      x.end();
+      return Array.from(root.querySelectorAll('.limmat-alert-title')).map((e) => e.textContent);
+    };
+    expect(r({ tip: 'Tipp', caution: 'Achtung' })).toEqual(['Tipp', 'Achtung']);
+    expect(r({ tip: '', caution: '  ' })).toEqual(['Tip', 'Caution']);
+  });
+  it('a title with a custom classPrefix uses it', () => {
+    const root = document.createElement('div');
+    const x = createRenderer(root, { throttleMs: 0, classPrefix: 'zz' });
+    x.write('> [!NOTE]\n> a');
+    x.end();
+    expect(root.innerHTML).toBe('<blockquote class="zz-alert zz-alert-note"><p class="zz-alert-title">Note</p><p>a</p></blockquote>');
+  });
+  it('while the marker is still arriving or has no content yet, nothing of it shows, and the title appears with the first content', () => {
+    const q = (x = '') => `<blockquote>${x}</blockquote>`;
+    const open = (md: string) => renderOpen(md).innerHTML;
+    for (const md of [
+      '> [',
+      '> [!',
+      '> [!N',
+      '> [!NOTE',
+      '> [!NOTE]',
+      '> [!NOTE]  ',
+      '> [!caut',
+      '> [!NOTE]\n',
+      '> [!NOTE]\n>',
+      '> [!NOTE]\n> ',
+    ]) {
+      expect(open(md), JSON.stringify(md)).toBe(q());
+    }
+    expect(open('> [!NOTE]\n> te')).toBe(A('note', 'Note', '<p>te</p>'));
+    expect(open('> [!NOTE] t')).toBe(q('<p>[!NOTE] t</p>'));
+    // An open bracket is not shown while it can still become a link, so these two lose their `[` until the reply ends.
+    expect(open('> [!NOTEX')).toBe(q('<p>!NOTEX</p>'));
+    expect(open('> [x')).toBe(q('<p>x</p>'));
+  });
+  it('a held first line is the same one-character-at-a-time as in one write, and at the end it becomes text if it is no alert', () => {
+    for (const md of ['> [!NOTE', '> [!', '> [', '> [!NOTE] x\n> y', '> [!NOTE]\n> y\n']) {
+      expect(raw(md, 'char'), JSON.stringify(md)).toBe(raw(md, 'whole'));
+    }
+  });
+});

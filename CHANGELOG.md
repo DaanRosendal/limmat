@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- GitHub-style alerts: a top-level block quote that starts with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, or `[!CAUTION]` alone on its line (any letter case), followed by text, is a `blockquote.limmat-alert.limmat-alert-note` (and so on) with a `p.limmat-alert-title` first. While the marker is arriving, or before any text follows it, nothing of it shows, and a marker that never gets text stays plain text, as on GitHub. The titles are the new `labels.note`, `tip`, `important`, `warning`, and `caution`, and the optional `style.css` colors each type.
+
 ### Fixed
 
 - A lazy line after a table that sits two containers deep (`> > | a |` over `> > |---|`, or `> - | a |` over `>   |---|`) now ends the outer quote or item too, as in GFM. It used to stay in the outer container.

@@ -13,6 +13,7 @@
      img.limmat-image[loading=lazy][decoding=async][referrerpolicy=no-referrer], plus limmat-image-loaded or limmat-image-failed once it has loaded or failed
      span.limmat-image-blocked (an image that is not shown: its label, then the alt text)
      code.limmat-inline-code (inline code)
+     blockquote.limmat-alert.limmat-alert-note (or tip, important, warning, caution) > p.limmat-alert-title, then the content blocks
 */
 :root,
 :host {
@@ -62,6 +63,46 @@
   font-family: var(--limmat-font-mono);
   font-size: 0.875em;
   white-space: nowrap;
+}
+.limmat-alert {
+  --limmat-alert: #0969da;
+  margin: 0.5em 0;
+  padding: 0.1em 1em;
+  border-left: 0.25em solid var(--limmat-alert);
+}
+.limmat-alert-title {
+  margin: 0.5em 0 0.25em;
+  color: var(--limmat-alert);
+  font-weight: 600;
+}
+.limmat-alert-tip {
+  --limmat-alert: #1a7f37;
+}
+.limmat-alert-important {
+  --limmat-alert: #8250df;
+}
+.limmat-alert-warning {
+  --limmat-alert: #9a6700;
+}
+.limmat-alert-caution {
+  --limmat-alert: #cf222e;
+}
+@media (prefers-color-scheme: dark) {
+  .limmat-alert {
+    --limmat-alert: #4493f8;
+  }
+  .limmat-alert-tip {
+    --limmat-alert: #3fb950;
+  }
+  .limmat-alert-important {
+    --limmat-alert: #ab7df8;
+  }
+  .limmat-alert-warning {
+    --limmat-alert: #d29922;
+  }
+  .limmat-alert-caution {
+    --limmat-alert: #f85149;
+  }
 }
 .limmat-details {
   margin: 0.5em 0;
@@ -242,6 +283,12 @@
   .limmat-kbd,
   .limmat-details {
     border-color: CanvasText;
+  }
+  .limmat-alert {
+    border-left-color: CanvasText;
+  }
+  .limmat-alert-title {
+    color: CanvasText;
   }
   .limmat-link {
     color: LinkText;

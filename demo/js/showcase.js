@@ -48,7 +48,7 @@ md.end();
 
 ### What it renders today
 
-- [x] Headings, lists, quotes, and tables with alignment
+- [x] Headings, lists, quotes, alerts, and tables with alignment
 - [x] Task lists and fenced code with a Copy button
 - [x] Collapsible sections and safe tags like <kbd>Ctrl</kbd>
 - [ ] Setext headings and indented code

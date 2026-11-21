@@ -58,6 +58,8 @@ export const XSS: [string, string][] = [
   ['title quote breakout', '[a](http://x.com "t\\" onmouseover=\\"alert(1)")'],
   ['url quote breakout', '[a](http://x.com/" onmouseover="alert(1))'],
   ['nested malformed', '<div><p><b><script>alert(1)</p></b>'],
+  ['alert marker breakout', '> [!NOTE" class="x" onclick="alert(1)]\n> text'],
+  ['alert marker with markup', '> [!NOTE]<script>alert(1)</script>\n> text'],
   ['html in link text', '[<img src=x onerror=alert(1)>](https://ok.com)'],
   ['image js:', '![x](javascript:alert(1))'],
   ['iframe js:', '<iframe src="javascript:alert(1)"></iframe>'],
@@ -167,4 +169,5 @@ export const CORPUS: string[] = [
   'Tables without outer pipes after text:\nName | Qty\n:--|--:\nApple | 3\n\nHere is one:\na | b | c\n--|--|--\n1 | 2 | 3\n\nUse a | b in prose, then foo |\n---\nand a | b | c\n--|--\n1 | 2',
   'Lazy pipe lines:\n\n- item\n| a | b |\n|---|---|\n| 1 | 2 |\n\n> quote\n| a | b |\n|---|---|\n| 1 | 2 |\n\n- | a | b |\n  |---|---|\n  | 1 | 2 |\nlazy text\n\n> | a | b |\n> |---|---|\n| 1 | 2 |\n\n> a\n| b | c |\n> |---|---|\n> | 1 | 2 |\n\n- a\n- b\n| x | y |\n- c',
   'Deep tables:\n\n> > | a | b |\n> > |---|---|\n> > | 1 | 2 |\nlazy text\n\n> - | a | b |\n>   |---|---|\nmore lazy\n\n- > | a | b |\n  > |---|---|\n  > | 1 | 2 |\nafter\n\n| | a | b |\n- |---|---|\n\n> | a | b |\n> - |---|---|',
+  'Alerts:\n\n> [!NOTE]\n> **Useful** info with `code`\n\n> [!WARNING]\n> - a\n> - b\n\n> [!tip]\n\n> [!INFO]\n> not one\n\n> [!CAUTION]\nlazy line\n\n> [!NOTE] same line\n\n> [!IMPORTANT]\n> ```js\n> x\n> ```\n\n- > [!NOTE]\n  > in a list\n\n> a\n> [!NOTE]\n\n> [!NOTE]',
 ];

@@ -23,8 +23,8 @@
   {"feature": "Tab indentation", "status": "not-yet", "cm": ["Tabs"], "readmeRow": "Underlined headings, indented code, reference links, HTML entities, tab indentation"},
   {"feature": "Half-typed markers hidden while streaming", "status": "supported", "tests": [{"file": "test/half-open.test.ts", "title": "open fence shows code immediately"}, {"file": "browser/behavior.spec.ts", "title": "streaming never shows raw markers"}], "note": "Two small exceptions: a lone `[1]` shows as `1`, and the `<` of an `<email@example.com>` autolink shows until the `@` arrives.", "readme": false},
   {"feature": "Same output however the text is chunked", "status": "supported", "tests": [{"file": "test/chunk-fuzz.test.ts", "title": "two-part splits at every index"}], "readme": false},
-  {"feature": "Math (`$x$`)", "status": "not-yet", "note": "Planned as an opt-in hook you supply.", "readmeRow": "Math, footnotes, alerts, citations, emoji codes", "readmeNote": "Math, footnotes, and citations are planned as opt-ins."},
-  {"feature": "Footnotes", "status": "not-yet", "note": "Shown as text. Will be opt-in.", "readmeRow": "Math, footnotes, alerts, citations, emoji codes"},
-  {"feature": "Alerts (`> [!NOTE]`)", "status": "not-yet", "note": "Shown as a plain block quote.", "readmeRow": "Math, footnotes, alerts, citations, emoji codes"},
-  {"feature": "Citations (`[1]`) and emoji codes", "status": "not-yet", "note": "Shown literally. Will be opt-in.", "readmeRow": "Math, footnotes, alerts, citations, emoji codes"}
+  {"feature": "Math (`$x$`)", "status": "not-yet", "note": "Planned as an opt-in hook you supply.", "readmeRow": "Math, footnotes, citations, emoji codes", "readmeNote": "Math, footnotes, and citations are planned as opt-ins."},
+  {"feature": "Footnotes", "status": "not-yet", "note": "Shown as text. Will be opt-in.", "readmeRow": "Math, footnotes, citations, emoji codes"},
+  {"feature": "Alerts (`> [!NOTE]`)", "status": "supported", "tests": [{"file": "test/syntax.test.ts", "title": "a block quote that starts with [!TYPE] on its own line is an alert"}], "note": "A block quote with a title and a class, as on GitHub. Top level only.", "readme": false},
+  {"feature": "Citations (`[1]`) and emoji codes", "status": "not-yet", "note": "Shown literally. Will be opt-in.", "readmeRow": "Math, footnotes, citations, emoji codes"}
 ]

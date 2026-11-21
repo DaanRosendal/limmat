@@ -30,8 +30,20 @@ export interface Options {
   throttleMs?: number;
   /** Prefix for every generated class: letters, digits, `_` and `-`, starting with a letter or `_`. Default 'limmat', also for anything else. The bundled style.css only styles the default prefix. */
   classPrefix?: string;
-  /** Visible and accessible text, for translation. Defaults: copy 'Copy', copied 'Copied', table 'Table', done 'Completed', todo 'Not completed', imageNotShown 'Image not shown'. An empty or blank label uses its default. */
-  labels?: { copy?: string; copied?: string; table?: string; done?: string; todo?: string; imageNotShown?: string };
+  /** Visible and accessible text, for translation. Defaults: copy 'Copy', copied 'Copied', table 'Table', done 'Completed', todo 'Not completed', imageNotShown 'Image not shown', and the alert titles note 'Note', tip 'Tip', important 'Important', warning 'Warning', caution 'Caution'. An empty or blank label uses its default. */
+  labels?: {
+    copy?: string;
+    copied?: string;
+    table?: string;
+    done?: string;
+    todo?: string;
+    imageNotShown?: string;
+    note?: string;
+    tip?: string;
+    important?: string;
+    warning?: string;
+    caution?: string;
+  };
 }
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: removing control characters is the point
@@ -76,6 +88,10 @@ interface Built {
 }
 
 const MAX_DEPTH = 12;
+const ALERTS = { note: 1, tip: 1, important: 1, warning: 1, caution: 1 };
+const ALERT = /^\[!(note|tip|important|warning|caution)\][ \t]*$/i;
+/** Could this first line of a quote, still arriving, become an alert marker? (`[`, `[!NO`) */
+const alertStart = (l: string) => !!l && Object.keys(ALERTS).some((k) => `[!${k}]`.startsWith(l.toLowerCase()));
 
 /**
  * Render streaming markdown into `container`, which is emptied first. Use one renderer per message and per container (two renderers on one container mix their output), and call `destroy()` when the element goes away.
@@ -142,6 +158,11 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     done: lab(lb.done, 'Completed'),
     todo: lab(lb.todo, 'Not completed'),
     imageNotShown: lab(lb.imageNotShown, 'Image not shown'),
+    note: lab(lb.note, 'Note'),
+    tip: lab(lb.tip, 'Tip'),
+    important: lab(lb.important, 'Important'),
+    warning: lab(lb.warning, 'Warning'),
+    caution: lab(lb.caution, 'Caution'),
   };
   const cls = (name: string) => `${px}-${name}`;
   const timers = new Set<ReturnType<typeof setTimeout>>();
@@ -319,16 +340,19 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       case 'q': {
         const el = h('blockquote');
         const rows = L.slice(u.a, u.e);
-        blocks(
-          rows.map((x) => x.replace(/^ {0,3}> ?/, '')),
-          el,
-          depth + 1,
-          spec,
-          false,
-          hl,
-          part,
-          rows.map((x, k) => !BQ.test(x) || !!lz?.[u.a + k]),
-        );
+        const inner = rows.map((x) => x.replace(/^ {0,3}> ?/, ''));
+        let from = 0;
+        // A top-level quote whose first line is `[!NOTE]` (or TIP, IMPORTANT, WARNING, CAUTION) alone, followed by text, is an
+        // alert, as on GitHub. While that is still unknown (the marker is arriving, or nothing follows it yet) it stays hidden.
+        if (depth === 0) {
+          const kind = ALERT.exec(inner[0])?.[1].toLowerCase() as keyof typeof ALERTS | undefined;
+          if (kind && inner.some((x, k) => k > 0 && x.trim())) {
+            el.className = `${cls('alert')} ${cls(`alert-${kind}`)}`;
+            el.append(h('p', cls('alert-title'), label[kind]));
+            from = 1;
+          } else if (kind ? spec : inner.length === 1 && part && alertStart(inner[0])) from = 1;
+        }
+        blocks(inner.slice(from), el, depth + 1, spec, false, hl, part, rows.map((x, k) => !BQ.test(x) || !!lz?.[u.a + k]).slice(from));
         return { n: el };
       }
       case 'd': {
