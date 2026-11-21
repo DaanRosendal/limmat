@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { test as base, expect } from '@playwright/test';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const HTML = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="color-scheme" content="light dark"><title>limmat</title>
+export const HTML = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="color-scheme" content="light dark"><title>limmat</title>
 <link rel="stylesheet" href="/style.css"><style>body{background:Canvas;color:CanvasText;font:16px system-ui}</style>
 <script type="importmap">{"imports":{"@speed-highlight/core":"/sh/index.js"}}</script>
 <main><h1>limmat test page</h1><div id="root"></div></main>

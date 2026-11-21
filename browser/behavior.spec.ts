@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { CORPUS, REPLY, XSS } from '../test/helpers/cases';
-import { expect, test } from './fixture';
+import { expect, HTML, test } from './fixture';
 
 const docs = [...CORPUS, ...XSS.map(([, md]) => md)];
 
@@ -253,4 +253,49 @@ test('an image that is not shown is a pill that says so', async ({ page }) => {
     return { text: b.textContent, border: getComputedStyle(b).borderTopStyle, radius: getComputedStyle(b).borderTopLeftRadius !== '0px' };
   });
   expect(r).toEqual({ text: 'Image not shown: a chart', border: 'solid', radius: true });
+});
+
+test('renders every document under Trusted Types, where an HTML string sink throws', async ({ page }) => {
+  await page.route('https://limmat.test/tt', (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      headers: { 'content-security-policy': "require-trusted-types-for 'script'; trusted-types 'none'" },
+      body: HTML,
+    }),
+  );
+  await page.goto('https://limmat.test/tt');
+  await page.waitForFunction(() => (window as any).ready === true);
+  const enforced = await page.evaluate(() => {
+    try {
+      document.createElement('div').innerHTML = 'x';
+      return false;
+    } catch {
+      return true;
+    }
+  });
+  test.skip(!enforced, 'this browser does not enforce Trusted Types');
+  const r = await page.evaluate(async (docs) => {
+    const violations: string[] = [];
+    document.addEventListener('securitypolicyviolation', (e) => violations.push(e.violatedDirective));
+    const errors: string[] = [];
+    let rendered = 0;
+    for (const md of docs) {
+      const root = document.createElement('div');
+      document.body.append(root);
+      try {
+        const r = (window as any).limmat.createRenderer(root, { throttleMs: 0 });
+        for (const ch of md) r.write(ch);
+        r.end();
+        rendered += root.childElementCount > 0 ? 1 : 0;
+        root.querySelector('button')?.click(); // the Copy button path
+      } catch (e) {
+        errors.push(String(e));
+      }
+      root.remove();
+    }
+    return { violations, errors, rendered };
+  }, docs);
+  expect(r.errors).toEqual([]);
+  expect(r.violations).toEqual([]);
+  expect(r.rendered).toBeGreaterThan(docs.length / 2);
 });
