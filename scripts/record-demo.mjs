@@ -1,7 +1,7 @@
 // Records the Showcase stream of the built demo as a looping GIF (run `npm run build && npm run build:demo` first).
 //   npm run record                       docs/demo-light.gif and docs/demo-dark.gif (not in git: upload them to the `media` release)
 //   npm run record -- theme=dark         only docs/demo-dark.gif
-//   options: theme=light|dark (both when left out)  seed=1  size=1  speed=42  throttle=0  fps=24  width=1080  dsf=2  colors=16  lossy=0  chunks=0|1  bg=#ffffff  view=900x740  out=docs/demo-light.gif  frames=<dir to keep the PNG frames in>
+//   options: theme=light|dark (both when left out)  seed=1  size=3  speed=42  throttle=0  fps=24  width=1080  dsf=2  colors=256  lossy=0  chunks=0|1  bg=#ffffff  view=900x900  out=docs/demo-light.gif  frames=<dir to keep the PNG frames in>
 //
 // The recording is reproducible: the page runs on Playwright's virtual clock, so every timer, throttle, and animation
 // frame advances by exactly one frame interval between screenshots, and the chunk cuts come from the seed in the URL.
@@ -26,17 +26,17 @@ if (!opt.theme && !opt.out) {
 }
 const theme = opt.theme === 'dark' ? 'dark' : 'light';
 const seed = Number(opt.seed ?? 1);
-const size = Number(opt.size ?? 1); // characters per chunk (random 1 to size)
+const size = Number(opt.size ?? 3); // characters per chunk (random 1 to size), so the stream plays in about 24 seconds
 const speed = Number(opt.speed ?? 42); // ms between chunks (42 shows as 24/s in the demo)
 const throttle = Number(opt.throttle ?? 0); // the renderer's throttleMs
 const fps = Number(opt.fps ?? 24); // the same as the 24 chunks per second, so each frame adds one character
 const width = Number(opt.width ?? 1080);
-const colors = Number(opt.colors ?? 16);
+const colors = Number(opt.colors ?? 256); // the most a GIF holds, so the text edges stay clean
 const lossy = Number(opt.lossy ?? 0); // gifsicle's lossy level: 0 is lossless, and 40 or more adds visible artifacts
 const dsf = Number(opt.dsf ?? 2); // device scale factor: the page renders at 2x, and the frames are scaled to `width`
 const bg = opt.bg ?? (theme === 'dark' ? '#0d1117' : '#ffffff'); // the page background, set to GitHub's own so the GIF blends into the README
 const marks = opt.chunks === '1' ? 1 : 0; // the chunk tint in the raw pane, off in the recording unless chunks=1
-const [vw, vh] = (opt.view ?? '900x740').split('x').map(Number);
+const [vw, vh] = (opt.view ?? '900x900').split('x').map(Number);
 const out = opt.out ?? `docs/demo-${theme}.gif`;
 const HOLD_START = 1; // seconds on the empty page before it starts
 const HOLD_END = 3; // seconds on the finished page

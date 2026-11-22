@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error plain JS demo module, pure data
 import { SHOWCASE } from '../demo/js/showcase.js';
@@ -7,9 +6,15 @@ import { chunkText } from '../demo/js/streams.js';
 import { audit, render, renderOpen } from './helpers/util';
 
 // The demo builds its renderer with this image setting (demo/js/player.js), so the Showcase is checked the same way.
-const OPTIONS = { images: ['https://example.com'] };
+// With math on, as the page has it once KaTeX has loaded (a stub stands in for KaTeX here: it writes the tex as text).
+const OPTIONS = {
+  images: ['https://example.com'],
+  renderMath: (el: HTMLElement, tex: string) => {
+    el.textContent = tex;
+  },
+};
 const text: string = SHOWCASE;
-const ATTACK = text.indexOf('### Attack replay');
+const ATTACK = text.indexOf('Hostile input'); // the last bullet shows hostile text on purpose
 const whole = render(text, 'whole', OPTIONS);
 
 describe('the Showcase stream', () => {
@@ -31,7 +36,7 @@ describe('the Showcase stream', () => {
       const root = renderOpen(text.slice(0, i), OPTIONS);
       for (const n of root.querySelectorAll('pre, code')) n.remove();
       const visible = root.textContent ?? '';
-      // The attack section shows hostile text on purpose, and a "<" is part of it.
+      // The last bullet shows hostile text on purpose, and a "<" is part of it.
       const re = i > ATTACK ? /\*\*|~|\]\(|`|!\[|[[\]]/ : /\*\*|~|\]\(|`|!\[|[[\]]|</;
       const m = re.exec(visible);
       if (m) bad.push(`${JSON.stringify(m[0])} after ${JSON.stringify(text.slice(Math.max(0, i - 24), i))}`);
@@ -46,34 +51,30 @@ describe('the Showcase stream', () => {
   it('shows every kind of thing limmat renders', () => {
     const has = (sel: string) => whole.querySelectorAll(sel).length;
     const checks: [string, string, number][] = [
-      ['headings', 'h2, h3', 4],
-      ['bold, italic, and strikethrough', 'strong, em, del', 4],
-      ['inline code', 'p code, li code, td code', 3],
-      ['links with a real address', 'a[href^="https://"], a[href^="mailto:"]', 5],
+      ['a heading', 'h2', 1],
+      ['bold, italic, and strikethrough', 'strong, em, del', 3],
+      ['inline code', 'p code, td code', 3],
+      ['a link with a real address', 'a[href^="https://"]', 1],
+      ['an alert', 'blockquote.limmat-alert-tip', 1],
+      ['inline and display math', '.limmat-math:not(.limmat-math-display), .limmat-math-display', 2],
       ['a table with alignment', 'table th[style], table td[style]', 6],
-      ['a nested list', 'ol ul', 1],
-      ['task list checkboxes', 'input[type="checkbox"]', 5],
-      ['fenced code with a language label', '.limmat-code', 2],
-      ['a block quote', 'blockquote', 1],
-      ['safe tags', 'kbd, sub, sup, mark, ins', 5],
-      ['a local image', 'img[src="/limmat-mark.svg"]', 1],
-      ['an open section holding a closed one', 'details[open] details:not([open])', 1],
+      ['fenced code with a language label', '.limmat-code', 1],
+      ['task list checkboxes', 'input[type="checkbox"]', 3],
+      ['safe tags', 'kbd, sub, sup', 3],
     ];
     for (const [what, sel, min] of checks) expect(has(sel), what).toBeGreaterThanOrEqual(min);
-    expect(has('a[href="https://en.wikipedia.org/wiki/Rust_(programming_language)"]'), 'a link with parentheses').toBe(1);
   });
 
   it('keeps the hostile section inert', () => {
     expect(whole.querySelectorAll('script, iframe, style, form, [onclick], [onerror]').length).toBe(0);
-    expect(Array.from(whole.querySelectorAll('img'), (i) => i.getAttribute('src'))).toEqual(['/limmat-mark.svg']);
+    expect(whole.querySelectorAll('img').length).toBe(0);
     expect(
       Array.from(whole.querySelectorAll('a'), (a) => a.getAttribute('href') ?? '').filter((h) => !/^(https?:|mailto:)/.test(h)),
     ).toEqual([]);
     expect(whole.textContent).toContain('<script>alert(1)</script>');
   });
 
-  it('points at an image that the demo build ships, and uses no em or en dashes', () => {
-    expect(existsSync('demo/assets/limmat-mark.svg')).toBe(true);
+  it('uses no em or en dashes', () => {
     const dash = new RegExp(`[${String.fromCharCode(0x2013)}${String.fromCharCode(0x2014)}]`);
     expect(dash.test(text)).toBe(false);
   });

@@ -18,6 +18,7 @@ export const s = {
   r: null,
   customText: '',
   hl: null,
+  math: null, // the renderMath function (KaTeX), once its file has loaded
   lastSpan: null,
   rendered: null, // the text in the live renderer while the visitor edits, null otherwise
 };

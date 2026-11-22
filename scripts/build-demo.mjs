@@ -2,7 +2,7 @@
 // No bundler for the page itself: only copies, a bundle of the optional highlighter with its language chunks,
 // a merged support.json for the table, and release.json (version plus hash) so the page can prove what it runs.
 import { createHash } from 'node:crypto';
-import { copyFileSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { build } from 'esbuild';
 import { rows, specCounts } from './support-data.mjs';
@@ -31,6 +31,27 @@ await build({
   legalComments: 'none',
   logLevel: 'error',
 });
+
+// The optional math: KaTeX behind limmat/katex as one file, with its stylesheet and the fonts that current browsers load (woff2).
+// KaTeX's own license comment stays at the end of the file.
+await build({
+  stdin: {
+    contents: "import katex from 'katex'; import { katexMath } from './src/katex.ts'; export const math = katexMath(katex);",
+    resolveDir: process.cwd(),
+    sourcefile: 'math-entry.js',
+  },
+  bundle: true,
+  format: 'esm',
+  target: 'es2022',
+  minify: true,
+  outfile: `${out}/math/math.js`,
+  legalComments: 'eof',
+  logLevel: 'error',
+});
+copyFileSync('node_modules/katex/dist/katex.min.css', `${out}/math/katex.css`);
+mkdirSync(`${out}/math/fonts`);
+for (const f of readdirSync('node_modules/katex/dist/fonts'))
+  if (f.endsWith('.woff2')) copyFileSync(`node_modules/katex/dist/fonts/${f}`, `${out}/math/fonts/${f}`);
 
 const support = rows.map((r) => {
   const spec = specCounts(r);

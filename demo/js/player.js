@@ -22,6 +22,7 @@ function newRenderer() {
   s.r = createRenderer(el.out, {
     throttleMs: s.throttle,
     highlight,
+    renderMath: s.math ?? undefined, // KaTeX, with the adapter's safe settings
     images: ['https://example.com'], // the hardened setup from the README's Safety section: the Attack stream's tracker images are refused
   });
 }

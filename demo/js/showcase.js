@@ -1,89 +1,42 @@
-// The Showcase stream: one curated reply, about limmat, that uses everything the renderer supports and the hard cases
-// that streaming makes hard (half-typed markers, a link cut open, a table that grows, a fence that fills in, nested
-// sections, and hostile input that stays inert). Pure data, so a unit test can import it.
+// The Showcase stream: one short, curated reply about limmat. It is the README GIF, so it packs in what is worth seeing in
+// about half a minute: half-typed markers that stay hidden, an alert, inline and display math, a table that grows, a coloured
+// code fence, task checkboxes, safe tags, and hostile input that stays inert. Pure data, so a unit test can import it.
 // Rules for editing: every block starts a new paragraph or heading, no syntax limmat does not support (see the support
 // table), no unclosed fence or <details>, no numbers or option names that the TSDoc in src/index.ts does not state.
+// Keep it short: the GIF must stay under 5 MB, and a longer stream costs frames.
 
 export const SHOWCASE = `## Streaming markdown, calmly
 
-**limmat** turns text that arrives in *pieces* into a clean page, one chunk at a time. It is named after the [Limmat](https://en.wikipedia.org/wiki/Limmat), the river through Zurich, because the text arrives as a stream.
+**limmat** turns text that arrives in *pieces* into a clean page. You never see a stray \`**\` or \`[link](\` on the way, and it is [named after a river](https://en.wikipedia.org/wiki/Limmat) in Zurich.
 
-### Half-typed markers stay invisible
+> [!TIP]
+> Half-typed bold, links, tables, and formulas stay hidden until they are ready.
 
-You never see a stray \`**\` or \`[link](\`. Bold, *italic*, ***both***, ~~strikethrough~~, and \`inline code\` appear only once there is something to show. A link such as [Rust](https://en.wikipedia.org/wiki/Rust_(programming_language)) shows just its label until the closing parenthesis arrives.
+Math comes from your own KaTeX: \\(e^{i\\pi}+1=0\\) inline, and a display formula that shows its tex until it closes:
 
-Bare addresses like https://example.com/docs, www.example.com, and hi@example.com become links too.
-
-### The same result, however it is cut
-
-1. Text arrives in chunks of any size.
-   - A chunk can end inside a word, a marker, or a URL.
-   - Only the open block is re-rendered.
-2. Once a later block has started on a complete line, the block before it is **frozen**.
-
-### Options that matter
+$$
+\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}
+$$
 
 | Option | Default | What it does |
 |:-------|:-------:|:-------------|
 | \`throttleMs\` | \`50\` | Redraw pause |
-| \`images\` | \`true\` | Origin list or \`false\` |
-| \`html\` | \`true\` | Which safe tags |
-
-### Using it
-
-\`\`\`sh
-npm install limmat
-\`\`\`
+| \`renderMath\` | none | Your math library |
 
 \`\`\`ts
 import { createRenderer } from 'limmat';
+import { katexMath } from 'limmat/katex';
 
-const md = createRenderer(
-  document.querySelector('#answer')!,
-);
+const md = createRenderer(el, {
+  renderMath: katexMath(katex),
+});
 for await (const chunk of stream) {
   md.write(chunk);
 }
 md.end();
 \`\`\`
 
-### What it renders today
-
-- [x] Headings, lists, quotes, alerts, and tables with alignment
-- [x] Task lists and fenced code with a Copy button
-- [x] Collapsible sections and safe tags like <kbd>Ctrl</kbd>
-- [ ] Reference links
-- [x] Math, when you add a renderer like KaTeX
-- [ ] Footnotes and citations
-
-> Unsupported syntax renders as literal text, never as markup.
-
-Press <kbd>Ctrl</kbd>+<kbd>C</kbd> to copy H<sub>2</sub>O and x<sup>2</sup>, with <mark>highlights</mark>, <ins>additions</ins>, and <del>removals</del>. Images load from this site and from any origin you allow: ![The limmat mark](/limmat-mark.svg)
-
-<details open>
-<summary>Is it safe?</summary>
-
-- The page is built with \`createElement\` and text nodes, never HTML strings.
-- Every link goes through an allow-list.
-- Raw HTML is text, apart from a few attribute-free tags.
-
-<details>
-<summary>What about a hostile reply?</summary>
-
-It stays inert. Watch the next section.
-
-</details>
-
-</details>
-
-### Attack replay (inert on purpose)
-
-- [click me](javascript:alert(1))
-- [or me](//evil.example)
-
-<script>alert(1)</script>
-
-![tracker](https://evil.example/track.png)
-
-Every payload above stayed plain text, and the tracker image was blocked by the \`images\` allow-list.
+- [x] Lists, task lists, tables, and ~~plain~~ coloured code
+- [x] Press <kbd>Ctrl</kbd>+<kbd>C</kbd> to copy H<sub>2</sub>O and x<sup>2</sup>
+- [x] Hostile input stays text: [click me](javascript:alert(1)) and <script>alert(1)</script>
 `;

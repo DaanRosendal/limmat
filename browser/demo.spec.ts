@@ -25,8 +25,10 @@ test('the Showcase plays first, and it is the stream that is checked in the dock
   await open(page);
   await expect(page.locator('input[name="stream"][value="showcase"]')).toBeChecked();
   await page.click('#finish');
-  await expect(page.locator('#out img[src="/limmat-mark.svg"]')).toBeVisible();
-  await expect(page.locator('#out details[open] details')).toHaveCount(1);
+  await expect(page.locator('#out blockquote.limmat-alert-tip')).toBeVisible();
+  await expect(page.locator('#out table')).toBeVisible();
+  await expect(page.locator('#out .limmat-code code span').first()).toBeAttached(); // the highlighter coloured the code
+  await expect(page.locator('#out .limmat-math .katex')).toHaveCount(2); // the inline and the display formula, drawn by KaTeX
   await expect(page.locator('#chip-attacks')).toHaveText('Nothing unsafe got through');
   await expect(page.locator('#chip-attacks')).toHaveClass(/safe/);
   await expect(page.locator('#open-readout')).toContainText('Done');
@@ -55,11 +57,13 @@ test('the page has no inline script, no inline style attribute, and sets no cook
     storage: localStorage.length + sessionStorage.length,
   }));
   expect(found).toEqual({ inlineScripts: 0, styleAttrs: [], cookie: '', storage: 0 });
-  // Inside limmat's output the only style is a table cell's alignment (set through the CSSOM, which a strict
-  // style-src allows), and it appears once the stream reaches a table, so which cells exist depends on timing.
+  // Inside limmat's output the only styles are a table cell's alignment and KaTeX's own sizes (both set through the CSSOM,
+  // which a strict style-src allows), and they appear once the stream reaches a table or a formula, so which exist depends on timing.
   await page.click('#finish');
   const inOutput = await page.evaluate(() =>
-    Array.from(document.querySelectorAll('#out [style]'), (e) => `${e.tagName} ${e.getAttribute('style')}`),
+    Array.from(document.querySelectorAll('#out [style]'))
+      .filter((e) => !e.closest('.katex'))
+      .map((e) => `${e.tagName} ${e.getAttribute('style')}`),
   );
   for (const s of inOutput) expect(s).toMatch(/^(TH|TD) text-align: (left|center|right);$/);
   expect(await page.evaluate(() => (window as any).__csp ?? [])).toEqual([]);

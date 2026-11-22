@@ -35,6 +35,15 @@ async function start() {
   } catch {
     /* plain code blocks are fine */
   }
+  try {
+    s.math = (await import('../math/math.js')).math;
+    const css = document.createElement('link'); // added from script, so the strict CSP needs nothing more than style-src 'self'
+    css.rel = 'stylesheet';
+    css.href = 'math/katex.css';
+    document.head.append(css);
+  } catch {
+    /* math stays plain text */
+  }
   reset(false);
   if (reduceMotion) {
     // No autoplay with reduced motion: show the finished state and let the visitor press Play.
