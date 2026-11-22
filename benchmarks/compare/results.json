@@ -16,7 +16,7 @@
       "framework": "react",
       "output": "dom",
       "directDeps": 0,
-      "gzipBytes": 13445,
+      "gzipBytes": 13726,
       "gzipNote": "`src/index.ts`, esbuild minify, same target as `scripts/size.mjs`",
       "defaultConfig": "`createRenderer(container)` with no options, `write(chunk)` for every chunk and `end()` at the end (50 ms throttle).",
       "releaseDate": "2026-11-22",
@@ -52,9 +52,9 @@
         },
         "p7-commonmark": {
           "result": "info",
-          "passed": 439,
+          "passed": 464,
           "total": 652,
-          "strict": 262,
+          "strict": 263,
           "textOnly": 492
         }
       }

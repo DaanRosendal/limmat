@@ -17,7 +17,7 @@ Streaming markdown for LLM chat. Half-typed syntax like `[docs](https://example`
 - **Predictable.** However the text is cut into chunks, the page ends up the same as rendering it all at once.
 - **Safe.** It builds DOM nodes, never HTML strings, so hostile text stays text. Remote images load by default, so limit them with `images` (see [Safety](#safety)).
 - **Any framework.** Ready-made components for React, Vue, Svelte, and Solid. Angular and plain JavaScript take any DOM element.
-- **Small and fast.** 13.4 kB gzip and no dependencies ([how it compares](#how-it-compares)). A 100 KB reply streamed in small chunks takes about 20 ms in total in Chromium.
+- **Small and fast.** 13.7 kB gzip and no dependencies ([how it compares](#how-it-compares)). A 100 KB reply streamed in small chunks takes about 20 ms in total in Chromium.
 
 ## Install and usage
 
@@ -133,8 +133,8 @@ export class MessageComponent implements OnDestroy {
 | Runtime dependencies | ✅ 0 | ✅ 0 | ❌ 107 | ❌ 45 | ❌ 34 | ⚠️ 2 | ❌ 60 | ✅ 0 |
 | Safe by default | ✅ | ❌ | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ |
 | No raw markers while streaming | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| CommonMark examples passed | ⚠️ 67% | ❌ 30% | ✅ 82% | ⚠️ 67% | ✅ 92% | ⚠️ 60% | ✅ 90% | ✅ 99% |
-| Size (gzip) | 13.4 kB | 3.3 kB | 165.6 kB | 369.3 kB | 74.9 kB | 7.4 kB | 36.8 kB | 15.9 kB |
+| CommonMark examples passed | ⚠️ 71% | ❌ 30% | ✅ 82% | ⚠️ 67% | ✅ 92% | ⚠️ 60% | ✅ 90% | ✅ 99% |
+| Size (gzip) | 13.7 kB | 3.3 kB | 165.6 kB | 369.3 kB | 74.9 kB | 7.4 kB | 36.8 kB | 15.9 kB |
 | Last release | Nov&nbsp;2026 | **May&nbsp;2025** | Nov&nbsp;2026 | Nov&nbsp;2026 | Nov&nbsp;2026 | Nov&nbsp;2026 | **Mar&nbsp;2025** | Nov&nbsp;2026 |
 
 Checked on 2026-11-22 against the latest releases, each in its default quick-start setup ([probes and raw results](https://github.com/DaanRosendal/limmat/blob/master/benchmarks/compare/README.md)). Open an issue or pull request if something is wrong or out of date.
