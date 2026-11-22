@@ -67,6 +67,22 @@ export const TOOLS = [
       '`<Markdown extensions={[streamingMarkdownExtension()]} frontmatter={false} headingIds={false}>` with the text so far, as its AI streaming guide shows. It parses the whole text on every update.',
     external: ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/client'],
   },
+  // The two most used markdown libraries. Neither is built for streaming, so each write parses the whole text again, as their docs show.
+  {
+    id: 'react-markdown',
+    npm: 'react-markdown',
+    imports: '{ default as Markdown }',
+    output: 'react',
+    defaultConfig: '`<Markdown>{text so far}</Markdown>` rendered again on every write, no plugins, default `urlTransform`.',
+    external: ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/client'],
+  },
+  {
+    id: 'marked',
+    npm: 'marked',
+    imports: '{ marked }',
+    output: 'html-string',
+    defaultConfig: '`container.innerHTML = marked.parse(text so far)` on every write, no options and no sanitizer.',
+  },
 ];
 
 // What a library needs to bundle beyond esbuild's defaults: Svelte components are compiled by esbuild-svelte, and Vue wants its build flags.

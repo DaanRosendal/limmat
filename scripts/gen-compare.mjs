@@ -91,6 +91,9 @@ export function validate(results, data, probes) {
     }
     for (const id of data.order ?? []) if (!data.tools?.[id]) bad(`compare.json: order names "${id}", which has no entry in tools`);
     for (const k of ['corner', ...ROWS]) if (!isText(data.rows?.[k], 60)) bad(`compare.json: rows.${k} must be short plain text`);
+    for (const k of ['frameworkNote', 'baselinesNote'])
+      if (data.details?.[k] !== undefined && (typeof data.details[k] !== 'string' || !data.details[k].trim()))
+        bad(`compare.json: details.${k} must be a non-empty string`);
     for (const k of ['frameworkNames', 'outputNames'])
       for (const [key, name] of Object.entries(data[k] ?? {}))
         if (!isText(name, 40)) bad(`compare.json: ${k}.${key} must be short plain text`);
@@ -226,11 +229,13 @@ function reasons(keys, t) {
 function cells(t, data, checkedOn) {
   const pr = t.probes;
   const c = {};
-  // A library with no framework works with any page, and its own components for some frameworks are listed after it.
-  const wrap = (data.tools[t.id].wrappers ?? []).map((w) => data.frameworkNames[w]);
-  c.framework =
-    t.framework === 'none'
-      ? `${MARK.pass} Any${wrap.length ? `, plus ${andList(wrap)}` : ''}`
+  // limmat: components for several frameworks (listed in the notes). A library with no framework works with the DOM only, and
+  // any other library is built for one framework.
+  const wrap = data.tools[t.id].wrappers ?? [];
+  c.framework = wrap.length
+    ? `${MARK.pass} Any`
+    : t.framework === 'none'
+      ? `${MARK.partial} DOM only`
       : `${MARK.fail} ${data.frameworkNames[t.framework]} only`;
   c.deps = `${t.totalDeps === 0 ? MARK.pass : t.totalDeps <= 5 ? MARK.partial : MARK.fail} ${t.totalDeps}`;
   c.safe = MARK[combine([pr['p1-raw-html'].result, pr['p2-link-schemes'].result])];
@@ -250,6 +255,12 @@ const names = (list, data) => andList(list.map((t) => data.tools[t.id].name));
 // Plain-language details for the table rows, derived from the probe results.
 function details(tools, data) {
   const out = [];
+  const wrapped = tools.filter((t) => data.tools[t.id].wrappers?.length);
+  const domOnly = tools.filter((t) => t.framework === 'none' && !data.tools[t.id].wrappers?.length);
+  if (wrapped.length && data.details?.frameworkNote)
+    out.push(
+      `Native framework support: ${wrapped.map((t) => `${data.tools[t.id].name} ships components for ${andList(data.tools[t.id].wrappers.map((w) => data.frameworkNames[w]))} ${data.details.frameworkNote}`).join(' ')}${domOnly.length ? ` ${names(domOnly, data)} ${domOnly.length === 1 ? 'works' : 'work'} with the DOM only.` : ''} The rest are built for one framework. The cross is about reach, not quality, since a library built for your framework can be the better fit.`,
+    );
   const notSafe = tools.filter((t) => combine([t.probes['p1-raw-html'].result, t.probes['p2-link-schemes'].result]) !== 'pass');
   if (notSafe.length)
     out.push(
@@ -265,6 +276,7 @@ function details(tools, data) {
     out.push(
       `Raw markers while streaming: ${andList(leaky.map((t) => `${data.tools[t.id].name} ${t.probes['p6-markers'].leaked} of ${t.probes['p6-markers'].constructs} constructs`))}.${markersNote}`,
     );
+  if (data.details?.baselinesNote) out.push(data.details.baselinesNote);
   const imgFail = tools.filter((t) => t.probes['p4-remote-md-image'].result === 'fail');
   const htmlFail = tools.filter((t) => t.probes['p3-remote-html'].result === 'fail');
   const parts = [];

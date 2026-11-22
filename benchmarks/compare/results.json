@@ -13,10 +13,10 @@
       "version": "0.3.0",
       "versionLabel": "0.3.0 (master)",
       "repo": "DaanRosendal/limmat",
-      "framework": "none",
+      "framework": "react",
       "output": "dom",
       "directDeps": 0,
-      "gzipBytes": 11685,
+      "gzipBytes": 11694,
       "gzipNote": "`src/index.ts`, esbuild minify, same target as `scripts/size.mjs`",
       "defaultConfig": "`createRenderer(container)` with no options, `write(chunk)` for every chunk and `end()` at the end (50 ms throttle).",
       "releaseDate": "2026-11-22",
@@ -316,6 +316,110 @@
           "total": 652,
           "strict": 312,
           "textOnly": 474
+        }
+      }
+    },
+    {
+      "id": "react-markdown",
+      "npm": "react-markdown",
+      "version": "10.1.0",
+      "versionLabel": "10.1.0",
+      "repo": "remarkjs/react-markdown",
+      "framework": "react",
+      "output": "react",
+      "directDeps": 11,
+      "gzipBytes": 36788,
+      "gzipNote": "react and react-dom excluded",
+      "defaultConfig": "`<Markdown>{text so far}</Markdown>` rendered again on every write, no plugins, default `urlTransform`.",
+      "releaseDate": "2025-03-07",
+      "firstRelease": "2015-05-09",
+      "lastCommit": "2026-10-03",
+      "totalDeps": 60,
+      "probes": {
+        "p1-raw-html": {
+          "result": "pass",
+          "detail": "nothing ran, no on* attribute, no active element"
+        },
+        "p2-link-schemes": {
+          "result": "pass",
+          "detail": "no javascript:, vbscript: or data: link survived; clicks were inert"
+        },
+        "p3-remote-html": {
+          "result": "pass",
+          "detail": "no request without a click"
+        },
+        "p4-remote-md-image": {
+          "result": "fail",
+          "detail": "requested evil.test/leak?q=secret without a click"
+        },
+        "p5-link-target": {
+          "result": "pass",
+          "detail": "target=none rel=none"
+        },
+        "p6-markers": {
+          "result": "fail",
+          "detail": "5 of 8 constructs leaked; leaked: emphasis (\"*\"), strong (\"*\"), code span (\"`\"), fenced code (\"`\"), link (\"[\"); n/a (not rendered): table, strikethrough",
+          "leaked": 5,
+          "constructs": 8
+        },
+        "p7-commonmark": {
+          "result": "info",
+          "passed": 584,
+          "total": 652,
+          "strict": 554,
+          "textOnly": 580
+        }
+      }
+    },
+    {
+      "id": "marked",
+      "npm": "marked",
+      "version": "18.2.1",
+      "versionLabel": "18.2.1",
+      "repo": "markedjs/marked",
+      "framework": "none",
+      "output": "html-string",
+      "directDeps": 0,
+      "gzipBytes": 15874,
+      "gzipNote": "quick-start import only, esbuild minify",
+      "defaultConfig": "`container.innerHTML = marked.parse(text so far)` on every write, no options and no sanitizer.",
+      "releaseDate": "2026-11-16",
+      "firstRelease": "2011-07-24",
+      "lastCommit": "2026-11-22",
+      "totalDeps": 0,
+      "probes": {
+        "p1-raw-html": {
+          "result": "fail",
+          "detail": "ran: p1-img, p1-inline, p1-iframe"
+        },
+        "p2-link-schemes": {
+          "result": "fail",
+          "detail": "javascript: href kept for p2-js, p2-js-enc, p2-case, p2-tab, p2-auto; ran: p2-js, p2-js-enc, p2-case, p2-tab, p2-auto"
+        },
+        "p3-remote-html": {
+          "result": "fail",
+          "detail": "requested evil.test/p3, evil.test/p3i without a click"
+        },
+        "p4-remote-md-image": {
+          "result": "fail",
+          "detail": "requested evil.test/leak?q=secret without a click"
+        },
+        "p5-link-target": {
+          "result": "pass",
+          "detail": "target=none rel=none"
+        },
+        "p6-markers": {
+          "result": "fail",
+          "detail": "7 of 10 constructs leaked; leaked: emphasis (\"*\"), strong (\"*\"), code span (\"`\"), fenced code (\"`\"), link (\"[\"), table (\"|\"), strikethrough (\"~\")",
+          "leaked": 7,
+          "constructs": 10
+        },
+        "p7-commonmark": {
+          "result": "info",
+          "passed": 648,
+          "total": 652,
+          "strict": 606,
+          "textOnly": 652
         }
       }
     }

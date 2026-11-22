@@ -54,6 +54,8 @@ const make = () => ({
     ),
     tool('svelte-markdown', { framework: 'svelte', output: 'svelte', directDeps: 3, totalDeps: 40 }),
     tool('tanstack-markdown', { framework: 'react', output: 'react' }),
+    tool('react-markdown', { framework: 'react', output: 'react', directDeps: 11, totalDeps: 60 }),
+    tool('marked', { output: 'html-string' }),
   ],
 });
 type Results = ReturnType<typeof make>;
@@ -105,6 +107,8 @@ describe('compare table: render', () => {
       '[markstream-vue](https://github.com/Simon-He95/markstream-vue#readme)',
       '[svelte-markdown](https://github.com/humanspeak/svelte-markdown#readme)',
       '[TanStack Markdown](https://github.com/TanStack/markdown#readme)',
+      '[react-markdown](https://github.com/remarkjs/react-markdown#readme)',
+      '[marked](https://github.com/markedjs/marked#readme)',
     ]);
     expect(header).not.toContain('<br>');
     expect(header).not.toContain('0.2.0');
@@ -115,7 +119,7 @@ describe('compare table: render', () => {
     const head = lines.findIndex((l) => l.startsWith('| Compared on |'));
     const labels = lines.slice(head + 2, head + 9).map((l) => l.split('|')[1].trim());
     expect(labels).toEqual([
-      'Works with',
+      'Native framework support',
       'Runtime dependencies',
       'Safe by default',
       'No raw markers while streaming',
@@ -145,37 +149,51 @@ describe('compare table: render', () => {
     expect(text).toContain('`<Tag a={1}>` while \\<b\\>text\\</b\\> arrives.');
   });
 
-  it('shows any page with a check mark, plus the frameworks a library ships components for, and a cross for one framework only', () => {
-    expect(cellsOf(out, 'Works with')).toEqual([
-      '✅ Any, plus React, Vue, Svelte, and Solid',
+  it('shows a check mark for components in several frameworks, a warning for the DOM only, and a cross for one framework', () => {
+    expect(cellsOf(out, 'Native framework support')).toEqual([
       '✅ Any',
+      '⚠️ DOM only',
       '❌ React only',
       '❌ Vue only',
       '❌ Svelte only',
       '❌ React only',
+      '❌ React only',
+      '⚠️ DOM only',
     ]);
   });
 
-  it('lists two wrappers with "and" and none with nothing extra', () => {
+  it('explains the row in a note: which frameworks limmat ships, who is DOM only, and that the cross is about reach', () => {
+    const note = bullet(out, 'Native framework support:');
+    expect(note).toContain('limmat ships components for React, Vue, Svelte, and Solid');
+    expect(note).toContain('streaming-markdown and marked work with the DOM only.');
+    expect(note).toContain('The cross is about reach, not quality');
+  });
+
+  it('lists two wrappers with "and", and with none the library is DOM only', () => {
     const d = structuredClone(data);
     d.tools.limmat.wrappers = ['react', 'vue'];
-    expect(cellsOf(render(make(), d), 'Works with')[0]).toBe('✅ Any, plus React and Vue');
+    expect(bullet(render(make(), d), 'Native framework support:')).toContain('components for React and Vue');
     delete (d.tools.limmat as { wrappers?: string[] }).wrappers;
-    expect(cellsOf(render(make(), d), 'Works with')[0]).toBe('✅ Any');
+    expect(cellsOf(render(make(), d), 'Native framework support')[0]).toBe('⚠️ DOM only');
+    expect(bullet(render(make(), d), 'Native framework support:')).toBe('');
+  });
+
+  it('says that react-markdown and marked are not built for streaming', () => {
+    expect(bullet(out, 'react-markdown and marked are not built for streaming')).toContain('each write parses the whole text again');
   });
 
   it('marks dependencies by the total only: none, 1 to 5, more', () => {
-    expect(cellsOf(out, 'Runtime dependencies')).toEqual(['✅ 0', '✅ 0', '❌ 117', '✅ 0', '❌ 40', '✅ 0']);
+    expect(cellsOf(out, 'Runtime dependencies')).toEqual(['✅ 0', '✅ 0', '❌ 117', '✅ 0', '❌ 40', '✅ 0', '❌ 60', '✅ 0']);
     const r = make();
     Object.assign(r.tools[1], { directDeps: 1, totalDeps: 1 });
     Object.assign(r.tools[2], { directDeps: 2, totalDeps: 5 });
     Object.assign(r.tools[3], { directDeps: 2, totalDeps: 6 });
     Object.assign(r.tools[4], { directDeps: 0, totalDeps: 0 });
-    expect(cellsOf(render(r, data), 'Runtime dependencies').slice(1)).toEqual(['⚠️ 1', '⚠️ 5', '❌ 6', '✅ 0', '✅ 0']);
+    expect(cellsOf(render(r, data), 'Runtime dependencies').slice(1)).toEqual(['⚠️ 1', '⚠️ 5', '❌ 6', '✅ 0', '✅ 0', '❌ 60', '✅ 0']);
   });
 
   it('shows the size in kB with one decimal and nothing else', () => {
-    expect(cellsOf(out, 'Size (gzip)')).toEqual(['10.5 kB', '3.1 kB', '51.2 kB', '10.5 kB', '10.5 kB', '10.5 kB']);
+    expect(cellsOf(out, 'Size (gzip)')).toEqual(['10.5 kB', '3.1 kB', '51.2 kB', '10.5 kB', '10.5 kB', '10.5 kB', '10.5 kB', '10.5 kB']);
   });
 
   it('derives the safe row from p1 and p2 as a mark only', () => {
@@ -185,7 +203,7 @@ describe('compare table: render', () => {
     r.tools[2].probes['p2-link-schemes'] = { result: 'fail', detail: 'x' };
     r.tools[3].probes['p1-raw-html'] = { result: 'partial', detail: 'x' };
     r.tools[4].probes['p2-link-schemes'] = { result: 'error', detail: 'x' };
-    expect(cellsOf(render(r, data), 'Safe by default')).toEqual(['✅', '⚠️', '❌', '⚠️', '⚠️', '✅']);
+    expect(cellsOf(render(r, data), 'Safe by default')).toEqual(['✅', '⚠️', '❌', '⚠️', '⚠️', '✅', '✅', '✅']);
     // A fail in one probe wins over a partial in the other.
     r.tools[0].probes['p1-raw-html'] = { result: 'partial', detail: 'x' };
     r.tools[0].probes['p2-link-schemes'] = { result: 'fail', detail: 'x' };
@@ -193,7 +211,7 @@ describe('compare table: render', () => {
   });
 
   it('marks raw markers as a mark only, from the p6 result', () => {
-    expect(cellsOf(out, 'No raw markers while streaming')).toEqual(['✅', '✅', '✅', '❌', '✅', '✅']);
+    expect(cellsOf(out, 'No raw markers while streaming')).toEqual(['✅', '✅', '✅', '❌', '✅', '✅', '✅', '✅']);
   });
 
   it('marks CommonMark at 50 and 80 percent exactly as the footnote says', () => {
@@ -221,8 +239,12 @@ describe('compare table: render', () => {
       '**Nov&nbsp;2025**',
       '**Jan&nbsp;2024**',
       'Oct&nbsp;2026',
+      'Oct&nbsp;2026',
+      'Oct&nbsp;2026',
     ]);
     expect(cellsOf(out, 'Last release')).toEqual([
+      'Oct&nbsp;2026',
+      'Oct&nbsp;2026',
       'Oct&nbsp;2026',
       'Oct&nbsp;2026',
       'Oct&nbsp;2026',
@@ -286,7 +308,7 @@ describe('compare table: render', () => {
     expect(img([2, 3, 4])).toBe(
       '- Remote loads: Remote markdown images load without a click in Streamdown, markstream-vue, and svelte-markdown.',
     );
-    expect(img([0, 1, 2, 3, 4, 5])).toBe(
+    expect(img([0, 1, 2, 3, 4, 5, 6, 7])).toBe(
       `- Remote loads: Every library loads a remote markdown image without a click. ${data.details.limmatImages}`,
     );
     expect(img([2], [2, 3])).toBe(
@@ -318,7 +340,7 @@ describe('compare table: render', () => {
   it('fills the intro, versions line, and the limmat numbers', () => {
     expect(out).toContain('Checked on 2026-11-21 against the latest releases, each in its default quick-start setup (');
     expect(out).toContain(
-      'Versions: limmat 0.2.0, streaming-markdown 1.2.3, Streamdown 1.2.3, markstream-vue 1.2.3, svelte-markdown 1.2.3, TanStack Markdown 1.2.3. Node 22.22.2, Playwright 1.60.0, Chromium 140.0.7339.16.',
+      'Versions: limmat 0.2.0, streaming-markdown 1.2.3, Streamdown 1.2.3, markstream-vue 1.2.3, svelte-markdown 1.2.3, TanStack Markdown 1.2.3, react-markdown 1.2.3, marked 1.2.3. Node 22.22.2, Playwright 1.60.0, Chromium 140.0.7339.16.',
     );
     expect(out).toContain('[probes and raw results](https://github.com/DaanRosendal/limmat/blob/master/benchmarks/compare/README.md)');
     expect(out).toContain('Open an issue or pull request if something is wrong or out of date.');

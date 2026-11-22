@@ -6,7 +6,9 @@
     "streamdown",
     "markstream-vue",
     "svelte-markdown",
-    "tanstack-markdown"
+    "tanstack-markdown",
+    "react-markdown",
+    "marked"
   ],
   "tools": {
     "limmat": {
@@ -33,6 +35,14 @@
     "tanstack-markdown": {
       "name": "TanStack Markdown",
       "docs": "https://github.com/TanStack/markdown#readme"
+    },
+    "react-markdown": {
+      "name": "react-markdown",
+      "docs": "https://github.com/remarkjs/react-markdown#readme"
+    },
+    "marked": {
+      "name": "marked",
+      "docs": "https://github.com/markedjs/marked#readme"
     }
   },
   "frameworkNames": {
@@ -45,7 +55,7 @@
   },
   "rows": {
     "corner": "Compared on",
-    "framework": "Works with",
+    "framework": "Native framework support",
     "deps": "Runtime dependencies",
     "size": "Size (gzip)",
     "safe": "Safe by default",
@@ -64,6 +74,8 @@
   "details": {
     "markersNote": "TanStack Markdown parses the whole text again on every update.",
     "limmatImages": "limmat can turn this off with `images: false`.",
+    "baselinesNote": "react-markdown and marked are not built for streaming: each write parses the whole text again, as their documentation shows. They are here because they are the most used.",
+    "frameworkNote": "(Preact runs the React one through `preact/compat`) and works with any other page through the DOM.",
     "markersNotes": {
       "streamdown": "Streamdown's leaks are brief: a lone opening marker, a half-typed table, or a link's brackets. They appear with its `remend` option on, as in its README."
     }

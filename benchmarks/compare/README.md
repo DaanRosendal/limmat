@@ -1,12 +1,12 @@
 # Library comparison
 
-This folder measures limmat and five other streaming markdown renderers (streaming-markdown, Streamdown, markstream-vue, svelte-markdown, TanStack Markdown) with the same probes in real Chromium. The numbers behind the comparison table in the README come from `results.json`. Nothing here is a ranking of "best": each probe asks one narrow, checkable question.
+This folder measures limmat and seven other markdown renderers with the same probes in real Chromium: five built for streaming (streaming-markdown, Streamdown, markstream-vue, svelte-markdown, TanStack Markdown) and the two most used libraries, which are not (react-markdown and marked). The numbers behind the comparison table in the README come from `results.json`. Nothing here is a ranking of "best": each probe asks one narrow, checkable question.
 
 ## Run it
 
 ```sh
 npm ci --ignore-scripts --prefix benchmarks/compare   # once: installs the competitors, only inside this folder
-npm install --ignore-scripts --save-exact --prefix benchmarks/compare streamdown@latest streaming-markdown@latest markstream-vue@latest @humanspeak/svelte-markdown@latest @tanstack/markdown@latest react@latest react-dom@latest vue@latest svelte@latest   # before a release: bump the pins, then run `npm run compare`
+npm install --ignore-scripts --save-exact --prefix benchmarks/compare streamdown@latest streaming-markdown@latest markstream-vue@latest @humanspeak/svelte-markdown@latest @tanstack/markdown@latest react-markdown@latest marked@latest react@latest react-dom@latest vue@latest svelte@latest   # before a release: bump the pins, then run `npm run compare`
 npm run compare                                       # everything, about 4 minutes
 node benchmarks/compare/run.mjs --no-meta             # offline, keeps the npm and GitHub values of the last run
 node benchmarks/compare/run.mjs --once --only limmat,streamdown --probes p1,p6   # quick spike, writes nothing
