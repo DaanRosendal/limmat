@@ -8,6 +8,7 @@
     "noEmit": true,
     "skipLibCheck": true,
     "paths": {
+      "limmat": ["./src/index.ts"],
       "limmat/react": ["./src/react.ts"],
       "limmat/vue": ["./src/vue.ts"],
       "limmat/svelte": ["./src/svelte.ts"],
