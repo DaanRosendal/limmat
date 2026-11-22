@@ -35,7 +35,7 @@
     "scope": "in"
   },
   "Indented code blocks": {
-    "pass": 10,
+    "pass": 12,
     "total": 12,
     "scope": "in"
   },
@@ -70,12 +70,12 @@
     "scope": "in"
   },
   "List items": {
-    "pass": 30,
+    "pass": 44,
     "total": 48,
     "scope": "in"
   },
   "Lists": {
-    "pass": 17,
+    "pass": 22,
     "total": 26,
     "scope": "in"
   },

@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- **This changes output:** a list item with a blank line after it or between its blocks now wraps its text in a paragraph, as in CommonMark's loose lists. Items before the first blank line stay tight, because they are already on the page.
+
 ## [0.4.0] - 2026-11-22
 
 ### Added

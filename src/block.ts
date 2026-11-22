@@ -13,7 +13,7 @@ export type Unit = Span &
     | { k: 'p' | 'hr' | 'q' } // paragraph, thematic break, blockquote (its inner lines are scanned again when built)
     | { k: 'h'; lv: number; se?: true } // heading, level 1 to 6 (`se`: setext, its text is the lines before the underline on the last line)
     | { k: 'f'; lang: string; closed: boolean; ind: number; ic?: true } // fenced code, `ind` is the opening fence indent to strip (`ic`: indented code, with no fence lines, `ind` is 4)
-    | { k: 'li'; ord: boolean; num: number; off: number; mk: string } // list item, `off` is the content column, `num` the start number, `mk` the bullet or the number delimiter
+    | { k: 'li'; ord: boolean; num: number; off: number; mk: string; sep?: true; inh?: true } // list item, `off` is the content column, `num` the start number, `mk` the bullet or the number delimiter (`sep`: a blank line separates it from the next item of the same list, `inh`: an earlier item of its list is loose, set by the renderer)
     | { k: 'th'; al: Al; pend?: boolean } // table header, `pend` while the delimiter row is still arriving
     | { k: 'tr'; al: Al } // table body row
     | { k: 'd'; open: boolean; closed: boolean; sum: string | null; bs: number } // details container, inner lines are scanned again when built
@@ -621,6 +621,11 @@ export function scan(
     for (let k = s[1]; !has && k < n; k++) has = !!L[k].trim() && !(dh && k === n - 1 && tagPrefix(L[k], false));
     if (has) U.push({ k: 'd', a: f.a, e: n, b: n, open: f.open, closed: false, sum: s[0], bs: s[1] });
     else if (det === 2) U.push({ k: 'p', a: f.a, e: f.a + 1, b: n }); // nothing follows the opener: show it as text
+  }
+  for (let k = 0; k + 1 < U.length; k++) {
+    const u = U[k];
+    const v = U[k + 1];
+    if (u.k === 'li' && v.k === 'li' && u.b > u.e && u.ord === v.ord && u.mk === v.mk) u.sep = true;
   }
   return U;
 }

@@ -62,10 +62,12 @@ function table(r: R): string {
 }
 
 function block(r: R): string {
+  const gap = r() < 0.3 ? '\n\n' : '\n';
   const items = (mark: (i: number) => string) =>
-    Array.from({ length: 1 + Math.floor(r() * 3) }, (_, i) => mark(i) + spans(r, 1) + (r() < 0.25 ? `\n  - ${spans(r, 2)}` : '')).join(
-      '\n',
-    );
+    Array.from(
+      { length: 1 + Math.floor(r() * 3) },
+      (_, i) => mark(i) + spans(r, 1) + (r() < 0.25 ? `\n  - ${spans(r, 2)}` : '') + (r() < 0.2 ? `\n\n  ${spans(r, 1)}` : ''),
+    ).join(gap);
   return [
     () => spans(r, 0) + (r() < 0.5 ? '.' : ''),
     () => `${'#'.repeat(1 + Math.floor(r() * 3))} ${spans(r, 1)}`,

@@ -75,7 +75,7 @@ export interface Renderer {
   destroy(): void;
 }
 
-type Ctx = { k: 'l' | 't'; el: Element; ord?: boolean; mk?: string; al?: Al } | null;
+type Ctx = { k: 'l' | 't'; el: Element; ord?: boolean; mk?: string; al?: Al; lo?: boolean } | null;
 interface St {
   tail: Entry[];
   fctx: Ctx;
@@ -97,6 +97,7 @@ interface Built {
   n: Element;
   body?: Element;
   code?: HTMLElement;
+  lo?: boolean; // a list item that is loose
 }
 
 const MAX_DEPTH = 12;
@@ -424,7 +425,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
             from = 1;
           } else if (kind ? spec : inner.length === 1 && part && alertStart(inner[0])) from = 1;
         }
-        blocks(inner.slice(from), el, depth + 1, spec, false, hl, part, rows.map((x, k) => !BQ.test(x) || !!lz?.[u.a + k]).slice(from));
+        blocks(inner.slice(from), el, depth + 1, spec, 0, hl, part, rows.map((x, k) => !BQ.test(x) || !!lz?.[u.a + k]).slice(from));
         return { n: el };
       }
       case 'd': {
@@ -443,7 +444,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
           el,
           depth + 1,
           spec && !u.closed,
-          false,
+          0,
           hl,
           part,
           lz?.slice(u.bs, u.closed ? u.e - 1 : u.e),
@@ -457,6 +458,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         const body = [m[4] ?? '', ...L.slice(u.a + 1, u.e).map((x, k) => (lazyRow(x, k) ? x : dedent(x, u.off)))];
         const li = h('li');
         const tk = /^\[([ xX])\](?:[ \t]+|$)/.exec(body[0]);
+        let lead: Element | undefined;
         if (tk) {
           li.className = cls('task');
           const box = h('input') as HTMLInputElement;
@@ -465,12 +467,12 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
           box.setAttribute('disabled', '');
           if (tk[1] !== ' ') box.setAttribute('checked', '');
           box.setAttribute('aria-label', tk[1] === ' ' ? label.todo : label.done);
-          li.append(box);
+          lead = box;
           body[0] = body[0].slice(tk[0].length);
         }
         const rows = L.slice(u.a + 1, u.e);
-        blocks(body, li, depth + 1, spec, true, hl, part, [!!lz?.[u.a], ...rows.map(lazyRow)]);
-        return { n: li };
+        const lo = blocks(body, li, depth + 1, spec, u.sep || u.inh ? 2 : 1, hl, part, [!!lz?.[u.a], ...rows.map(lazyRow)], lead);
+        return { n: li, lo };
       }
       case 'th': {
         const w = h('div', cls('table-wrap'));
@@ -510,13 +512,13 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     if (u.k === 'li') {
       if (ctx && ctx.k === 'l' && ctx.ord === u.ord && ctx.mk === u.mk) {
         ctx.el.append(b.n);
-        return { ctx };
+        return { ctx: { ...ctx, lo: ctx.lo || b.lo } };
       }
       const l = h(u.ord ? 'ol' : 'ul', cls('list'));
       if (u.ord && u.num !== 1) l.setAttribute('start', String(u.num));
       l.append(b.n);
       root.append(l);
-      return { ctx: { k: 'l', el: l, ord: u.ord, mk: u.mk }, made: l };
+      return { ctx: { k: 'l', el: l, ord: u.ord, mk: u.mk, lo: b.lo }, made: l };
     }
     if (u.k === 'tr') {
       ctx!.el.append(b.n);
@@ -531,24 +533,50 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     parent: Element,
     depth: number,
     spec: boolean,
-    unwrap: boolean,
+    unwrap: 0 | 1 | 2,
     hl?: Entry['hl'],
     part = false,
     lz?: boolean[],
-  ) {
+    lead?: Element,
+  ): boolean {
     if (depth > MAX_DEPTH) {
       const p = h('p');
       inline(p, joinTrim(L), spec);
       parent.append(p);
-      return;
+      return unwrap === 2;
     }
     let ctx: Ctx = null;
     const U = scan(L, null, part, !part, details ? (spec ? 1 : 2) : 0, part, lz, mathOn);
+    // `unwrap` is 0 outside a list item, 1 in a tight item, and 2 in an item that is loose already. An item is loose when a blank
+    // line separates two of its blocks, and the blank lines between the items of a nested list do not count.
+    const loose =
+      unwrap === 2 ||
+      (unwrap === 1 &&
+        U.some(
+          (u, i) =>
+            i + 1 < U.length &&
+            u.b > u.e &&
+            !(u.k === 'li' && U[i + 1].k === 'li' && u.ord === (U[i + 1] as typeof u).ord && u.mk === (U[i + 1] as typeof u).mk),
+        ));
+    // The checkbox of a task item goes first in the item, or inside its first paragraph, so that it shares a line with the text.
+    if (lead && U[0]?.k !== 'p') parent.append(lead);
     U.forEach((u, i) => {
       const sp = spec && i === U.length - 1; // only the last block can still be growing
-      if (unwrap && i === 0 && u.k === 'p') return inline(parent, joinTrim(L.slice(u.a, u.e)), sp);
+      if (unwrap && i === 0 && u.k === 'p') {
+        const into = loose ? h('p') : parent;
+        if (loose) parent.append(into);
+        if (lead) into.append(lead);
+        return inline(into, joinTrim(L.slice(u.a, u.e)), sp);
+      }
+      inherit(ctx, u);
       ctx = place(parent, ctx, u, build(u, L, sp, depth, true, hl, part && u.b === L.length, lz)).ctx;
     });
+    return loose;
+  }
+
+  /** An item of a list that has a loose item before it is loose too (the spec makes the whole list loose, but earlier items are frozen by then). */
+  function inherit(ctx: Ctx, u: Unit) {
+    if (u.k === 'li' && ctx && ctx.k === 'l' && ctx.lo && ctx.ord === u.ord && ctx.mk === u.mk) u.inh = true;
   }
 
   function runNested(e: Entry) {
@@ -590,7 +618,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         ? `f${u.closed ? 1 : 0}${t}`
         : u.k === 'm'
           ? `m${u.closed ? 1 : spec ? '*' : 0}${pt ? '~' : ''}${t}`
-          : `${u.k}${u.k === 'd' && u.closed ? 1 : ''}${spec ? '*' : ''}${pt ? '~' : ''}${u.k === 'th' && u.pend ? '?' : ''}${t}`;
+          : `${u.k}${u.k === 'd' && u.closed ? 1 : ''}${u.k === 'li' && u.sep ? 'l' : ''}${spec ? '*' : ''}${pt ? '~' : ''}${u.k === 'th' && u.pend ? '?' : ''}${t}`;
     });
     let p = 0;
     while (p < tail.length && p < U.length && tail[p].key === keys[p]) p++;
@@ -655,7 +683,10 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
         b = build({ ...u, bs: u.e }, L, last, depth, final, hl);
         sub = mkSt();
         sub.fl += sync(sub, b.n, L.slice(u.bs, u.e), partial, final, depth + 1, hl);
-      } else b = build(u, L, last, depth, final, hl, partial && !final && u.b === L.length);
+      } else {
+        inherit(ctx, u);
+        b = build(u, L, last, depth, final, hl, partial && !final && u.b === L.length);
+      }
       const r = place(parent, ctx, u, b);
       ctx = r.ctx;
       tail.push({

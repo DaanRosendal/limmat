@@ -61,14 +61,14 @@ const cases: [string, string][] = [
   ['1. a\n2. b', '<ol><li>a</li><li>b</li></ol>'],
   ['1) a\n2) b', '<ol><li>a</li><li>b</li></ol>'],
   ['3. a\n4. b', '<ol start="3"><li>a</li><li>b</li></ol>'],
-  ['- a\n\n- b', '<ul><li>a</li><li>b</li></ul>'],
+  ['- a\n\n- b', '<ul><li><p>a</p></li><li><p>b</p></li></ul>'],
   ['- a\n- b\n\npara', '<ul><li>a</li><li>b</li></ul><p>para</p>'],
   ['text\n- a\n- b', '<p>text</p><ul><li>a</li><li>b</li></ul>'],
   ['- a\n  - b', '<ul><li>a<ul><li>b</li></ul></li></ul>'],
   ['1. a\n   - b\n2. c', '<ol><li>a<ul><li>b</li></ul></li><li>c</li></ol>'],
   ['- a\n    - b\n        - c', '<ul><li>a<ul><li>b<ul><li>c</li></ul></li></ul></li></ul>'],
   ['- a\n  b', '<ul><li>a\nb</li></ul>'],
-  ['- a\n\n  second', '<ul><li>a<p>second</p></li></ul>'],
+  ['- a\n\n  second', '<ul><li><p>a</p><p>second</p></li></ul>'],
   ['1. a\n- b', '<ol><li>a</li></ol><ul><li>b</li></ul>'],
   ['> a\n> b', '<blockquote><p>a\nb</p></blockquote>'],
   ['> a\n\n> b', '<blockquote><p>a</p></blockquote><blockquote><p>b</p></blockquote>'],
@@ -334,7 +334,7 @@ describe('block structure while streaming', () => {
   const listCases: [string, string, string][] = [
     ['a different bullet starts a new list', '- a\n+ b\n* c', ul('a') + ul('b') + ul('c')],
     ['a different bullet after a blank line starts a new list', '- a\n\n+ b', ul('a') + ul('b')],
-    ['the same bullet continues the list', '- a\n- b\n\n- c', ul('a', 'b', 'c')],
+    ['the same bullet continues the list', '- a\n- b\n\n- c', '<ul><li>a</li><li><p>b</p></li><li><p>c</p></li></ul>'],
     ['a different number delimiter starts a new list at its own number', '1. a\n2. b\n3) c\n4) d', ol(1, 'a', 'b') + ol(3, 'c', 'd')],
     ['a different delimiter on the second item', '1) a\n2. b', ol(1, 'a') + ol(2, 'b')],
     ['the same delimiter continues the list', '1) a\n2) b\n3) c', ol(1, 'a', 'b', 'c')],
@@ -1044,5 +1044,82 @@ describe('indented code and tabs', () => {
     const root = render('    a\n      b');
     expect(root.querySelector('.limmat-code code')!.textContent).toBe('a\n  b');
     expect(root.querySelector('.limmat-copy')).not.toBeNull();
+  });
+});
+
+describe('loose lists', () => {
+  // A blank line makes an item loose: its paragraphs get <p>. The spec makes the whole list loose, but an earlier item
+  // is frozen before a later blank line arrives, so here an item is loose from the first blank line on (see `deliberate:`).
+  const P = (t: string) => `<p>${t}</p>`;
+  const flat = (md: string, split: 'whole' | 'char' = 'whole') =>
+    html(render(md, split)).replace(
+      /<div><div><button.*?<\/button><span role="status"><\/span><\/div><pre[^>]*><code>(.*?)<\/code><\/pre><\/div>/gs,
+      '<pre>$1</pre>',
+    );
+  it.each([
+    ['a blank line between two blocks of an item', '- a\n\n  b', `<ul><li>${P('a')}${P('b')}</li></ul>`],
+    ['two blank lines between two blocks of an item', '- foo\n\n\n  bar', `<ul><li>${P('foo')}${P('bar')}</li></ul>`],
+    ['an ordered item with a nested list after a blank line', '1.  foo\n\n    - bar', `<ol><li>${P('foo')}<ul><li>bar</li></ul></li></ol>`],
+    ['a blank line between two items', '- a\n\n- b', `<ul><li>${P('a')}</li><li>${P('b')}</li></ul>`],
+    ['items that come after a loose item stay loose', '- a\n\n- b\n- c', `<ul><li>${P('a')}</li><li>${P('b')}</li><li>${P('c')}</li></ul>`],
+    [
+      'an inner list that is loose does not make the item loose',
+      '- a\n  - b\n\n  - c',
+      `<ul><li>a<ul><li>${P('b')}</li><li>${P('c')}</li></ul></li></ul>`,
+    ],
+    [
+      'a blank line before a new block of the item after a nested list',
+      '- a\n  - b\n\n  c',
+      `<ul><li>${P('a')}<ul><li>b</li></ul>${P('c')}</li></ul>`,
+    ],
+    [
+      'the first paragraph of an item with a fence after a blank line',
+      '1.  foo\n\n    ```\n    bar\n    ```\n\n    baz',
+      `<ol><li>${P('foo')}<pre>bar</pre>${P('baz')}</li></ol>`,
+    ],
+    ['a quote in a loose item', '- a\n\n  > q', `<ul><li>${P('a')}<blockquote>${P('q')}</blockquote></li></ul>`],
+    [
+      'a task item that is loose keeps its box in the paragraph',
+      '- [ ] a\n\n- [x] b',
+      `<ul><li><p><input type="checkbox" disabled="" aria-label="Not completed">a</p></li><li><p><input type="checkbox" disabled="" checked="" aria-label="Completed">b</p></li></ul>`,
+    ],
+  ])('%s', (_name, md, expected) => {
+    expect(flat(md)).toBe(expected);
+    expect(flat(md, 'char')).toBe(expected);
+  });
+
+  it.each([
+    ['a blank line after the last item', '- a\n- b\n\npara', `<ul><li>a</li><li>b</li></ul>${P('para')}`],
+    ['a blank line inside a fence', '- a\n  ```\n  x\n\n  y\n  ```', '<ul><li>a<pre>x\n\ny</pre></li></ul>'],
+    ['a blank line before a different kind of list', '- a\n\n1. b', `<ul><li>a</li></ul><ol><li>b</li></ol>`],
+    ['a blank line before a list with another bullet', '- a\n\n* b', `<ul><li>a</li></ul><ul><li>b</li></ul>`],
+    [
+      'a blank line inside a nested list does not reach the outer item',
+      '- a\n  - b\n\n  - c\n- d',
+      `<ul><li>a<ul><li>${P('b')}</li><li>${P('c')}</li></ul></li><li>d</li></ul>`,
+    ],
+    ['lines of one paragraph', '- a\n  b\n- c', '<ul><li>a\nb</li><li>c</li></ul>'],
+  ])('stays tight: %s', (_name, md, expected) => {
+    expect(flat(md)).toBe(expected);
+    expect(flat(md, 'char')).toBe(expected);
+  });
+
+  it('deliberate: an item before the first blank line stays tight, where the spec makes the whole list loose', () => {
+    // Item a is frozen when item b starts, before the blank line between b and c arrives.
+    const md = '- a\n- b\n\n- c';
+    expect(html(render(md))).toBe(`<ul><li>a</li><li>${P('b')}</li><li>${P('c')}</li></ul>`);
+    expect(html(render(md, 'char'))).toBe(html(render(md)));
+  });
+
+  it('a list item turns loose when the blank line and the next item arrive, while streaming', () => {
+    expect(html(renderOpen('- a\n'))).toBe('<ul><li>a</li></ul>');
+    expect(html(renderOpen('- a\n\n'))).toBe('<ul><li>a</li></ul>');
+    expect(html(renderOpen('- a\n\n-'))).toBe('<ul><li>a</li></ul>');
+    expect(html(renderOpen('- a\n\n- b'))).toBe(`<ul><li>${P('a')}</li><li>${P('b')}</li></ul>`);
+    expect(html(renderOpen('- a\n\n  b'))).toBe(`<ul><li>${P('a')}<p>b</p></li></ul>`);
+  });
+
+  it('an item stays tight when the line after its blank line is a rule, not an item', () => {
+    for (const split of ['whole', 'char'] as const) expect(html(render('- a\n\n- - -', split))).toBe('<ul><li>a</li></ul><hr>');
   });
 });

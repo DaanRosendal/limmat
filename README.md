@@ -176,7 +176,7 @@ limmat follows [CommonMark](https://spec.commonmark.org/0.31.2/) and GFM for the
 | Bold, italic, strikethrough | ✅&nbsp;Supported | `snake_case_words` stay text. Strikethrough needs two tildes. |
 | Collapsible sections (`<details>`) | ✅&nbsp;Supported | Each tag alone on its line. |
 | Math (`$x$`, `\(x\)`, `$$x$$`) | ✅&nbsp;Supported | Opt-in through `renderMath` (`limmat/katex` provides one). Not in `limmat/server`. |
-| Lists | ⚠️&nbsp;Partial | Nesting works. Blank lines between items are ignored. |
+| Lists | ⚠️&nbsp;Partial | Nesting works. A blank line makes an item loose, with its text in a paragraph. Items before the first blank line stay tight. |
 | Links and bare URLs | ⚠️&nbsp;Partial | Only http, https, and mailto. Titles are dropped. Unsafe URLs show as text. |
 | Images | ⚠️&nbsp;Partial | On by default and loaded without a click, so limit them with `images`. No titles. |
 | Raw HTML | ⚠️&nbsp;Partial | Shown as text, except a few tags like `<kbd>` and `<sub>`. |
