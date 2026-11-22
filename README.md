@@ -196,11 +196,11 @@ export class MessageComponent implements OnDestroy {
 | Runtime dependencies | ✅ 0 | ✅ 0 | ❌ 107 | ✅ 0 | ❌ 60 |
 | Safe by default | ✅ | ❌ | ✅ | ❌ | ✅ |
 | No raw markers while streaming | ✅ | ✅ | ❌ | ❌ | ❌ |
-| CommonMark examples passed | ⚠️ 59% | ❌ 30% | ✅ 82% | ✅ 99% | ✅ 90% |
-| Size (gzip) | 10.5 kB | 3.3 kB | 165.6 kB | 15.9 kB | 36.8 kB |
+| CommonMark examples passed | ⚠️ 67% | ❌ 30% | ✅ 82% | ✅ 99% | ✅ 90% |
+| Size (gzip) | 11.7 kB | 3.3 kB | 165.6 kB | 15.9 kB | 36.8 kB |
 | Last release | Nov&nbsp;2026 | **May&nbsp;2025** | Nov&nbsp;2026 | Nov&nbsp;2026 | **Mar&nbsp;2025** |
 
-Checked on 2026-11-21 against the latest releases, each in its default quick-start setup ([probes and raw results](https://github.com/DaanRosendal/limmat/blob/master/benchmarks/compare/README.md)). Open an issue or pull request if something is wrong or out of date.
+Checked on 2026-11-22 against the latest releases, each in its default quick-start setup ([probes and raw results](https://github.com/DaanRosendal/limmat/blob/master/benchmarks/compare/README.md)). Open an issue or pull request if something is wrong or out of date.
 
 <details>
 <summary>How this was measured</summary>

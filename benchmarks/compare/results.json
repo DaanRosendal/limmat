@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "checkedOn": "2026-11-21",
+  "checkedOn": "2026-11-22",
   "environment": {
     "node": "25.8.2",
     "playwright": "1.65.1",
@@ -16,12 +16,12 @@
       "framework": "none",
       "output": "dom",
       "directDeps": 0,
-      "gzipBytes": 10532,
+      "gzipBytes": 11685,
       "gzipNote": "`src/index.ts`, esbuild minify, same target as `scripts/size.mjs`",
       "defaultConfig": "`createRenderer(container)` with no options, `write(chunk)` for every chunk and `end()` at the end (50 ms throttle).",
       "releaseDate": "2026-11-21",
       "firstRelease": "2026-11-08",
-      "lastCommit": "2026-11-21",
+      "lastCommit": "2026-11-22",
       "totalDeps": 0,
       "probes": {
         "p1-raw-html": {
@@ -52,10 +52,10 @@
         },
         "p7-commonmark": {
           "result": "info",
-          "passed": 385,
+          "passed": 439,
           "total": 652,
-          "strict": 242,
-          "textOnly": 475
+          "strict": 262,
+          "textOnly": 492
         }
       }
     },
