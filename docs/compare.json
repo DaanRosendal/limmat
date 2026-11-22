@@ -12,7 +12,7 @@
     "limmat": {
       "name": "limmat",
       "docs": "https://github.com/DaanRosendal/limmat#readme",
-      "wrappers": ["react", "vue", "svelte"]
+      "wrappers": ["react", "vue", "svelte", "solid"]
     },
     "streamdown": {
       "name": "Streamdown",

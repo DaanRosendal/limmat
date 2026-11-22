@@ -39,6 +39,10 @@
       "types": "./dist/svelte.d.ts",
       "default": "./dist/svelte.js"
     },
+    "./solid": {
+      "types": "./dist/solid.d.ts",
+      "default": "./dist/solid.js"
+    },
     "./style.css": {
       "types": "./dist/style.css.d.ts",
       "default": "./dist/style.css"
@@ -49,6 +53,7 @@
   "peerDependencies": {
     "@speed-highlight/core": "^2.1.0",
     "react": ">=17",
+    "solid-js": ">=1.6",
     "vue": "^3.2.0"
   },
   "peerDependenciesMeta": {
@@ -56,6 +61,9 @@
       "optional": true
     },
     "react": {
+      "optional": true
+    },
+    "solid-js": {
       "optional": true
     },
     "vue": {
@@ -90,6 +98,7 @@
     "@axe-core/playwright": "^4.14.0",
     "@biomejs/biome": "2.6.8",
     "@playwright/test": "^1.65.1",
+    "@solidjs/web": "2.0.3",
     "@speed-highlight/core": "^2.1.0",
     "@types/node": "^26.6.6",
     "@types/react": "19.3.0",
@@ -98,8 +107,11 @@
     "happy-dom": "21.0.4",
     "jsdom": "^31.0.1",
     "linkedom": "0.18.15",
+    "preact": "11.2.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "solid-js": "2.0.3",
+    "solid-js-v1": "npm:solid-js@1.9.20",
     "svelte": "5.59.1",
     "typescript": "^7.0.2",
     "vitest": "^5.1.1",

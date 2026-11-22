@@ -1,7 +1,7 @@
-// The React, Vue, and Svelte wrappers in real browsers, with the real frameworks, against the built package (dist/). Each
-// framework gets a small app (browser/frameworks/) that holds a message and an unrelated counter, bundled here from the
-// package entries a user would import. React and Vue run their development builds (React in StrictMode, so effects run twice),
-// which is where their own warnings come from, and any console error or warning fails the test.
+// The React, Vue, Svelte, and Solid wrappers (and limmat/react on Preact) in real browsers, with the real frameworks, against the
+// built package (dist/). Each framework gets a small app (browser/frameworks/) that holds a message and an unrelated counter,
+// bundled here from the package entries a user would import. The frameworks run their development builds (React in StrictMode, so
+// effects run twice), which is where their own warnings come from, and any console error or warning fails the test.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, type Page, test } from '@playwright/test';
@@ -14,7 +14,16 @@ const kinds = [
   { name: 'react', entry: 'browser/frameworks/react-app.ts' },
   { name: 'vue', entry: 'browser/frameworks/vue-app.ts' },
   { name: 'svelte', entry: 'browser/frameworks/svelte-app.js' },
-] as const;
+  { name: 'solid (2.x)', entry: 'browser/frameworks/solid2-app.ts' },
+  // Solid 1 is the package solid-js-v1 (npm alias of solid-js@1.9), aliased to solid-js so that the wrapper and its web runtime both use it.
+  { name: 'solid (1.x)', entry: 'browser/frameworks/solid1-app.ts', alias: { 'solid-js': 'solid-js-v1' } },
+  // Preact has no wrapper of its own: limmat/react runs on preact/compat, which these aliases put in place of React.
+  {
+    name: 'preact (via limmat/react)',
+    entry: 'browser/frameworks/react-app.ts',
+    alias: { react: 'preact/compat', 'react-dom/client': 'preact/compat/client', 'react-dom': 'preact/compat' },
+  },
+] as { name: string; entry: string; alias?: Record<string, string> }[];
 
 // Compiles a .svelte file with the real Svelte compiler, which is what a user's bundler plugin does.
 const svelte: Plugin = {
@@ -37,7 +46,7 @@ test.beforeAll(async () => {
       format: 'esm',
       platform: 'browser',
       conditions: ['svelte', 'browser', 'development'],
-      alias: Object.fromEntries(['react', 'vue', 'svelte'].map((n) => [`limmat/${n}`, `${ROOT}dist/${n}.js`])),
+      alias: { ...Object.fromEntries(['react', 'vue', 'svelte', 'solid'].map((n) => [`limmat/${n}`, `${ROOT}dist/${n}.js`])), ...k.alias },
       define: {
         'process.env.NODE_ENV': '"development"',
         __VUE_OPTIONS_API__: 'true',

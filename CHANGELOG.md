@@ -8,6 +8,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - `limmat/react`, `limmat/vue`, and `limmat/svelte`: a `Markdown` component for React and for Vue, and a `limmat` action for Svelte (`use:limmat={{ text, done }}`), each a few lines around `createRenderer`. They take the whole text so far and a `done` flag. Text that only grows is written as chunks, and any other text starts the message over, so a message held in component state works as it is. `options` is read when the component mounts. React and Vue are optional peer dependencies, the Svelte action imports nothing, and the core size does not change. They run in the browser only: on a server React and Vue render an empty `div`, and `limmat/server` gives the HTML. Tested with the real frameworks in jsdom, in Chromium, Firefox, and WebKit (React in StrictMode, a compiled `.svelte` component), and through the packed tarball.
 
+- `limmat/solid`: a `Markdown` component for Solid 1 and 2 (`<Markdown text={message().text} done={message().done} />`, with `class` and `options`). It takes the same props as the React and Vue components and returns one `div` that limmat owns. Solid 2 changed `createEffect` and removed `onMount`, so the component tells the two majors apart at run time. `solid-js` is an optional peer dependency. It runs in the browser only and renders nothing on a server.
+- Preact needs no wrapper: `limmat/react` runs on `preact/compat` (tested in a browser with Preact 11 in place of React).
+
 ### Fixed
 
 - A backtick that is still open and has no text after it yet (`use `` ` ``, or only spaces) used to show an empty inline code box while streaming. It now shows nothing until the first character of the code arrives, as a lone `**` already did. The final output is unchanged: an unclosed backtick is literal text.

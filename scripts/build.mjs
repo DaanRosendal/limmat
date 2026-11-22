@@ -13,14 +13,20 @@ await build({ ...common, entryPoints: ['src/highlight.ts'], outfile: 'dist/highl
 // The server entry imports dist/index.js instead of bundling a second copy of the renderer.
 const core = { name: 'core', setup: (b) => b.onResolve({ filter: /^\.\/index(\.js)?$/ }, () => ({ path: './index.js', external: true })) };
 await build({ ...common, entryPoints: ['src/server.ts'], outfile: 'dist/server.js', plugins: [core] });
-// The framework wrappers share it too. React and Vue are the consumer's own copies, and the Svelte action imports nothing.
-for (const name of ['react', 'vue', 'svelte'])
-  await build({ ...common, entryPoints: [`src/${name}.ts`], outfile: `dist/${name}.js`, plugins: [core], external: ['react', 'vue'] });
+// The framework wrappers share it too. React, Vue, and Solid are the consumer's own copies, and the Svelte action imports nothing.
+for (const name of ['react', 'vue', 'svelte', 'solid'])
+  await build({
+    ...common,
+    entryPoints: [`src/${name}.ts`],
+    outfile: `dist/${name}.js`,
+    plugins: [core],
+    external: ['react', 'vue', 'solid-js'],
+  });
 copyFileSync('src/style.css', 'dist/style.css');
 // TypeScript 7 rejects a side-effect import with no declaration, so the stylesheet export points at an empty one.
 writeFileSync('dist/style.css.d.ts', 'export {};\n');
 execFileSync('npx', ['tsc', '-p', 'tsconfig.build.json'], { stdio: 'inherit' });
-// Only index, highlight, server, react, vue, and svelte are public (see "exports"), so the declarations of the internal modules stay out of the package.
+// Only index, highlight, server, react, vue, svelte, and solid are public (see "exports"), so the declarations of the internal modules stay out of the package.
 for (const f of ['block', 'inline', 'url', 'dom', 'follow']) rmSync(`dist/${f}.d.ts`);
 writeFileSync('dist/limmat.min.js', '// limmat, MIT, Copyright (c) 2026 Daan Rosendal\n' + readFileSync('dist/limmat.min.js', 'utf8'));
 const min = readFileSync('dist/limmat.min.js');

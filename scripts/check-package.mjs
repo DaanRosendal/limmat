@@ -22,6 +22,8 @@ const want = [
     'react.js',
     'server.d.ts',
     'server.js',
+    'solid.d.ts',
+    'solid.js',
     'svelte.d.ts',
     'svelte.js',
     'style.css',
@@ -52,7 +54,7 @@ try {
   execFileSync('tar', ['-xzf', join(packed, readdirSync(packed)[0]), '-C', pkg, '--strip-components=1']);
   writeFileSync(join(dir, 'package.json'), '{"type":"module"}');
   // The frameworks a consumer of the wrappers has installed, taken from this repo's dev dependencies.
-  for (const name of ['react', 'react-dom', 'vue', '@vue', '@types', 'csstype', 'svelte', 'scheduler']) {
+  for (const name of ['react', 'react-dom', 'vue', '@vue', '@types', 'csstype', 'svelte', 'scheduler', 'solid-js', '@solidjs']) {
     if (existsSync(join(process.cwd(), 'node_modules', name)))
       symlinkSync(join(process.cwd(), 'node_modules', name), join(dir, 'node_modules', name));
   }
@@ -65,6 +67,7 @@ import { renderToString, type ServerOptions } from 'limmat/server';
 import { Markdown as ReactMarkdown, type MarkdownProps } from 'limmat/react';
 import { Markdown as VueMarkdown } from 'limmat/vue';
 import { limmat, type LimmatParams } from 'limmat/svelte';
+import { Markdown as SolidMarkdown, type MarkdownProps as SolidProps } from 'limmat/solid';
 import { createElement } from 'react';
 import { h } from 'vue';
 import type { Action } from 'svelte/action';
@@ -79,6 +82,11 @@ const sp: LimmatParams = { text: 'x', done: false };
 const action: Action<HTMLElement, LimmatParams> = limmat;
 limmat(null as unknown as HTMLElement, sp).update(sp);
 void action;
+const solidProps: SolidProps = { text: 'x', done: true, options: { images: false }, class: 'c' };
+const solidBox: HTMLDivElement | null = SolidMarkdown(solidProps);
+void solidBox;
+// @ts-expect-error text is required
+SolidMarkdown({});
 const so: ServerOptions = { images: false, classPrefix: 'x' };
 const html: string = renderToString('# x', so);
 // @ts-expect-error a page is needed for highlight, so the server options leave it out
@@ -161,7 +169,9 @@ import { renderToString as vueToString } from 'vue/server-renderer';
 import { Markdown as ReactMarkdown } from 'limmat/react';
 import { Markdown as VueMarkdown } from 'limmat/vue';
 import { limmat } from 'limmat/svelte';
+import { Markdown as SolidMarkdown } from 'limmat/solid';
 if (typeof document !== 'undefined') throw new Error('a DOM global exists, so this proves nothing');
+if (SolidMarkdown({ text: '# x' }) !== null) throw new Error('the Solid wrapper does not render nothing on the server');
 const empty = '<div></div>';
 if (reactToString(createElement(ReactMarkdown, { text: '# x' })) !== empty) throw new Error('the React wrapper does not render an empty div on the server');
 const vueHtml = await vueToString(createSSRApp({ render: () => h(VueMarkdown, { text: '# x' }) }));
@@ -206,6 +216,27 @@ process.exit(0);
   );
   execFileSync(process.execPath, ['frameworks.mjs'], { stdio: 'inherit', cwd: dir });
 
+  // Solid picks its browser build through the `browser` export condition, so it gets a process of its own that sets it.
+  writeFileSync(
+    join(dir, 'solid.mjs'),
+    `import { JSDOM } from ${JSON.stringify(jsdom)};
+const dom = new JSDOM('<div id="s"></div>');
+Object.assign(globalThis, { document: dom.window.document, window: dom.window, HTMLElement: dom.window.HTMLElement, Element: dom.window.Element, Node: dom.window.Node });
+const { createComponent, createSignal, flush } = await import('solid-js');
+const { render } = await import('@solidjs/web');
+const { Markdown } = await import('limmat/solid');
+const doc = '# Hi\\n\\nSome **bold** and a [link](https://example.com).\\n\\n- a\\n- b\\n';
+const [text, setText] = createSignal('');
+render(() => createComponent(Markdown, { get text() { return text(); }, get done() { return text() === doc; }, options: { throttleMs: 0 } }), document.getElementById('s'));
+for (let i = 3; i < doc.length + 3; i += 3) { setText(doc.slice(0, i)); flush(); }
+await new Promise((r) => setTimeout(r, 20));
+const html = document.getElementById('s').firstElementChild.innerHTML;
+for (const want of ['<h1', '<strong>bold</strong>', 'href="https://example.com"', '<li>a</li>']) if (!html.includes(want)) throw new Error('solid output lacks ' + want + ': ' + html);
+process.exit(0);
+`,
+  );
+  execFileSync(process.execPath, ['--conditions=browser', 'solid.mjs'], { stdio: 'inherit', cwd: dir });
+
   // There is no CommonJS build: Node 22.12 and newer load an ES module from require(), which this checks.
   writeFileSync(
     join(dir, 'require.cjs'),
@@ -216,7 +247,7 @@ if (typeof createRenderer !== 'function' || renderToString('# x') !== '<h1>x</h1
   );
   execFileSync(process.execPath, ['require.cjs'], { stdio: 'inherit', cwd: dir });
   console.log(
-    `package ok: ${files.length} files, NodeNext consumer type-checks, packed code renders, server entry renders with no DOM, the React, Vue, and Svelte wrappers type-check, server-render, and stream, and require() loads both entries`,
+    `package ok: ${files.length} files, NodeNext consumer type-checks, packed code renders, server entry renders with no DOM, the React, Vue, Svelte, and Solid wrappers type-check, load with no DOM, and stream, and require() loads both entries`,
   );
 } finally {
   rmSync(dir, { recursive: true, force: true });

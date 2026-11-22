@@ -147,7 +147,7 @@ describe('compare table: render', () => {
 
   it('shows any page with a check mark, plus the frameworks a library ships components for, and a cross for one framework only', () => {
     expect(cellsOf(out, 'Works with')).toEqual([
-      '✅ Any, plus React, Vue, and Svelte',
+      '✅ Any, plus React, Vue, Svelte, and Solid',
       '✅ Any',
       '❌ React only',
       '❌ Vue only',
