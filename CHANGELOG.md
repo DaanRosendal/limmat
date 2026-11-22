@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-22
+
 ### Added
 
 - `limmat/react`, `limmat/vue`, and `limmat/solid`: a `Markdown` component that takes `text` (the whole message so far) and `done`. Solid 1 and 2 both work, and the frameworks are optional peer dependencies.
