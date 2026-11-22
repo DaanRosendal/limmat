@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Changed
 
 - **This changes output:** a list item with a blank line after it or between its blocks now wraps its text in a paragraph, as in CommonMark's loose lists. Items before the first blank line stay tight, because they are already on the page.
+- `style.css`: paragraphs inside list items have a smaller margin, so loose lists stay compact.
 
 ### Fixed
 

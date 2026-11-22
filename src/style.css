@@ -255,6 +255,9 @@
 .limmat-list {
   padding-inline-start: 1.5em;
 }
+.limmat-list li > p {
+  margin: 0.25em 0;
+}
 .limmat-math-display {
   display: block;
   max-width: 100%;
