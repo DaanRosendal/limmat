@@ -48,11 +48,12 @@ const make = () => ({
     tool('streaming-markdown', { gzipBytes: 3100 }),
     tool('streamdown', { framework: 'react', output: 'react', directDeps: 15, totalDeps: 117, gzipBytes: 51200 }),
     tool(
-      'marked',
-      { output: 'html-string' },
+      'markstream-vue',
+      { framework: 'vue', output: 'vue' },
       { 'p1-raw-html': { result: 'fail', detail: 'x' }, 'p6-markers': { result: 'fail', leaked: 12, constructs: 20 } },
     ),
-    tool('react-markdown', { framework: 'react', output: 'react', directDeps: 3, totalDeps: 40 }),
+    tool('svelte-markdown', { framework: 'svelte', output: 'svelte', directDeps: 3, totalDeps: 40 }),
+    tool('tanstack-markdown', { framework: 'react', output: 'react' }),
   ],
 });
 type Results = ReturnType<typeof make>;
@@ -101,8 +102,9 @@ describe('compare table: render', () => {
       '[limmat](https://github.com/DaanRosendal/limmat#readme)',
       '[streaming-markdown](https://github.com/thetarnav/streaming-markdown#readme)',
       '[Streamdown](https://github.com/vercel/streamdown#readme)',
-      '[marked](https://github.com/markedjs/marked#readme)',
-      '[react-markdown](https://github.com/remarkjs/react-markdown#readme)',
+      '[markstream-vue](https://github.com/Simon-He95/markstream-vue#readme)',
+      '[svelte-markdown](https://github.com/humanspeak/svelte-markdown#readme)',
+      '[TanStack Markdown](https://github.com/TanStack/markdown#readme)',
     ]);
     expect(header).not.toContain('<br>');
     expect(header).not.toContain('0.2.0');
@@ -144,21 +146,21 @@ describe('compare table: render', () => {
   });
 
   it('shows the framework as a check mark or a cross with the framework name', () => {
-    expect(cellsOf(out, 'No framework needed')).toEqual(['✅', '✅', '❌ React', '✅', '❌ React']);
+    expect(cellsOf(out, 'No framework needed')).toEqual(['✅', '✅', '❌ React', '❌ Vue', '❌ Svelte', '❌ React']);
   });
 
   it('marks dependencies by the total only: none, 1 to 5, more', () => {
-    expect(cellsOf(out, 'Runtime dependencies')).toEqual(['✅ 0', '✅ 0', '❌ 117', '✅ 0', '❌ 40']);
+    expect(cellsOf(out, 'Runtime dependencies')).toEqual(['✅ 0', '✅ 0', '❌ 117', '✅ 0', '❌ 40', '✅ 0']);
     const r = make();
     Object.assign(r.tools[1], { directDeps: 1, totalDeps: 1 });
     Object.assign(r.tools[2], { directDeps: 2, totalDeps: 5 });
     Object.assign(r.tools[3], { directDeps: 2, totalDeps: 6 });
     Object.assign(r.tools[4], { directDeps: 0, totalDeps: 0 });
-    expect(cellsOf(render(r, data), 'Runtime dependencies').slice(1)).toEqual(['⚠️ 1', '⚠️ 5', '❌ 6', '✅ 0']);
+    expect(cellsOf(render(r, data), 'Runtime dependencies').slice(1)).toEqual(['⚠️ 1', '⚠️ 5', '❌ 6', '✅ 0', '✅ 0']);
   });
 
   it('shows the size in kB with one decimal and nothing else', () => {
-    expect(cellsOf(out, 'Size (gzip)')).toEqual(['10.5 kB', '3.1 kB', '51.2 kB', '10.5 kB', '10.5 kB']);
+    expect(cellsOf(out, 'Size (gzip)')).toEqual(['10.5 kB', '3.1 kB', '51.2 kB', '10.5 kB', '10.5 kB', '10.5 kB']);
   });
 
   it('derives the safe row from p1 and p2 as a mark only', () => {
@@ -168,7 +170,7 @@ describe('compare table: render', () => {
     r.tools[2].probes['p2-link-schemes'] = { result: 'fail', detail: 'x' };
     r.tools[3].probes['p1-raw-html'] = { result: 'partial', detail: 'x' };
     r.tools[4].probes['p2-link-schemes'] = { result: 'error', detail: 'x' };
-    expect(cellsOf(render(r, data), 'Safe by default')).toEqual(['✅', '⚠️', '❌', '⚠️', '⚠️']);
+    expect(cellsOf(render(r, data), 'Safe by default')).toEqual(['✅', '⚠️', '❌', '⚠️', '⚠️', '✅']);
     // A fail in one probe wins over a partial in the other.
     r.tools[0].probes['p1-raw-html'] = { result: 'partial', detail: 'x' };
     r.tools[0].probes['p2-link-schemes'] = { result: 'fail', detail: 'x' };
@@ -176,7 +178,7 @@ describe('compare table: render', () => {
   });
 
   it('marks raw markers as a mark only, from the p6 result', () => {
-    expect(cellsOf(out, 'No raw markers while streaming')).toEqual(['✅', '✅', '✅', '❌', '✅']);
+    expect(cellsOf(out, 'No raw markers while streaming')).toEqual(['✅', '✅', '✅', '❌', '✅', '✅']);
   });
 
   it('marks CommonMark at 50 and 80 percent exactly as the footnote says', () => {
@@ -203,8 +205,16 @@ describe('compare table: render', () => {
       'Nov&nbsp;2025',
       '**Nov&nbsp;2025**',
       '**Jan&nbsp;2024**',
+      'Oct&nbsp;2026',
     ]);
-    expect(cellsOf(out, 'Last release')).toEqual(['Oct&nbsp;2026', 'Oct&nbsp;2026', 'Oct&nbsp;2026', 'Oct&nbsp;2026', 'Oct&nbsp;2026']);
+    expect(cellsOf(out, 'Last release')).toEqual([
+      'Oct&nbsp;2026',
+      'Oct&nbsp;2026',
+      'Oct&nbsp;2026',
+      'Oct&nbsp;2026',
+      'Oct&nbsp;2026',
+      'Oct&nbsp;2026',
+    ]);
   });
 
   it('never prints a probe detail string', () => {
@@ -212,9 +222,9 @@ describe('compare table: render', () => {
   });
 
   it('lists the reasons, marker counts, and remote loads in the bullets under the table', () => {
-    expect(bullet(out, 'Safe by default:')).toBe('- Safe by default: marked ran a script.');
+    expect(bullet(out, 'Safe by default:')).toBe('- Safe by default: markstream-vue ran a script.');
     expect(bullet(out, 'Raw markers while streaming:')).toBe(
-      `- Raw markers while streaming: marked 12 of 20 constructs. ${data.details.markersNote}`,
+      `- Raw markers while streaming: markstream-vue 12 of 20 constructs. ${data.details.markersNote}`,
     );
     expect(bullet(out, 'Remote loads:')).toBe(
       `- Remote loads: Remote markdown images load without a click in limmat. ${data.details.limmatImages}`,
@@ -227,7 +237,7 @@ describe('compare table: render', () => {
     r.tools[3].probes['p2-link-schemes'] = { result: 'fail', detail: 'x' };
     r.tools[4].probes['p1-raw-html'] = { result: 'error', detail: 'x' };
     expect(bullet(render(r, data), 'Safe by default:')).toBe(
-      '- Safe by default: streaming-markdown kept some unsafe link schemes. marked ran a script and kept an unsafe link scheme. react-markdown could not be tested.',
+      '- Safe by default: streaming-markdown kept some unsafe link schemes. markstream-vue ran a script and kept an unsafe link scheme. svelte-markdown could not be tested.',
     );
   });
 
@@ -240,12 +250,12 @@ describe('compare table: render', () => {
     };
     const tail = ` ${data.details.markersNote}`;
     const own = ` ${data.details.markersNotes.streamdown}`;
-    expect(bullet(leak([3]), 'Raw markers')).toBe(`- Raw markers while streaming: marked 4 of 20 constructs.${tail}`);
+    expect(bullet(leak([3]), 'Raw markers')).toBe(`- Raw markers while streaming: markstream-vue 4 of 20 constructs.${tail}`);
     expect(bullet(leak([2, 3]), 'Raw markers')).toBe(
-      `- Raw markers while streaming: Streamdown 3 of 20 constructs and marked 4 of 20 constructs.${tail}${own}`,
+      `- Raw markers while streaming: Streamdown 3 of 20 constructs and markstream-vue 4 of 20 constructs.${tail}${own}`,
     );
     expect(bullet(leak([2, 3, 4]), 'Raw markers')).toBe(
-      `- Raw markers while streaming: Streamdown 3 of 20 constructs, marked 4 of 20 constructs, and react-markdown 5 of 20 constructs.${tail}${own}`,
+      `- Raw markers while streaming: Streamdown 3 of 20 constructs, markstream-vue 4 of 20 constructs, and svelte-markdown 5 of 20 constructs.${tail}${own}`,
     );
     expect(bullet(leak([]), 'Raw markers')).toBe('');
 
@@ -256,14 +266,16 @@ describe('compare table: render', () => {
       for (const i of html) r.tools[i].probes['p3-remote-html'] = { result: 'fail', detail: 'x' };
       return bullet(render(r, data), 'Remote loads:');
     };
-    expect(img([3])).toBe('- Remote loads: Remote markdown images load without a click in marked.');
-    expect(img([2, 3])).toBe('- Remote loads: Remote markdown images load without a click in Streamdown and marked.');
-    expect(img([2, 3, 4])).toBe('- Remote loads: Remote markdown images load without a click in Streamdown, marked, and react-markdown.');
-    expect(img([0, 1, 2, 3, 4])).toBe(
+    expect(img([3])).toBe('- Remote loads: Remote markdown images load without a click in markstream-vue.');
+    expect(img([2, 3])).toBe('- Remote loads: Remote markdown images load without a click in Streamdown and markstream-vue.');
+    expect(img([2, 3, 4])).toBe(
+      '- Remote loads: Remote markdown images load without a click in Streamdown, markstream-vue, and svelte-markdown.',
+    );
+    expect(img([0, 1, 2, 3, 4, 5])).toBe(
       `- Remote loads: Every library loads a remote markdown image without a click. ${data.details.limmatImages}`,
     );
     expect(img([2], [2, 3])).toBe(
-      '- Remote loads: Remote markdown images load without a click in Streamdown. Raw HTML images also load in Streamdown and marked.',
+      '- Remote loads: Remote markdown images load without a click in Streamdown. Raw HTML images also load in Streamdown and markstream-vue.',
     );
     expect(img([])).toBe('');
   });
@@ -291,7 +303,7 @@ describe('compare table: render', () => {
   it('fills the intro, versions line, and the limmat numbers', () => {
     expect(out).toContain('Checked on 2026-11-21 against the latest releases, each in its default quick-start setup (');
     expect(out).toContain(
-      'Versions: limmat 0.2.0, streaming-markdown 1.2.3, Streamdown 1.2.3, marked 1.2.3, react-markdown 1.2.3. Node 22.22.2, Playwright 1.60.0, Chromium 140.0.7339.16.',
+      'Versions: limmat 0.2.0, streaming-markdown 1.2.3, Streamdown 1.2.3, markstream-vue 1.2.3, svelte-markdown 1.2.3, TanStack Markdown 1.2.3. Node 22.22.2, Playwright 1.60.0, Chromium 140.0.7339.16.',
     );
     expect(out).toContain('[probes and raw results](https://github.com/DaanRosendal/limmat/blob/master/benchmarks/compare/README.md)');
     expect(out).toContain('Open an issue or pull request if something is wrong or out of date.');
@@ -348,11 +360,11 @@ describe('compare table: validate', () => {
     const d = structuredClone(data);
     d.rows.safe = '';
     d.frameworkNames.react = 'has | a pipe';
-    d.tools.marked.docs = 'javascript:alert(1)';
+    d.tools['markstream-vue'].docs = 'javascript:alert(1)';
     const msg = validate(make(), d).join('\n');
     expect(msg).toMatch(/rows.safe/);
     expect(msg).toMatch(/frameworkNames.react/);
-    expect(msg).toMatch(/tools.marked.docs/);
+    expect(msg).toMatch(/tools.markstream-vue.docs/);
   });
 });
 

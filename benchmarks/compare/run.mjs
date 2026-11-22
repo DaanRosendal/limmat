@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { makeCanon } from './canon.mjs';
-import { localMeta, networkMeta, ROOT, TOOLS } from './meta.mjs';
+import { extraBuild, localMeta, networkMeta, ROOT, TOOLS } from './meta.mjs';
 import { initScript, makeKit } from './page.mjs';
 import { COMMONMARK, PROBES } from './probes.mjs';
 
@@ -37,20 +37,23 @@ function bundle() {
   execFileSync('node', ['scripts/build.mjs'], { cwd: ROOT, stdio: 'ignore' });
   fs.mkdirSync(path.join(HERE, '.build'), { recursive: true });
   return Promise.all(
-    libs.map((id) =>
-      esbuild.build({
+    libs.map(async (id) => {
+      const extra = await extraBuild(TOOLS.find((t) => t.id === id));
+      return esbuild.build({
         entryPoints: [path.join(HERE, 'adapters', `${id}.js`)],
         outfile: path.join(HERE, '.build', `${id}.js`),
         bundle: true,
         format: 'iife',
         platform: 'browser',
-        conditions: ['browser'],
-        define: { 'process.env.NODE_ENV': '"production"' },
+        conditions: extra.conditions,
+        external: TOOLS.find((t) => t.id === id).optional,
+        define: extra.define,
+        plugins: extra.plugins,
         loader: { '.css': 'empty', '.woff': 'empty', '.woff2': 'empty', '.ttf': 'empty' },
         minify: true,
         logLevel: 'error',
-      }),
-    ),
+      });
+    }),
   );
 }
 

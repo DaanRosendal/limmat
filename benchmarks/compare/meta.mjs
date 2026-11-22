@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { gzipSync } from 'node:zlib';
 
 export const HERE = path.dirname(new URL(import.meta.url).pathname);
@@ -38,21 +39,57 @@ export const TOOLS = [
     defaultConfig: '`parser(default_renderer(container))`, `parser_write` for every chunk and `parser_end` at the end, no options.',
   },
   {
-    id: 'marked',
-    npm: 'marked',
-    imports: '{ marked }',
-    output: 'html-string',
-    defaultConfig: '`container.innerHTML = marked.parse(text so far)` on every write, no options and no sanitizer.',
+    id: 'markstream-vue',
+    npm: 'markstream-vue',
+    imports: '{ default as MarkdownRender }',
+    output: 'vue',
+    defaultConfig:
+      '`<MarkdownRender mode="chat" :content="text so far" :final="done" :fade="false">`, with `final` set once the stream has ended, as its README shows for AI chat.',
+    external: ['vue'],
+    // katex, mermaid, d2, and the code-diff package are optional peers that its README says to install only when needed.
+    optional: ['katex', 'katex/*', 'mermaid', '@terrastruct/d2', '@antv/infographic', 'stream-diffs', 'stream-diffs/*', 'vue-i18n'],
   },
   {
-    id: 'react-markdown',
-    npm: 'react-markdown',
-    imports: '{ default as Markdown }',
+    id: 'svelte-markdown',
+    npm: '@humanspeak/svelte-markdown',
+    imports: '{ default as SvelteMarkdown }',
+    output: 'svelte',
+    defaultConfig: '`<SvelteMarkdown source="" streaming />` and `writeChunk(chunk)` for every chunk, as its README shows for streaming.',
+    external: ['svelte', 'svelte/*'],
+  },
+  {
+    id: 'tanstack-markdown',
+    npm: '@tanstack/markdown',
+    sizeSource:
+      "export { Markdown } from '@tanstack/markdown/react'; export { streamingMarkdownExtension } from '@tanstack/markdown/extensions/streaming';",
     output: 'react',
-    defaultConfig: '`<Markdown>{text so far}</Markdown>` rendered again on every write, no plugins, default `urlTransform`.',
+    defaultConfig:
+      '`<Markdown extensions={[streamingMarkdownExtension()]} frontmatter={false} headingIds={false}>` with the text so far, as its AI streaming guide shows. It parses the whole text on every update.',
     external: ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/client'],
   },
 ];
+
+// What a library needs to bundle beyond esbuild's defaults: Svelte components are compiled by esbuild-svelte, and Vue wants its build flags.
+export async function extraBuild(t) {
+  const out = { plugins: [], conditions: ['browser'], define: { 'process.env.NODE_ENV': '"production"' } };
+  if (t.output === 'svelte') {
+    const mod = await import(pathToFileURL(path.join(HERE, 'node_modules/esbuild-svelte/dist/index.mjs')).href);
+    out.plugins.push(mod.default({ compilerOptions: { css: 'injected' }, filterWarnings: () => false }));
+    // The package guards its debug code with Vite's `import.meta.env.DEV`, which a plain esbuild bundle does not define.
+    Object.assign(out.define, {
+      'import.meta.env.DEV': 'false',
+      'import.meta.env': '{"DEV":false,"PROD":true,"MODE":"production","SSR":false}',
+    });
+    out.conditions = ['svelte', 'browser']; // the package exports its components only under the svelte condition
+  }
+  if (t.output === 'vue')
+    Object.assign(out.define, {
+      __VUE_OPTIONS_API__: 'true',
+      __VUE_PROD_DEVTOOLS__: 'false',
+      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false',
+    });
+  return out;
+}
 
 const pkgDir = (t) => (t.id === 'limmat' ? ROOT : path.join(HERE, 'node_modules', t.npm));
 export const readPkg = (t) => JSON.parse(fs.readFileSync(path.join(pkgDir(t), 'package.json'), 'utf8'));
@@ -71,7 +108,7 @@ async function gzipBytes(t) {
     write: false,
     legalComments: 'none',
     metafile: true,
-    external: t.external,
+    external: [...(t.external ?? []), ...(t.optional ?? [])],
   };
   const loaders = { '.css': 'empty', '.woff': 'empty', '.woff2': 'empty', '.ttf': 'empty' };
   let r;
@@ -80,15 +117,17 @@ async function gzipBytes(t) {
     return gzipSync(r.outputFiles[0].contents, { level: 9 }).length;
   }
   const outdir = path.join(HERE, '.build', 'size', t.id);
+  const extra = await extraBuild(t);
   r = await esbuild.build({
     ...common,
-    stdin: { contents: `export ${t.imports} from '${t.npm}';`, resolveDir: HERE, loader: 'js' },
+    stdin: { contents: t.sizeSource ?? `export ${t.imports} from '${t.npm}';`, resolveDir: HERE, loader: 'js' },
     outdir,
     splitting: Boolean(t.initialChunkOnly),
-    define: { 'process.env.NODE_ENV': '"production"' },
+    define: extra.define,
+    plugins: extra.plugins,
     loader: loaders,
     platform: 'browser',
-    conditions: ['browser'],
+    conditions: extra.conditions,
   });
   const files = new Map(r.outputFiles.map((f) => [path.relative(process.cwd(), f.path), f.contents]));
   const outs = r.metafile.outputs;
@@ -107,7 +146,9 @@ async function gzipBytes(t) {
 
 function gzipNote(t) {
   if (t.id === 'limmat') return '`src/index.ts`, esbuild minify, same target as `scripts/size.mjs`';
-  const base = t.external ? 'react and react-dom excluded' : 'quick-start import only, esbuild minify';
+  const excluded = { react: 'react and react-dom excluded', vue: 'vue excluded', svelte: 'svelte excluded' }[t.output];
+  const base = excluded ?? 'quick-start import only, esbuild minify';
+  if (t.optional) return `${base}, optional peers (katex, mermaid, and others) not counted`;
   return t.initialChunkOnly ? `${base}, initial chunks only, lazy-loaded shiki and mermaid not counted` : base;
 }
 

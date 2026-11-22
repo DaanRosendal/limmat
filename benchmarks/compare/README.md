@@ -1,15 +1,15 @@
 # Library comparison
 
-This folder measures limmat and four other markdown renderers (streamdown, streaming-markdown, marked, react-markdown) with the same probes in real Chromium. The numbers behind the comparison table in the README come from `results.json`. Nothing here is a ranking of "best": each probe asks one narrow, checkable question.
+This folder measures limmat and five other streaming markdown renderers (streaming-markdown, Streamdown, markstream-vue, svelte-markdown, TanStack Markdown) with the same probes in real Chromium. The numbers behind the comparison table in the README come from `results.json`. Nothing here is a ranking of "best": each probe asks one narrow, checkable question.
 
 ## Run it
 
 ```sh
 npm ci --ignore-scripts --prefix benchmarks/compare   # once: installs the competitors, only inside this folder
-npm install --ignore-scripts --save-exact --prefix benchmarks/compare marked@latest react-markdown@latest streamdown@latest streaming-markdown@latest react@latest react-dom@latest   # before a release: bump the pins, then run `npm run compare`
+npm install --ignore-scripts --save-exact --prefix benchmarks/compare streamdown@latest streaming-markdown@latest markstream-vue@latest @humanspeak/svelte-markdown@latest @tanstack/markdown@latest react@latest react-dom@latest vue@latest svelte@latest   # before a release: bump the pins, then run `npm run compare`
 npm run compare                                       # everything, about 4 minutes
 node benchmarks/compare/run.mjs --no-meta             # offline, keeps the npm and GitHub values of the last run
-node benchmarks/compare/run.mjs --once --only limmat,marked --probes p1,p6   # quick spike, writes nothing
+node benchmarks/compare/run.mjs --once --only limmat,streamdown --probes p1,p6   # quick spike, writes nothing
 ```
 
 You need the root dev dependencies (`npm ci --ignore-scripts` in the repository root) and Chromium (`npx playwright install chromium`). `npm run compare` builds limmat from this checkout first, so the limmat row is always the current master, labelled `<version> (master)`. Only the metadata step needs the network (`npm view` and `gh api`).
@@ -46,7 +46,7 @@ Files:
 Read the results this way:
 
 - A request for a half-typed URL counts as a request (p4): a leak of the first characters of a secret is still a leak.
-- p6 writes each document with letters only, so the final text has no marker. A construct that a library never renders (its final text still contains a marker) is `n/a`, not a leak. The thresholds are provisional, so read the raw counts (`leaked` of `constructs`). Marked and react-markdown are not built for streaming, so their p6 result describes what happens when you use them as documented, not a defect in what they promise.
+- p6 writes each document with letters only, so the final text has no marker. A construct that a library never renders (its final text still contains a marker) is `n/a`, not a leak. The thresholds are provisional, so read the raw counts (`leaked` of `constructs`). TanStack Markdown parses the whole text again on every update, so its p6 result describes how it behaves when used as its streaming guide shows.
 - p7 uses one lenient normaliser for all five libraries (tag structure plus whitespace-collapsed text, attributes ignored) and a denominator of 652 for everyone. The strict count compares serialised HTML with no library-specific rule, the text-only count compares text only. The lenient count is the primary number.
 - `totalDeps` counts the unique packages installed below the package in a clean install, without its peer dependencies (react, react-dom).
 - `gzipBytes` is a one-import esbuild bundle, minified, gzip level 9. React libraries leave out react and react-dom. Streamdown loads shiki and mermaid lazily, and those chunks are not counted. See `gzipNote` in each tool.

@@ -4,8 +4,9 @@
     "limmat",
     "streaming-markdown",
     "streamdown",
-    "marked",
-    "react-markdown"
+    "markstream-vue",
+    "svelte-markdown",
+    "tanstack-markdown"
   ],
   "tools": {
     "limmat": {
@@ -20,13 +21,17 @@
       "name": "streaming-markdown",
       "docs": "https://github.com/thetarnav/streaming-markdown#readme"
     },
-    "marked": {
-      "name": "marked",
-      "docs": "https://github.com/markedjs/marked#readme"
+    "markstream-vue": {
+      "name": "markstream-vue",
+      "docs": "https://github.com/Simon-He95/markstream-vue#readme"
     },
-    "react-markdown": {
-      "name": "react-markdown",
-      "docs": "https://github.com/remarkjs/react-markdown#readme"
+    "svelte-markdown": {
+      "name": "svelte-markdown",
+      "docs": "https://github.com/humanspeak/svelte-markdown#readme"
+    },
+    "tanstack-markdown": {
+      "name": "TanStack Markdown",
+      "docs": "https://github.com/TanStack/markdown#readme"
     }
   },
   "frameworkNames": {
@@ -56,7 +61,7 @@
     ]
   },
   "details": {
-    "markersNote": "marked and react-markdown are not streaming renderers.",
+    "markersNote": "TanStack Markdown parses the whole text again on every update.",
     "limmatImages": "limmat can turn this off with `images: false`.",
     "markersNotes": {
       "streamdown": "Streamdown's leaks are brief: a lone opening marker, a half-typed table, or a link's brackets. They appear with its `remend` option on, as in its README."

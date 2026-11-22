@@ -59,6 +59,11 @@ export function makeCanon() {
         if (ds === 'strong') tag = 'strong';
         else if (ds === 'emphasis' || ds === 'em') tag = 'em';
         else if (ds === 'strikethrough' || ds === 'del') tag = 'del';
+        // LIBRARY-SPECIFIC (markstream-vue): it wraps every run of inline text in <span class="text-node"><span>text</span></span>, which is not a word break.
+        if (tag === 'span' && (c.classList.contains('text-node') || c.parentElement?.classList.contains('text-node'))) {
+          walk(c);
+          continue;
+        }
         if (UNWRAP.has(tag)) {
           out.push({ t: ' ' });
           walk(c);

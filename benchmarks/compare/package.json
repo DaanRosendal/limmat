@@ -5,11 +5,17 @@
   "type": "module",
   "description": "Reproducible comparison of limmat with other markdown renderers. Competitors are installed here only, never in the repository root.",
   "dependencies": {
-    "marked": "18.2.1",
+    "@humanspeak/svelte-markdown": "2.3.0",
+    "@tanstack/markdown": "1.2.1",
+    "markstream-vue": "2.0.29",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "react-markdown": "10.1.0",
     "streamdown": "2.8.0",
-    "streaming-markdown": "0.2.15"
+    "streaming-markdown": "0.2.15",
+    "svelte": "5.59.1",
+    "vue": "3.5.46"
+  },
+  "devDependencies": {
+    "esbuild-svelte": "0.9.5"
   }
 }

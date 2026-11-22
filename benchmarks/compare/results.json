@@ -164,29 +164,81 @@
       }
     },
     {
-      "id": "marked",
-      "npm": "marked",
-      "version": "18.2.1",
-      "versionLabel": "18.2.1",
-      "repo": "markedjs/marked",
-      "framework": "none",
-      "output": "html-string",
-      "directDeps": 0,
-      "gzipBytes": 15874,
-      "gzipNote": "quick-start import only, esbuild minify",
-      "defaultConfig": "`container.innerHTML = marked.parse(text so far)` on every write, no options and no sanitizer.",
-      "releaseDate": "2026-11-16",
-      "firstRelease": "2011-07-24",
+      "id": "markstream-vue",
+      "npm": "markstream-vue",
+      "version": "2.0.29",
+      "versionLabel": "2.0.29",
+      "repo": "Simon-He95/markstream-vue",
+      "framework": "vue",
+      "output": "vue",
+      "directDeps": 4,
+      "gzipBytes": 369302,
+      "gzipNote": "vue excluded, optional peers (katex, mermaid, and others) not counted",
+      "defaultConfig": "`<MarkdownRender mode=\"chat\" :content=\"text so far\" :final=\"done\" :fade=\"false\">`, with `final` set once the stream has ended, as its README shows for AI chat.",
+      "releaseDate": "2026-11-19",
+      "firstRelease": "2025-11-25",
       "lastCommit": "2026-11-21",
-      "totalDeps": 0,
+      "totalDeps": 45,
       "probes": {
         "p1-raw-html": {
-          "result": "fail",
-          "detail": "ran: p1-img, p1-inline, p1-iframe"
+          "result": "pass",
+          "detail": "nothing ran, no on* attribute, no active element"
         },
         "p2-link-schemes": {
+          "result": "pass",
+          "detail": "no javascript:, vbscript: or data: link survived; clicks were inert"
+        },
+        "p3-remote-html": {
           "result": "fail",
-          "detail": "javascript: href kept for p2-js, p2-js-enc, p2-case, p2-tab, p2-auto; ran: p2-js, p2-js-enc, p2-case, p2-tab, p2-auto"
+          "detail": "requested evil.test/p3, evil.test/p3i without a click"
+        },
+        "p4-remote-md-image": {
+          "result": "fail",
+          "detail": "requested evil.test/leak?q=secret without a click"
+        },
+        "p5-link-target": {
+          "result": "pass",
+          "detail": "target=_blank rel=noopener noreferrer"
+        },
+        "p6-markers": {
+          "result": "fail",
+          "detail": "4 of 10 constructs leaked; leaked: strong (\"*\"), link (\"[\"), table (\"|\"), strikethrough (\"~\")",
+          "leaked": 4,
+          "constructs": 10
+        },
+        "p7-commonmark": {
+          "result": "info",
+          "passed": 438,
+          "total": 652,
+          "strict": 0,
+          "textOnly": 522
+        }
+      }
+    },
+    {
+      "id": "svelte-markdown",
+      "npm": "@humanspeak/svelte-markdown",
+      "version": "2.3.0",
+      "versionLabel": "2.3.0",
+      "repo": "humanspeak/svelte-markdown",
+      "framework": "svelte",
+      "output": "svelte",
+      "directDeps": 4,
+      "gzipBytes": 74944,
+      "gzipNote": "svelte excluded",
+      "defaultConfig": "`<SvelteMarkdown source=\"\" streaming />` and `writeChunk(chunk)` for every chunk, as its README shows for streaming.",
+      "releaseDate": "2026-11-15",
+      "firstRelease": "2024-10-30",
+      "lastCommit": "2026-11-15",
+      "totalDeps": 34,
+      "probes": {
+        "p1-raw-html": {
+          "result": "partial",
+          "detail": "nothing ran, but the DOM held: <iframe>"
+        },
+        "p2-link-schemes": {
+          "result": "pass",
+          "detail": "no javascript:, vbscript: or data: link survived; clicks were inert"
         },
         "p3-remote-html": {
           "result": "fail",
@@ -208,29 +260,29 @@
         },
         "p7-commonmark": {
           "result": "info",
-          "passed": 648,
+          "passed": 602,
           "total": 652,
-          "strict": 606,
-          "textOnly": 652
+          "strict": 0,
+          "textOnly": 633
         }
       }
     },
     {
-      "id": "react-markdown",
-      "npm": "react-markdown",
-      "version": "10.1.0",
-      "versionLabel": "10.1.0",
-      "repo": "remarkjs/react-markdown",
+      "id": "tanstack-markdown",
+      "npm": "@tanstack/markdown",
+      "version": "1.2.1",
+      "versionLabel": "1.2.1",
+      "repo": "TanStack/markdown",
       "framework": "react",
       "output": "react",
-      "directDeps": 11,
-      "gzipBytes": 36788,
+      "directDeps": 0,
+      "gzipBytes": 7358,
       "gzipNote": "react and react-dom excluded",
-      "defaultConfig": "`<Markdown>{text so far}</Markdown>` rendered again on every write, no plugins, default `urlTransform`.",
-      "releaseDate": "2025-03-07",
-      "firstRelease": "2015-05-09",
-      "lastCommit": "2026-10-03",
-      "totalDeps": 60,
+      "defaultConfig": "`<Markdown extensions={[streamingMarkdownExtension()]} frontmatter={false} headingIds={false}>` with the text so far, as its AI streaming guide shows. It parses the whole text on every update.",
+      "releaseDate": "2026-11-19",
+      "firstRelease": "2026-06-21",
+      "lastCommit": "2026-11-19",
+      "totalDeps": 2,
       "probes": {
         "p1-raw-html": {
           "result": "pass",
@@ -254,16 +306,16 @@
         },
         "p6-markers": {
           "result": "fail",
-          "detail": "5 of 8 constructs leaked; leaked: emphasis (\"*\"), strong (\"*\"), code span (\"`\"), fenced code (\"`\"), link (\"[\"); n/a (not rendered): table, strikethrough",
-          "leaked": 5,
-          "constructs": 8
+          "detail": "7 of 10 constructs leaked; leaked: emphasis (\"*\"), strong (\"*\"), code span (\"`\"), fenced code (\"`\"), link (\"[\"), table (\"|\"), strikethrough (\"~\")",
+          "leaked": 7,
+          "constructs": 10
         },
         "p7-commonmark": {
           "result": "info",
-          "passed": 584,
+          "passed": 392,
           "total": 652,
-          "strict": 554,
-          "textOnly": 580
+          "strict": 312,
+          "textOnly": 474
         }
       }
     }

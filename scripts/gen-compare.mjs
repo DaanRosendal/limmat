@@ -142,7 +142,8 @@ export function validate(results, data, probes) {
     if (typeof t.framework !== 'string' || !ID.test(t.framework)) bad(`${at}: framework must be none or a framework id`);
     else if (t.framework !== 'none' && data?.frameworkNames && !data.frameworkNames[t.framework])
       bad(`${at}: framework "${t.framework}" has no name in compare.json frameworkNames`);
-    if (!['dom', 'react', 'html-string'].includes(t.output)) bad(`${at}: output must be dom, react, or html-string`);
+    if (!['dom', 'react', 'vue', 'svelte', 'html-string'].includes(t.output))
+      bad(`${at}: output must be dom, react, vue, svelte, or html-string`);
     else if (data?.outputNames && !data.outputNames[t.output]) bad(`${at}: output "${t.output}" has no name in compare.json outputNames`);
     for (const k of ['directDeps', 'totalDeps', 'gzipBytes']) if (!isInt(t[k])) bad(`${at}: ${k} must be a non-negative integer`);
     if (isInt(t.directDeps) && isInt(t.totalDeps) && t.directDeps > t.totalDeps) bad(`${at}: directDeps is more than totalDeps`);
