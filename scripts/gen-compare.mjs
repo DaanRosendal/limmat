@@ -86,6 +86,8 @@ export function validate(results, data, probes) {
       if (!ID.test(id)) bad(`compare.json: bad tool id "${id}"`);
       if (!isText(t?.name, 40)) bad(`compare.json: tools.${id}.name must be short plain text`);
       if (typeof t?.docs !== 'string' || !URL_OK.test(t.docs)) bad(`compare.json: tools.${id}.docs must be an https URL`);
+      for (const w of t?.wrappers ?? [])
+        if (!data.frameworkNames?.[w]) bad(`compare.json: tools.${id}.wrappers names "${w}", which has no name in frameworkNames`);
     }
     for (const id of data.order ?? []) if (!data.tools?.[id]) bad(`compare.json: order names "${id}", which has no entry in tools`);
     for (const k of ['corner', ...ROWS]) if (!isText(data.rows?.[k], 60)) bad(`compare.json: rows.${k} must be short plain text`);
@@ -231,7 +233,12 @@ function reasons(keys, t) {
 function cells(t, data, checkedOn) {
   const pr = t.probes;
   const c = {};
-  c.framework = t.framework === 'none' ? MARK.pass : `${MARK.fail} ${data.frameworkNames[t.framework]}`;
+  // A library with no framework works with any page, and its own components for some frameworks are listed after it.
+  const wrap = (data.tools[t.id].wrappers ?? []).map((w) => data.frameworkNames[w]);
+  c.framework =
+    t.framework === 'none'
+      ? `${MARK.pass} Any${wrap.length ? `, plus ${andList(wrap)}` : ''}`
+      : `${MARK.fail} ${data.frameworkNames[t.framework]} only`;
   c.deps = `${t.totalDeps === 0 ? MARK.pass : t.totalDeps <= 5 ? MARK.partial : MARK.fail} ${t.totalDeps}`;
   c.safe = MARK[combine([pr['p1-raw-html'].result, pr['p2-link-schemes'].result])];
   c.markers = MARK[combine([pr['p6-markers'].result])];

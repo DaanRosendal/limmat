@@ -11,7 +11,8 @@
   "tools": {
     "limmat": {
       "name": "limmat",
-      "docs": "https://github.com/DaanRosendal/limmat#readme"
+      "docs": "https://github.com/DaanRosendal/limmat#readme",
+      "wrappers": ["react", "vue", "svelte"]
     },
     "streamdown": {
       "name": "Streamdown",
@@ -44,7 +45,7 @@
   },
   "rows": {
     "corner": "Compared on",
-    "framework": "No framework needed",
+    "framework": "Works with",
     "deps": "Runtime dependencies",
     "size": "Size (gzip)",
     "safe": "Safe by default",

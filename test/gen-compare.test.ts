@@ -115,7 +115,7 @@ describe('compare table: render', () => {
     const head = lines.findIndex((l) => l.startsWith('| Compared on |'));
     const labels = lines.slice(head + 2, head + 9).map((l) => l.split('|')[1].trim());
     expect(labels).toEqual([
-      'No framework needed',
+      'Works with',
       'Runtime dependencies',
       'Safe by default',
       'No raw markers while streaming',
@@ -145,8 +145,23 @@ describe('compare table: render', () => {
     expect(text).toContain('`<Tag a={1}>` while \\<b\\>text\\</b\\> arrives.');
   });
 
-  it('shows the framework as a check mark or a cross with the framework name', () => {
-    expect(cellsOf(out, 'No framework needed')).toEqual(['✅', '✅', '❌ React', '❌ Vue', '❌ Svelte', '❌ React']);
+  it('shows any page with a check mark, plus the frameworks a library ships components for, and a cross for one framework only', () => {
+    expect(cellsOf(out, 'Works with')).toEqual([
+      '✅ Any, plus React, Vue, and Svelte',
+      '✅ Any',
+      '❌ React only',
+      '❌ Vue only',
+      '❌ Svelte only',
+      '❌ React only',
+    ]);
+  });
+
+  it('lists two wrappers with "and" and none with nothing extra', () => {
+    const d = structuredClone(data);
+    d.tools.limmat.wrappers = ['react', 'vue'];
+    expect(cellsOf(render(make(), d), 'Works with')[0]).toBe('✅ Any, plus React and Vue');
+    delete (d.tools.limmat as { wrappers?: string[] }).wrappers;
+    expect(cellsOf(render(make(), d), 'Works with')[0]).toBe('✅ Any');
   });
 
   it('marks dependencies by the total only: none, 1 to 5, more', () => {
@@ -365,6 +380,12 @@ describe('compare table: validate', () => {
     expect(msg).toMatch(/rows.safe/);
     expect(msg).toMatch(/frameworkNames.react/);
     expect(msg).toMatch(/tools.markstream-vue.docs/);
+  });
+
+  it('rejects a wrapper framework that has no display name', () => {
+    const d = structuredClone(data);
+    d.tools.limmat.wrappers = ['react', 'qwik'];
+    expect(validate(make(), d).join('\n')).toMatch(/tools.limmat.wrappers names "qwik"/);
   });
 });
 
