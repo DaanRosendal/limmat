@@ -12,7 +12,8 @@
       "demo/**/*.css",
       "*.ts",
       "*.json",
-      "!demo/out"
+      "!demo/out",
+      "!browser/frameworks/*.svelte"
     ]
   },
   "formatter": {
@@ -28,6 +29,9 @@
   "linter": {
     "rules": {
       "preset": "recommended",
+      "correctness": {
+        "noComponentHookFactories": "off"
+      },
       "style": {
         "noNonNullAssertion": "off",
         "useTemplate": "off",

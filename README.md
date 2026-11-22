@@ -16,7 +16,7 @@ Streaming markdown for LLM chat. Half-typed syntax like `[docs](https://example`
 - **No raw markers.** Unfinished markdown shows as clean text until it is complete.
 - **Predictable.** However the text is cut into chunks, the page ends up the same as rendering it all at once.
 - **Safe.** It builds DOM nodes, never HTML strings, so hostile text stays text. Remote images load by default, so limit them with `images` (see [Safety](#safety)).
-- **Any framework.** Give it any DOM element: React, Vue, Svelte, Angular, or plain JavaScript.
+- **Any framework.** Ready-made components for React, Vue, and Svelte. Angular and plain JavaScript take any DOM element.
 - **Small and fast.** 11.7 kB gzip and no dependencies ([how it compares](#how-it-compares)). A 100 KB reply streamed in small chunks takes about 20 ms in total in Chromium.
 
 ## Install and usage
@@ -48,110 +48,35 @@ import { speedHighlight } from 'limmat/highlight';
 createRenderer(el, { highlight: speedHighlight() });
 ```
 
-<details>
-<summary>Use it in React, Vue, Svelte, or Angular</summary>
+### React, Vue, and Svelte
 
-Create the renderer when the component mounts and destroy it when it unmounts. Each example reads `chat(signal)`, your own async iterable of text chunks.
-
-<details>
-<summary>React (19)</summary>
+Each takes the whole text so far (a prop or state) and `done` once the message is complete.
 
 ```tsx
-import { useEffect, useRef } from 'react';
-import { createRenderer } from 'limmat';
-import { chat } from './chat'; // your async iterable of text chunks
-
-export function Message() {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const md = createRenderer(ref.current!);
-    const ctrl = new AbortController();
-    (async () => {
-      for await (const chunk of chat(ctrl.signal)) md.write(chunk);
-      md.end();
-    })().catch((e) => {
-      if (!ctrl.signal.aborted) console.error(e);
-    });
-    return () => {
-      ctrl.abort();
-      md.destroy();
-    };
-  }, []);
-  return <div ref={ref} />;
-}
+import { Markdown } from 'limmat/react';
+<Markdown text={message.text} done={message.done} />
 ```
-
-</details>
-
-<details>
-<summary>Vue (3.5)</summary>
 
 ```vue
-<script setup lang="ts">
-import { onBeforeUnmount, onMounted, useTemplateRef } from 'vue';
-import { createRenderer, type Renderer } from 'limmat';
-import { chat } from './chat'; // your async iterable of text chunks
-
-const el = useTemplateRef<HTMLElement>('el');
-const ctrl = new AbortController();
-let md: Renderer | undefined;
-
-onMounted(async () => {
-  md = createRenderer(el.value!);
-  try {
-    for await (const chunk of chat(ctrl.signal)) md.write(chunk);
-    md.end();
-  } catch (e) {
-    if (!ctrl.signal.aborted) console.error(e);
-  }
-});
-
-onBeforeUnmount(() => {
-  ctrl.abort();
-  md?.destroy();
-});
+<script setup>
+import { Markdown } from 'limmat/vue';
 </script>
-
-<template>
-  <div ref="el"></div>
-</template>
+<template><Markdown :text="message.text" :done="message.done" /></template>
 ```
-
-</details>
-
-<details>
-<summary>Svelte (5)</summary>
 
 ```svelte
-<script lang="ts">
-  import { createRenderer } from 'limmat';
-  import { chat } from './chat'; // your async iterable of text chunks
-
-  let el: HTMLElement;
-
-  $effect(() => {
-    const md = createRenderer(el);
-    const ctrl = new AbortController();
-    (async () => {
-      for await (const chunk of chat(ctrl.signal)) md.write(chunk);
-      md.end();
-    })().catch((e) => {
-      if (!ctrl.signal.aborted) console.error(e);
-    });
-    return () => {
-      ctrl.abort();
-      md.destroy();
-    };
-  });
+<script>
+  import { limmat } from 'limmat/svelte';
 </script>
-
-<div bind:this={el}></div>
+<div use:limmat={{ text: message.text, done: message.done }}></div>
 ```
 
-</details>
+On a server they render an empty `div`, so use `limmat/server` there.
 
 <details>
-<summary>Angular (21 and 22)</summary>
+<summary>Angular</summary>
+
+Create the renderer when the component mounts and destroy it when it unmounts. This example reads `chat(signal)`, your own async iterable of text chunks.
 
 ```ts
 import { Component, type ElementRef, type OnDestroy, afterNextRender, viewChild } from '@angular/core';
@@ -182,8 +107,6 @@ export class MessageComponent implements OnDestroy {
   }
 }
 ```
-
-</details>
 
 </details>
 

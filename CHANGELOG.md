@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- `limmat/react`, `limmat/vue`, and `limmat/svelte`: a `Markdown` component for React and for Vue, and a `limmat` action for Svelte (`use:limmat={{ text, done }}`), each a few lines around `createRenderer`. They take the whole text so far and a `done` flag. Text that only grows is written as chunks, and any other text starts the message over, so a message held in component state works as it is. `options` is read when the component mounts. React and Vue are optional peer dependencies, the Svelte action imports nothing, and the core size does not change. They run in the browser only: on a server React and Vue render an empty `div`, and `limmat/server` gives the HTML. Tested with the real frameworks in jsdom, in Chromium, Firefox, and WebKit (React in StrictMode, a compiled `.svelte` component), and through the packed tarball.
+
 ## [0.3.0] - 2026-11-22
 
 ### Added

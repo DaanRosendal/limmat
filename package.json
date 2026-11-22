@@ -27,6 +27,18 @@
       "types": "./dist/server.d.ts",
       "default": "./dist/server.js"
     },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "default": "./dist/react.js"
+    },
+    "./vue": {
+      "types": "./dist/vue.d.ts",
+      "default": "./dist/vue.js"
+    },
+    "./svelte": {
+      "types": "./dist/svelte.d.ts",
+      "default": "./dist/svelte.js"
+    },
     "./style.css": {
       "types": "./dist/style.css.d.ts",
       "default": "./dist/style.css"
@@ -35,10 +47,18 @@
     "./package.json": "./package.json"
   },
   "peerDependencies": {
-    "@speed-highlight/core": "^2.1.0"
+    "@speed-highlight/core": "^2.1.0",
+    "react": ">=17",
+    "vue": "^3.2.0"
   },
   "peerDependenciesMeta": {
     "@speed-highlight/core": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "vue": {
       "optional": true
     }
   },
@@ -72,12 +92,18 @@
     "@playwright/test": "^1.65.1",
     "@speed-highlight/core": "^2.1.0",
     "@types/node": "^26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "esbuild": "^0.28.2",
     "happy-dom": "21.0.4",
     "jsdom": "^31.0.1",
     "linkedom": "0.18.15",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "svelte": "5.59.1",
     "typescript": "^7.0.2",
-    "vitest": "^5.1.1"
+    "vitest": "^5.1.1",
+    "vue": "3.5.46"
   },
   "repository": {
     "type": "git",
