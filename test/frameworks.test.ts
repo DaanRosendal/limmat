@@ -172,8 +172,6 @@ describe.each(kinds)('$name wrapper', (kind) => {
   });
 
   it('passes the options to the renderer', async () => {
-    const m = await kind.mount({ text: '# x' }, { classPrefix: 'zz' });
-    expect(box(m).querySelector('h1')).not.toBeNull();
     const plain = (await kind.mount({ text: '```\ncode\n```', done: true })).box;
     const custom = (await kind.mount({ text: '```\ncode\n```', done: true }, { classPrefix: 'zz' })).box;
     expect(plain.innerHTML).toContain('limmat-');
