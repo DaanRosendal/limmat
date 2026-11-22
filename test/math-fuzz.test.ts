@@ -20,6 +20,7 @@ const CLEAN = [
   '\\[\na\n\\]\n$$\nb $$\nend with $e$ and \\(f\\)\n',
   'before\n\\begin{cases}\nx & 1 \\\\\ny & 2\n\\end{cases}\nafter $k$\n',
   '# Head $h$\n\nbody with **$i$ bold** and *$j$* and [$k$](https://example.com/x)\n',
+  'steps at $\\$0.02$ per 1000 and $\\alpha + b$ done\n',
   '<details>\n<summary>S $s$</summary>\n\ninside $t$\n\n$$\nu\n$$\n\n</details>\n',
 ];
 // These keep delimiters as text (prices, escapes, unclosed openers), so only the chunking property applies to them.

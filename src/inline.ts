@@ -347,6 +347,7 @@ function escapedEnd(t: string): boolean {
  * stays text. A `$` that cannot close but starts something (no space after it) ends the search, so one price cannot
  * swallow the math after it and every opener scans only up to the next dollar. The span stays on one line. A closer on the
  * last character of text that is still streaming waits when the digit rule applies, because the next character decides it.
+ * Returns -2 when the line ends the text with no closer and nothing that rules the span out: it may still close.
  */
 function dollarClose(s: string, i: number, spec: boolean): number {
   const n = s.length;
@@ -364,7 +365,7 @@ function dollarClose(s: string, i: number, spec: boolean): number {
     if (!WS.test(s[j - 1]) && (!dig || (next === undefined ? !spec : !DIGIT.test(next)))) return j;
     if (next !== undefined && !WS.test(next)) return -1;
   }
-  return -1;
+  return -2;
 }
 
 export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> = DEFAULT_TAGS, math?: MathOpts): Inline[] {
@@ -642,6 +643,12 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
           text(i);
           out.push({ k: 'm', s: s.slice(i + 1, j), disp: false });
           ts = i = j + 1;
+        } else if (j === -2 && spec && s[i + 1] === '\\') {
+          // A price never starts with a backslash, so this one is math that has not closed yet and hides its dollar like \( does.
+          text(i);
+          const body = escapedEnd(s) ? s.slice(i + 1, -1) : s.slice(i + 1);
+          if (body) out.push({ k: 'm', s: body, disp: false, open: true });
+          ts = i = n;
         } else i++;
       } else i++;
     } else i++;

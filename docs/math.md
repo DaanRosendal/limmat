@@ -21,7 +21,7 @@ createRenderer(el, { renderMath: katexMath(katex) });
 | a line with only `$$` (or `\[`), the tex, and a line that ends with `$$` (or `\]`) | display math as a block. The tex can hold blank lines and lines that start like markdown (`- x`, `---`). |
 | a `\begin{aligned}` (or `cases`, `matrix`, `pmatrix`, and so on) line, through its `\end{...}` line | display math as a block, with no delimiters around it |
 
-A formula inside a code span or fence is code. A `\$` is a dollar sign. While a formula is still arriving, the reader sees its tex as plain text without the delimiters, and a single `$` that has not closed yet shows as a `$`. A formula that never closes is text when the message ends: `\(` and `\[` keep their usual markdown meaning (`(` and `[`), and a block that never closes shows its lines as a paragraph. An unclosed block holds the rest of the message until it closes, like an open code fence.
+A formula inside a code span or fence is code. A `\$` is a dollar sign. While a formula is still arriving, the reader sees its tex as plain text without the delimiters, and a single `$` that has not closed yet shows as a `$`, unless a backslash follows it (`$\alpha`, `$\$5`), which a price never does, so it shows like the others. A formula that never closes is text when the message ends: `\(` and `\[` keep their usual markdown meaning (`(` and `[`), and a block that never closes shows its lines as a paragraph. An unclosed block holds the rest of the message until it closes, like an open code fence.
 
 Known limits:
 

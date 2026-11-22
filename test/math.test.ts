@@ -123,6 +123,16 @@ describe('inline math while streaming', () => {
     ['half of the closing double dollar is hidden', 'a $$x$', '<p>a <span>x</span></p>'],
     ['an open single dollar stays literal', 'costs $5 per month', '<p>costs $5 per month</p>'],
     ['an open single dollar with letters stays literal', 'a $x^2', '<p>a $x^2</p>'],
+    [
+      'an open single dollar followed by a backslash cannot be a price, so its tex shows without the dollar',
+      'a $\\alpha + b',
+      '<p>a <span>\\alpha + b</span></p>',
+    ],
+    ['an open escaped dollar inside a single dollar formula', 'steps at $\\$0.02', '<p>steps at <span>\\$0.02</span></p>'],
+    ['a half-typed escape after the opening dollar shows nothing yet', 'a $\\', '<p>a </p>'],
+    ['the formula with an escaped dollar renders when it closes', 'steps at $\\$0.02$ per', '<p>steps at <span>I[\\$0.02]</span> per</p>'],
+    ['a backslash opener that ends its line stays literal', 'a $\\alpha\nb', '<p>a $\\alpha\nb</p>'],
+    ['a backslash opener abandoned by the next dollar stays literal', 'a $\\alpha $5 and', '<p>a $\\alpha $5 and</p>'],
     ['a closed single dollar formula renders', 'a $x^2$', '<p>a <span>I[x^2]</span></p>'],
     ['a lone dollar at the end', 'a $', '<p>a $</p>'],
     ['a closing dollar after a digit opener waits for the next character', 'a $5x$', '<p>a $5x$</p>'],
@@ -131,6 +141,11 @@ describe('inline math while streaming', () => {
     ['a closed parenthesis formula renders', 'a \\(x\\)', '<p>a <span>I[x]</span></p>'],
   ];
   for (const [name, md, out] of open) it(name, () => expect(O(md)).toBe(out));
+
+  it('a single dollar followed by a backslash that never closes is literal text when the message ends', () => {
+    expect(R('a $\\alpha + b')).toBe('<p>a $\\alpha + b</p>');
+    expect(R('steps at $\\$0.02')).toBe('<p>steps at $$0.02</p>');
+  });
 
   it('the finished text closes a digit opener at the end', () => expect(R('a $5x$')).toBe('<p>a <span>I[5x]</span></p>'));
 
