@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-22
+
 ### Added
 
 - GitHub-style alerts: a top-level block quote that starts with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, or `[!CAUTION]` alone on its line (any letter case), followed by text, is a `blockquote.limmat-alert.limmat-alert-note` (and so on) with a `p.limmat-alert-title` first. While the marker is arriving, or before any text follows it, nothing of it shows, and a marker that never gets text stays plain text, as on GitHub. The titles are the new `labels.note`, `tip`, `important`, `warning`, and `caution`, and the optional `style.css` colors each type.
@@ -13,7 +15,6 @@ All notable changes to this project are documented here. The format follows [Kee
 - Underlined headings: a paragraph over a line of `=` is an `h1`, and over a line of `-` is an `h2`, as in CommonMark. The heading holds every line of the paragraph, the underline may be indented up to three spaces, and a lazy line in a quote or list item is never an underline. While the underline is still arriving it is held back, so no `=` or `-` shows. A line of `---` right under a paragraph used to be a rule and is now an underline, so `Text` over `---` is a heading, not text and a rule.
 
 - Indented code blocks: a line indented four spaces or more, after a blank line, at the start, or after a heading, rule, fence, or table, is a code block with the Copy button, as in CommonMark. Blank lines inside it are kept and the ones around it are dropped. The text is shown as written (no markup, no entities), and the indent is removed from each line. It works in a quote and in a list item (four columns past the item text). An indented line still continues a paragraph, and 4-space nesting in lists is unchanged. A tab counts to the next multiple of four columns when it decides whether a line is indented, so `\tcode` is a code block. Tabs are not expanded after a list marker or in a nested item, and tabs inside code are never changed. **This changes output:** text that was a paragraph or a list after a blank line and indented four spaces (for example `    - a` right after a paragraph and a blank line) is now code, as on GitHub. A table row indented four spaces ends the table.
-- A lazy line in a list item that is indented four spaces or more and looks like a block (`    - x`, `    # x`, `    ---`, `    >`) now continues the item's paragraph, as in CommonMark. It used to turn into a nested block.
 
 - `limmat/server`: `renderToString(markdown, options)` returns the HTML of a whole text, with no DOM and no globals, so a server can render a reply. It runs the same parser and builder as `write` followed by `end()` (a small in-memory DOM stands in for the page), so the string is exactly what the DOM path serializes to for every test document. Text and attribute values are escaped, and `highlight`, `onLinkClick`, and `throttleMs` are left out because they need a page. It is a separate entry, so the core size does not change.
 - limmat creates its elements with `container.ownerDocument` instead of the global `document`, so it renders into an element of jsdom, linkedom, or happy-dom with no globals set. All three are tested, and `end()` leaves the final output in place with no timer pending, so `innerHTML` can be read right after it.
@@ -21,6 +22,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- A lazy line in a list item that is indented four spaces or more and looks like a block (`    - x`, `    # x`, `    ---`, `    >`) now continues the item's paragraph, as in CommonMark. It used to turn into a nested block.
 - A lazy line after a table that sits two containers deep (`> > | a |` over `> > |---|`, or `> - | a |` over `>   |---|`) now ends the outer quote or item too, as in GFM. It used to stay in the outer container.
 - A line such as `- |---|---|` under a pipe line is a list item, not a table delimiter row, as in GFM. The line above stays a paragraph. It used to become a table with an empty first header cell.
 
@@ -78,7 +80,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - `createRenderer` empties its container, so a remount (React StrictMode) does not duplicate a finished message.
 - Tables are wrapped in `role="group"` with a label, so many tables on a page do not repeat one landmark.
 
-[Unreleased]: https://github.com/DaanRosendal/limmat/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/DaanRosendal/limmat/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/DaanRosendal/limmat/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/DaanRosendal/limmat/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/DaanRosendal/limmat/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/DaanRosendal/limmat/releases/tag/v0.1.0
