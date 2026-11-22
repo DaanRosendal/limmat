@@ -134,7 +134,7 @@ export class MessageComponent implements OnDestroy {
 | Safe by default | ✅ | ❌ | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ |
 | No raw markers while streaming | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | CommonMark examples passed | ⚠️ 67% | ❌ 30% | ✅ 82% | ⚠️ 67% | ✅ 92% | ⚠️ 60% | ✅ 90% | ✅ 99% |
-| Size (gzip) | 11.7 kB | 3.3 kB | 165.6 kB | 369.3 kB | 74.9 kB | 7.4 kB | 36.8 kB | 15.9 kB |
+| Size (gzip) | 13.4 kB | 3.3 kB | 165.6 kB | 369.3 kB | 74.9 kB | 7.4 kB | 36.8 kB | 15.9 kB |
 | Last release | Nov&nbsp;2026 | **May&nbsp;2025** | Nov&nbsp;2026 | Nov&nbsp;2026 | Nov&nbsp;2026 | Nov&nbsp;2026 | **Mar&nbsp;2025** | Nov&nbsp;2026 |
 
 Checked on 2026-11-22 against the latest releases, each in its default quick-start setup ([probes and raw results](https://github.com/DaanRosendal/limmat/blob/master/benchmarks/compare/README.md)). Open an issue or pull request if something is wrong or out of date.
