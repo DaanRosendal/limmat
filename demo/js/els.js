@@ -16,5 +16,4 @@ export const el = {
   openChip: $('#open-readout'),
   customText: $('#custom-text'),
   customGo: $('#custom-go'),
-  attacksChip: $('#chip-attacks'),
 };

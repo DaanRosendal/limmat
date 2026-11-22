@@ -8,13 +8,11 @@ import { initPaste } from './paste.js';
 import { finish, play, reset } from './player.js';
 import { watchOutput } from './readouts.js';
 import { copyLink, readHash } from './share.js';
-import { counters, s } from './state.js';
+import { s } from './state.js';
 import { STREAMS } from './streams.js';
 import { initSupport } from './support.js';
 
-window.alert = () => {
-  counters.alerts++; // payloads that try alert() are counted, never shown
-};
+window.alert = () => {}; // a payload that tries alert() never gets a dialog
 
 async function start() {
   readHash();

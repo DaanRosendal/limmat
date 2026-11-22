@@ -1,7 +1,7 @@
 // Records the Showcase stream of the built demo as a looping GIF (run `npm run build && npm run build:demo` first).
 //   npm run record                       docs/demo-light.gif and docs/demo-dark.gif (not in git: upload them to the `media` release)
 //   npm run record -- theme=dark         only docs/demo-dark.gif
-//   options: theme=light|dark (both when left out)  seed=1  size=3  speed=42  throttle=0  fps=24  width=1080  dsf=2  colors=256  lossy=0  chunks=0|1  bg=#ffffff  view=900x900  out=docs/demo-light.gif  frames=<dir to keep the PNG frames in>
+//   options: theme=light|dark (both when left out)  seed=1  size=3  speed=83  throttle=0  fps=12  width=1080  dsf=2  colors=256  lossy=0  chunks=0|1  bg=#ffffff  view=900x900  out=docs/demo-light.gif  frames=<dir to keep the PNG frames in>
 //
 // The recording is reproducible: the page runs on Playwright's virtual clock, so every timer, throttle, and animation
 // frame advances by exactly one frame interval between screenshots, and the chunk cuts come from the seed in the URL.
@@ -26,10 +26,10 @@ if (!opt.theme && !opt.out) {
 }
 const theme = opt.theme === 'dark' ? 'dark' : 'light';
 const seed = Number(opt.seed ?? 1);
-const size = Number(opt.size ?? 3); // characters per chunk (random 1 to size), so the stream plays in about 24 seconds
-const speed = Number(opt.speed ?? 42); // ms between chunks (42 shows as 24/s in the demo)
+const size = Number(opt.size ?? 3); // characters per chunk (random 1 to size), so the stream types about 24 characters a second
+const speed = Number(opt.speed ?? 83); // ms between chunks (83 shows as 12/s in the demo)
 const throttle = Number(opt.throttle ?? 0); // the renderer's throttleMs
-const fps = Number(opt.fps ?? 24); // the same as the 24 chunks per second, so each frame adds one character
+const fps = Number(opt.fps ?? 12); // the same as the 12 chunks per second, so each frame adds one chunk of 1 to 3 characters: about 24 characters a second
 const width = Number(opt.width ?? 1080);
 const colors = Number(opt.colors ?? 256); // the most a GIF holds, so the text edges stay clean
 const lossy = Number(opt.lossy ?? 0); // gifsicle's lossy level: 0 is lossless, and 40 or more adds visible artifacts

@@ -29,8 +29,6 @@ test('the Showcase plays first, and it is the stream that is checked in the dock
   await expect(page.locator('#out table')).toBeVisible();
   await expect(page.locator('#out .limmat-code code span').first()).toBeAttached(); // the highlighter coloured the code
   await expect(page.locator('#out .limmat-math .katex')).toHaveCount(2); // the inline and the display formula, drawn by KaTeX
-  await expect(page.locator('#chip-attacks')).toHaveText('Nothing unsafe got through');
-  await expect(page.locator('#chip-attacks')).toHaveClass(/safe/);
   await expect(page.locator('#open-readout')).toContainText('Done');
 });
 
@@ -224,10 +222,7 @@ test('the Attack stream runs nothing, loads nothing, and shows the payloads as t
   await open(page);
   await pick(page, 'stream', 'hostile');
   await page.click('#finish');
-  // Hostile input went in (counted by pattern in the text), and nothing came out as a live element.
-  await expect(page.locator('#chip-attacks')).toBeVisible();
-  await expect(page.locator('#chip-attacks')).toHaveText('Nothing unsafe got through');
-  await expect(page.locator('#chip-attacks')).toHaveClass(/safe/);
+  // Hostile input went in, and nothing came out as a live element.
   const out = page.locator('#out');
   expect(await out.locator('script, img, [onerror], [onclick]').count()).toBe(0);
   // The links that refused are plain text, the one real link has a safe address, and the payloads are visible as text.
@@ -247,20 +242,7 @@ test('the Attack stream runs nothing, loads nothing, and shows the payloads as t
   expect(seen.requests.filter((u) => !u.startsWith('https://limmat.test/'))).toEqual([]);
 });
 
-test('a chip turns red if the output ever has something unsafe in it', async ({ page }) => {
-  await open(page, '#v=1&stream=reply'); // a stream with no hostile input, so the chip starts hidden
-  await page.click('#finish');
-  await expect(page.locator('#chip-attacks')).toBeHidden();
-  await page.evaluate(() => {
-    const a = document.createElement('a');
-    a.href = 'javascript:void(0)';
-    document.querySelector('#out')!.append(a);
-  });
-  await expect(page.locator('#chip-attacks')).toHaveClass(/bad/);
-  await expect(page.locator('#chip-attacks')).toHaveText('Something unsafe got through');
-});
-
-test('ordinary text, code, and a local image do not set off the attack chip', async ({ page, seen }) => {
+test('ordinary text, code, and a local image load nothing from another site', async ({ page, seen }) => {
   await open(page);
   await pick(page, 'stream', 'custom');
   await page.fill(
@@ -270,24 +252,7 @@ test('ordinary text, code, and a local image do not set off the attack chip', as
   await page.click('#custom-go');
   await page.click('#finish');
   await expect(page.locator('#out img')).toHaveCount(1);
-  await expect(page.locator('#chip-attacks')).toBeHidden();
   expect(seen.requests.filter((u) => !u.startsWith('https://limmat.test/'))).toEqual([]);
-});
-
-test('a remote image in the output still turns the chip red, and an event handler in the input is still counted', async ({ page }) => {
-  await open(page);
-  await page.click('#finish');
-  await page.evaluate(() => {
-    const img = document.createElement('img');
-    img.setAttribute('src', 'https://evil.example/x.png');
-    document.querySelector('#out')!.append(img);
-  });
-  await expect(page.locator('#chip-attacks')).toHaveClass(/bad/);
-  await pick(page, 'stream', 'custom');
-  await page.fill('#custom-text', 'x <b onclick=alert(1)>y</b> and ![t](https://evil.example/t.png)');
-  await page.click('#custom-go');
-  await page.click('#finish');
-  await expect(page.locator('#chip-attacks')).toHaveClass(/safe/);
 });
 
 test('the Chunks button tints the raw chunks, is on by default, and a link remembers it', async ({ page }) => {
@@ -376,7 +341,7 @@ for (const [name, hash] of [
   });
 }
 
-test('pasted hostile text is only text, and the proof still holds', async ({ page, seen }) => {
+test('pasted hostile text is only text', async ({ page, seen }) => {
   await open(page);
   await pick(page, 'stream', 'custom');
   await page.fill('#custom-text', '<img src=x onerror=alert(1)> [x](javascript:alert(1)) <script>alert(1)</script>');
@@ -384,8 +349,6 @@ test('pasted hostile text is only text, and the proof still holds', async ({ pag
   await page.click('#finish');
   expect(await page.locator('#out img, #out script, #out a').count()).toBe(0);
   expect(await page.locator('#out').textContent()).toContain('<img src=x onerror=alert(1)>');
-  await expect(page.locator('#chip-attacks')).toBeVisible();
-  await expect(page.locator('#chip-attacks')).toHaveText('Nothing unsafe got through');
   expect(seen.errors).toEqual([]);
 });
 

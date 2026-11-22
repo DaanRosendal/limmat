@@ -23,7 +23,5 @@ export const s = {
   rendered: null, // the text in the live renderer while the visitor edits, null otherwise
 };
 
-/** Payload alert() calls, counted by a patched window.alert (see main.js). */
-export const counters = { alerts: 0 };
 export const CUSTOM_MAX = 200000;
 export const SHARE_MAX = 4096;
