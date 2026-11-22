@@ -65,6 +65,13 @@ createRenderer(el, {
 ## MathJax
 
 ```ts
+window.MathJax = {
+  loader: { load: ['ui/safe'] }, // drops unsafe links, classes, ids, and styles
+  tex: { formatError: (jax, err) => { throw err; } }, // an unparseable formula stays as its tex
+  startup: { typeset: false }, // limmat decides what gets typeset
+};
+// then load tex-svg.js
+
 createRenderer(el, {
   renderMath: async (el, tex, { display }) => {
     await MathJax.startup.promise;
@@ -73,4 +80,9 @@ createRenderer(el, {
 });
 ```
 
-Not part of limmat's tests. MathJax can turn `\href{...}` into a link, which skips `allowedProtocols`, so load its `safe` extension, and make it throw on an error (its default shows the error in the page, where limmat cannot see it).
+Checked with MathJax 4.1.3 in Chromium, Firefox, and WebKit (`browser/mathjax.spec.ts`), and by hand with 3.2.2 in Chromium. Do not skip the two settings:
+
+- Without `ui/safe`, MathJax 4 keeps `javascript:` as the target of an `\href` link and made a request to the address in `\style{background:url(https://...)}`. With it, those and `\class` and `\cssId` are dropped, and an `https` `\href` stays a link, which skips `allowedProtocols`.
+- Without `formatError`, a parse error is drawn inside the formula as an error message, where limmat cannot see it.
+
+MathJax 4 also needs a looser CSP than KaTeX and Temml: `style-src 'unsafe-inline'`, `worker-src blob:`, and `script-src blob:`. Under a stricter one the formulas stay as text.
