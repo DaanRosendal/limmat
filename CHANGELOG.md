@@ -8,6 +8,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - **This changes output:** a list item with a blank line after it or between its blocks now wraps its text in a paragraph, as in CommonMark's loose lists. Items before the first blank line stay tight, because they are already on the page.
 
+### Fixed
+
+- A single space at the end of a line is dropped before the line break, as in CommonMark.
+- A tight list item shows every paragraph without `<p>` (one after a heading or a code block too), and an empty `-` item ends at the blank line after it.
+
 ## [0.4.0] - 2026-11-22
 
 ### Added

@@ -70,12 +70,12 @@
     "scope": "in"
   },
   "List items": {
-    "pass": 44,
+    "pass": 46,
     "total": 48,
     "scope": "in"
   },
   "Lists": {
-    "pass": 22,
+    "pass": 23,
     "total": 26,
     "scope": "in"
   },
@@ -120,7 +120,7 @@
     "scope": "in"
   },
   "Soft line breaks": {
-    "pass": 1,
+    "pass": 2,
     "total": 2,
     "scope": "in"
   },

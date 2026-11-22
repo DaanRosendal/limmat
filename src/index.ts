@@ -554,10 +554,11 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     if (lead && U[0]?.k !== 'p') parent.append(lead);
     U.forEach((u, i) => {
       const sp = spec && i === U.length - 1; // only the last block can still be growing
-      if (unwrap && i === 0 && u.k === 'p') {
+      if (unwrap && u.k === 'p' && (i === 0 || !loose)) {
+        // In a tight item no paragraph has a <p>, not only the first one (a paragraph can follow a heading, a fence, or a rule).
         const into = loose ? h('p') : parent;
         if (loose) parent.append(into);
-        if (lead) into.append(lead);
+        if (lead && i === 0) into.append(lead);
         return inline(into, joinTrim(L.slice(u.a, u.e)), sp);
       }
       inherit(ctx, u);

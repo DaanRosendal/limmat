@@ -402,6 +402,7 @@ function itemEnd(L: string[], i: number, off: number, text: boolean, det: boolea
       continue;
     }
     if (!x.trim()) {
+      if (!text && j === i + 1) break; // an item that starts with a blank line may have only that one, so it is empty
       blank = true;
       s.tbl = s.para = false;
       s.pre.length = 0;

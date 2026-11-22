@@ -34,6 +34,9 @@ function canon(root: Element): string {
       const code = e.querySelector('code')!;
       return `<pre><code>${walk(code.firstChild ?? document.createTextNode(''))}</code></pre>`;
     }
+    // The spec's code ends with a newline and ours does not, so the newline of the expected HTML is dropped (once, and only there).
+    if (tag === 'pre')
+      return `<pre><code>${walk(e.querySelector('code')!.firstChild ?? document.createTextNode('')).replace(/\n$/, '')}</code></pre>`;
     if (tag === 'input' || tag === 'span' || tag === 'button') return '';
     let attrs = '';
     if (tag === 'a') attrs = ` href="${e.getAttribute('href')}"`;
@@ -44,10 +47,7 @@ function canon(root: Element): string {
   };
   let s = Array.from(root.childNodes).map(walk).join('');
   const pres: string[] = [];
-  s = s.replace(
-    /<pre>[\s\S]*?<\/pre>/g,
-    (m) => `§PRE${pres.push(m.replace(/\n(<\/code><\/pre>)$/, '$1').replace(/\n<\/code>/, '</code>')) - 1}§`,
-  );
+  s = s.replace(/<pre>[\s\S]*?<\/pre>/g, (m) => `§PRE${pres.push(m) - 1}§`);
   s = s.replace(new RegExp(`\\s*(</?(?:${BLOCKS})(?: [^>]*)?>)\\s*`, 'g'), '$1').replace(/\s*<br>\s*/g, '<br>');
   s = s.replace(/<li><p>/g, '<li>').replace(/<\/p><\/li>/g, '</li>');
   return s.replace(/§PRE(\d+)§/g, (_, i) => pres[+i]).trim();

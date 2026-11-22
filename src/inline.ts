@@ -610,6 +610,11 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
         text(t);
         out.push({ k: 'br' });
         ts = i + 1;
+      } else if (s[i - 1] === ' ') {
+        let t = i; // one space at the end of a line is dropped
+        while (t > ts && s[t - 1] === ' ') t--;
+        text(t);
+        ts = i;
       }
       i++;
     } else if ((c === 'h' || c === 'H' || c === 'w' || c === 'W') && (i === 0 || !WORD.test(s[i - 1]))) {

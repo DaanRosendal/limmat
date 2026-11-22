@@ -68,6 +68,16 @@ const cases: [string, string][] = [
   ['1. a\n   - b\n2. c', '<ol><li>a<ul><li>b</li></ul></li><li>c</li></ol>'],
   ['- a\n    - b\n        - c', '<ul><li>a<ul><li>b<ul><li>c</li></ul></li></ul></li></ul>'],
   ['- a\n  b', '<ul><li>a\nb</li></ul>'],
+  ['- Bar\n  ---\n  baz', '<ul><li><h2>Bar</h2>baz</li></ul>'],
+  ['-\n\n  foo', '<ul><li></li></ul><p>foo</p>'],
+  ['-\n  foo', '<ul><li>foo</li></ul>'],
+  ['1.\n\n   foo', '<ol><li></li></ol><p>foo</p>'],
+  ['foo \n baz', '<p>foo\nbaz</p>'],
+  ['foo \nbar', '<p>foo\nbar</p>'],
+  ['foo  \nbar', '<p>foo<br>bar</p>'],
+  ['**foo** \nbar', '<p><strong>foo</strong>\nbar</p>'],
+  ['> foo \n> bar', '<blockquote><p>foo\nbar</p></blockquote>'],
+  ['- foo \n  bar', '<ul><li>foo\nbar</li></ul>'],
   ['- a\n\n  second', '<ul><li><p>a</p><p>second</p></li></ul>'],
   ['1. a\n- b', '<ol><li>a</li></ol><ul><li>b</li></ul>'],
   ['> a\n> b', '<blockquote><p>a\nb</p></blockquote>'],
@@ -223,8 +233,8 @@ describe('edge cases', () => {
   it('uppercase [X] task checkbox', () => {
     expect((render('- [X] a').querySelector('input') as HTMLInputElement).defaultChecked).toBe(true);
   });
-  it('single trailing space before newline is not a hard break; two are', () => {
-    expect(html(render('a \nb'))).toBe('<p>a \nb</p>');
+  it('a single trailing space before a newline is dropped and is not a hard break; two are a hard break', () => {
+    expect(html(render('a \nb'))).toBe('<p>a\nb</p>');
     expect(html(render('a  \nb'))).toBe('<p>a<br>b</p>');
   });
   it('urls only autolink at a word boundary', () => {
@@ -1099,6 +1109,9 @@ describe('loose lists', () => {
       `<ul><li>a<ul><li>${P('b')}</li><li>${P('c')}</li></ul></li><li>d</li></ul>`,
     ],
     ['lines of one paragraph', '- a\n  b\n- c', '<ul><li>a\nb</li><li>c</li></ul>'],
+    ['a paragraph after a heading', '- Bar\n  ---\n  baz', '<ul><li><h2>Bar</h2>baz</li></ul>'],
+    ['a paragraph after a fence', '- a\n  ```\n  x\n  ```\n  after', '<ul><li>a<pre>x</pre>after</li></ul>'],
+    ['a paragraph after a rule', '- a\n  ***\n  b', '<ul><li>a<hr>b</li></ul>'],
   ])('stays tight: %s', (_name, md, expected) => {
     expect(flat(md)).toBe(expected);
     expect(flat(md, 'char')).toBe(expected);
