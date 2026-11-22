@@ -3,7 +3,7 @@ import { initInstall, initTheme, showRelease } from './chrome.js';
 import { canPlay, initControls, syncControls } from './controls.js';
 import { $, reduceMotion } from './dom.js';
 import { initEditor } from './editor.js';
-import { initPanels } from './panels.js';
+import { initPanels, openPanel } from './panels.js';
 import { initPaste } from './paste.js';
 import { finish, play, reset } from './player.js';
 import { watchOutput } from './readouts.js';
@@ -27,6 +27,7 @@ async function start() {
   $('#share').addEventListener('click', copyLink);
   watchOutput();
   initSupport();
+  if (location.hash === '#whats-supported') openPanel('support'); // the README links here
   showRelease();
   try {
     s.hl = (await import('../hl/highlight.js')).speedHighlight();

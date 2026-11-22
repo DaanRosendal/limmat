@@ -379,7 +379,7 @@ test('the header shows the version being run, and it equals package.json', async
 test('the support panel shows every row, including the gaps, and filters', async ({ page }) => {
   await open(page);
   await openTab(page, 'support');
-  const rows = page.locator('#support-table tbody tr');
+  const rows = page.locator('#support-table tbody tr[data-status]');
   await expect.poll(() => rows.count()).toBeGreaterThan(20);
   await page.click('[data-filter="not-yet"]');
   const visible = await rows.evaluateAll((trs) =>
@@ -387,6 +387,44 @@ test('the support panel shows every row, including the gaps, and filters', async
   );
   expect(visible.length).toBeGreaterThanOrEqual(3);
   expect(new Set(visible)).toEqual(new Set(['not-yet']));
+});
+
+test('the support panel has a CommonMark group with a count on every row and a group without counts, and no empty cells', async ({
+  page,
+}) => {
+  await open(page);
+  await openTab(page, 'support');
+  const heads = page.locator('#support-table tbody tr.support-group');
+  await expect(heads).toHaveCount(2);
+  await expect(heads.nth(0)).toContainText('CommonMark');
+  await expect(heads.nth(1)).toContainText('Beyond CommonMark');
+  const cells = await page.locator('#support-table tbody tr[data-status]').evaluateAll((trs) =>
+    trs.map((t) => ({
+      group: (t as HTMLElement).dataset.group,
+      spec: /^\d+\/\d+$/.test(t.children[2]?.textContent ?? ''),
+      spans: t.children.length,
+    })),
+  );
+  for (const c of cells) {
+    if (c.group === 'commonmark') expect(c.spec).toBe(true);
+    else expect(c.spans).toBe(3); // the notes cell spans the spec column
+  }
+  expect(cells.filter((c) => c.group === 'commonmark').length).toBeGreaterThan(10);
+  expect(cells.filter((c) => c.group === 'beyond').length).toBeGreaterThan(5);
+  // A filter hides a group heading when none of its rows is left.
+  await page.click('[data-filter="not-yet"]');
+  await expect(heads.nth(0)).toBeVisible();
+  await expect(heads.nth(1)).toBeVisible();
+  await page.click('[data-filter="supported"]');
+  await expect(heads.nth(1)).toBeVisible();
+});
+
+test('a link ending in #whats-supported opens the support panel', async ({ page }) => {
+  await open(page, '#whats-supported');
+  await expect(page.locator('#panel-support')).toHaveClass(/open/);
+  await expect(page.locator('#support-table tbody tr[data-status]').first()).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#panel-support')).not.toHaveClass(/open/);
 });
 
 test('panels open over the output, close with Escape, and give focus back', async ({ page }) => {

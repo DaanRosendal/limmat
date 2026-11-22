@@ -30,6 +30,20 @@
 .grid td:nth-child(n + 2):not(:last-child) {
   white-space: nowrap;
 }
+#support-table tr.support-group th {
+  position: static;
+  padding: 14px 18px 6px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 13px;
+  text-align: start;
+}
+#support-table tr.support-group small {
+  margin-inline-start: 10px;
+  color: var(--muted);
+  font-weight: 400;
+}
 #support-table td:last-child {
   color: var(--muted);
 }
