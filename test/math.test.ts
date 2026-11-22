@@ -3,6 +3,7 @@
 
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { ENVS } from '../src/block';
 import { createRenderer, type Options } from '../src/index';
 import { renderToString } from '../src/server';
 import { html, mk, render, renderOpen } from './helpers/util';
@@ -204,6 +205,15 @@ describe('block math', () => {
   });
 
   it('without renderMath a block is an ordinary paragraph', () => expect(html(render('$$\nx\n$$'))).toBe('<p>$$\nx\n$$</p>'));
+});
+
+describe('math environments without delimiters', () => {
+  it('every listed environment, starred or not, opens a display formula, and only those do', () => {
+    expect(ENVS.length).toBeGreaterThan(15);
+    for (const n of ENVS) expect(R(`\\begin{${n}}\nx\n\\end{${n}}`), n).toBe(`<div>D[\\begin{${n}}\nx\n\\end{${n}}]</div>`);
+    for (const n of ['aligngg', 'alig', 'equationx', 'gatherr', 'splitt'])
+      expect(R(`\\begin{${n}}\nx\n\\end{${n}}`), n).toBe(`<p>\\begin{${n}}\nx\n\\end{${n}}</p>`);
+  });
 });
 
 describe('block math while streaming', () => {

@@ -43,7 +43,7 @@ const SUMM = /^ {0,3}<summary>((?:(?!<\/summary>)[^\n])*)<\/summary>[ \t]*$/i;
 const TAGS = ['<details>', '<details open>', '</details>'];
 const PARTIAL_CLOSE = /^ {0,3}(?:`+|~+)$/;
 // Environments that only make sense as math, which models often write with no `$$` or `\[` around them.
-const ENVS = [
+export const ENVS = [
   'aligned',
   'align',
   'align*',
@@ -67,7 +67,7 @@ const ENVS = [
 ];
 const ENV_OPENERS = ENVS.map((n) => `\\begin{${n}}`);
 // `$$`, `\[`, or `\begin{name}` of one of those environments.
-const MATH_OPEN = new RegExp(`^ {0,3}(\\$\\$|\\\\\\[|\\\\begin\\{(?:${ENVS.map((n) => n.replace('*', '\\*')).join('|')})\\})`);
+const MATH_OPEN = new RegExp(`^ {0,3}(\\$\\$|\\\\\\[|\\\\begin\\{(?:${ENVS.map((n) => n.replace(/\*/g, '\\*')).join('|')})\\})`);
 /** Could the unfinished line `l` still become a `\begin{env}` opener (`\b`, `\begin{cas`)? Then it is held back while streaming. */
 function envStart(l: string): boolean {
   const t = l.trimStart();
