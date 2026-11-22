@@ -48,7 +48,7 @@ import { speedHighlight } from 'limmat/highlight';
 createRenderer(el, { highlight: speedHighlight() });
 ```
 
-### React, Vue, and Svelte
+### React, Vue, Svelte, and Solid
 
 Each takes the whole text so far (a prop or state) and `done` once the message is complete.
 
@@ -71,7 +71,12 @@ import { Markdown } from 'limmat/vue';
 <div use:limmat={{ text: message.text, done: message.done }}></div>
 ```
 
-On a server they render an empty `div`, so use `limmat/server` there.
+```tsx
+import { Markdown } from 'limmat/solid';
+<Markdown text={message().text} done={message().done} />
+```
+
+Preact: use the React component with `preact/compat`. On a server these render nothing or an empty `div`, so use `limmat/server` there.
 
 <details>
 <summary>Angular</summary>
