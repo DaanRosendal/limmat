@@ -383,7 +383,8 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
         text(i);
         let code = s.slice(e, close).replace(/\n/g, ' ');
         if (code.length > 1 && code[0] === ' ' && code[code.length - 1] === ' ' && code.trim()) code = code.slice(1, -1);
-        out.push({ k: 'c', s: code });
+        // A span that is still open and has no text yet would show as an empty box, so it waits for its first character.
+        if (!(spec && close === n && !code.trim())) out.push({ k: 'c', s: code });
         i = close < n ? close + len : n;
         ts = i;
       } else i = e;
