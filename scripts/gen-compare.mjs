@@ -91,13 +91,6 @@ export function validate(results, data, probes) {
     }
     for (const id of data.order ?? []) if (!data.tools?.[id]) bad(`compare.json: order names "${id}", which has no entry in tools`);
     for (const k of ['corner', ...ROWS]) if (!isText(data.rows?.[k], 60)) bad(`compare.json: rows.${k} must be short plain text`);
-    for (const [id, notes] of Object.entries(data.cellNotes ?? {})) {
-      if (!data.tools?.[id]) bad(`compare.json: cellNotes.${id} is not a tool`);
-      for (const [row, note] of Object.entries(notes)) {
-        if (!ROWS.includes(row)) bad(`compare.json: cellNotes.${id}.${row} is not a row`);
-        if (!isText(note, 80)) bad(`compare.json: cellNotes.${id}.${row} must be short plain text`);
-      }
-    }
     for (const k of ['frameworkNames', 'outputNames'])
       for (const [key, name] of Object.entries(data[k] ?? {}))
         if (!isText(name, 40)) bad(`compare.json: ${k}.${key} must be short plain text`);
