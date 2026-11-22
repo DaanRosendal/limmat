@@ -1,4 +1,4 @@
-import { type Al, atx, BQ, cells, dedent4, LI, mathText, scan, spaces, type Unit } from './block';
+import { type Al, atx, BQ, cells, dedent4, LI, mathText, sameList, scan, spaces, type Unit } from './block';
 import { HTML_TAGS, type Inline, type MathOpts, parseInline } from './inline';
 import { safeUrl } from './url';
 
@@ -549,15 +549,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     const U = scan(L, null, part, !part, details ? (spec ? 1 : 2) : 0, part, lz, mathOn);
     // `unwrap` is 0 outside a list item, 1 in a tight item, and 2 in an item that is loose already. An item is loose when a blank
     // line separates two of its blocks, and the blank lines between the items of a nested list do not count.
-    const loose =
-      unwrap === 2 ||
-      (unwrap === 1 &&
-        U.some(
-          (u, i) =>
-            i + 1 < U.length &&
-            u.b > u.e &&
-            !(u.k === 'li' && U[i + 1].k === 'li' && u.ord === (U[i + 1] as typeof u).ord && u.mk === (U[i + 1] as typeof u).mk),
-        ));
+    const loose = unwrap === 2 || (unwrap === 1 && U.some((u, i) => i + 1 < U.length && u.b > u.e && !sameList(u, U[i + 1])));
     // The checkbox of a task item goes first in the item, or inside its first paragraph, so that it shares a line with the text.
     if (lead && U[0]?.k !== 'p') parent.append(lead);
     U.forEach((u, i) => {

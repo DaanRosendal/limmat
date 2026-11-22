@@ -436,6 +436,9 @@ interface Frame {
   sum: string | null; // the summary, if the opener line has it (`<details><summary>T</summary>`)
 }
 
+/** Does unit `v` continue the list that item `u` is in (the same kind of list and the same bullet or delimiter)? */
+export const sameList = (u: Unit, v: Unit) => u.k === 'li' && v.k === 'li' && u.ord === v.ord && u.mk === v.mk;
+
 /**
  * Split lines into units. `tbl` is the alignment of a table that was already open before line 0 (see flush() in
  * index.ts). `partial` says the last line is still arriving, and `final` says no more input will come: both make
@@ -624,8 +627,7 @@ export function scan(
   }
   for (let k = 0; k + 1 < U.length; k++) {
     const u = U[k];
-    const v = U[k + 1];
-    if (u.k === 'li' && v.k === 'li' && u.b > u.e && u.ord === v.ord && u.mk === v.mk) u.sep = true;
+    if (u.k === 'li' && u.b > u.e && sameList(u, U[k + 1])) u.sep = true;
   }
   return U;
 }
