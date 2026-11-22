@@ -1,8 +1,8 @@
 import { createDom } from './dom';
 import { createRenderer, type Options } from './index.js';
 
-/** The options that mean something without a page. `highlight`, `onLinkClick`, and `throttleMs` need one, so they are left out. */
-export type ServerOptions = Omit<Options, 'highlight' | 'onLinkClick' | 'throttleMs'>;
+/** The options that mean something without a page. `highlight`, `renderMath`, `onLinkClick`, and `throttleMs` need one, so they are left out, and math stays text. */
+export type ServerOptions = Omit<Options, 'highlight' | 'renderMath' | 'singleDollarMath' | 'onLinkClick' | 'throttleMs'>;
 
 /**
  * Markdown to an HTML string, with no DOM and no globals, for rendering on a server. The result is what `write` of the
@@ -17,7 +17,13 @@ export type ServerOptions = Omit<Options, 'highlight' | 'onLinkClick' | 'throttl
 export function renderToString(markdown: string, options: ServerOptions = {}): string {
   if (typeof markdown !== 'string') throw new TypeError('limmat: markdown must be a string');
   const { root, html } = createDom();
-  const r = createRenderer(root as unknown as HTMLElement, { ...options, highlight: undefined, onLinkClick: undefined, throttleMs: 0 });
+  const r = createRenderer(root as unknown as HTMLElement, {
+    ...options,
+    highlight: undefined,
+    renderMath: undefined,
+    onLinkClick: undefined,
+    throttleMs: 0,
+  });
   r.write(markdown);
   r.end();
   return html();

@@ -1,5 +1,5 @@
-import { type Al, atx, BQ, cells, dedent4, LI, scan, spaces, type Unit } from './block';
-import { HTML_TAGS, type Inline, parseInline } from './inline';
+import { type Al, atx, BQ, cells, dedent4, LI, mathText, scan, spaces, type Unit } from './block';
+import { HTML_TAGS, type Inline, type MathOpts, parseInline } from './inline';
 import { safeUrl } from './url';
 
 export interface Options {
@@ -26,6 +26,16 @@ export interface Options {
   images?: boolean | string[];
   /** Called once when a code fence closes (or at end()). Receives the <code> element, its text, and the language. A throw or rejection is ignored and the plain text stays. */
   highlight?: (el: HTMLElement, code: string, lang: string) => void | Promise<void>;
+  /**
+   * Turns on math: `\(x\)`, `\[x\]`, `$x$`, and `$$x$$` become formulas, and so does text between a line that is only `$$` (or `\\[`) and a line that ends with `$$` (or `\\]`), or a `\\begin{cases}`-style environment on its own lines. Called once for each finished
+   * formula with a box, the tex (trimmed, without delimiters), and `{ display }`. Fill the box with your math library's output (KaTeX, MathJax, Temml): it holds the tex as text until you replace its content,
+   * and it is on the page when you are called. The function may return a promise, and the box is kept while the text grows, so a late result lands in the right place. A throw or a rejection leaves the tex as text.
+   * It is not called for a formula that is still open (the tex shows as plain text, and a `$` that has not closed yet shows as a `$`), for a formula over 2000 characters, or past 200 formulas or 20000 characters of tex in one message.
+   * Without this option math is plain text. limmat does not check what the function builds (see SECURITY.md), and `limmat/server` does not run it. `limmat/katex` provides one for KaTeX, and docs/math.md (https://github.com/DaanRosendal/limmat/blob/master/docs/math.md) has recipes for other libraries.
+   */
+  renderMath?: (el: HTMLElement, tex: string, info: { display: boolean }) => void | Promise<void>;
+  /** With `renderMath` set, `$x^2$` is math: no space just inside the dollars, and a closing `$` after a number is not followed by a digit, so prices like `$5 and $10` stay text. Default true. false keeps `$$x$$` and the backslash forms and leaves a single `$` alone. */
+  singleDollarMath?: boolean;
   /** Minimum ms between re-renders of the open block. Default 50. 0 renders on every write. Non-finite values use the default. */
   throttleMs?: number;
   /** Prefix for every generated class: letters, digits, `_` and `-`, starting with a letter or `_`. Default 'limmat', also for anything else. The bundled style.css only styles the default prefix. */
@@ -51,6 +61,8 @@ const UNSEEN = /[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u2028
 
 /** The type of the `highlight` option, for adapters. */
 export type Highlighter = NonNullable<Options['highlight']>;
+/** The type of the `renderMath` option, for adapters. */
+export type MathRenderer = NonNullable<Options['renderMath']>;
 
 export interface Renderer {
   /** Append markdown. Chunks may split anywhere. Ignored after end() until reset(), and after destroy(). */
@@ -88,6 +100,10 @@ interface Built {
 }
 
 const MAX_DEPTH = 12;
+// What reaches the `renderMath` hook: no formula over 2000 characters, and in one message at most 200 formulas and 20000 characters of tex.
+const MAX_TEX = 2000;
+const MAX_SPANS = 200;
+const MAX_TEX_TOTAL = 20000;
 const ALERTS = { note: 1, tip: 1, important: 1, warning: 1, caution: 1 };
 const ALERT = /^\[!(note|tip|important|warning|caution)\][ \t]*$/i;
 /** Could this first line of a quote, still arriving, become an alert marker? (`[`, `[!NO`) */
@@ -149,6 +165,8 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   const throttle = Number.isFinite(o.throttleMs) ? (o.throttleMs as number) : 50;
   // A prefix that is not a plain class name (spaces, quotes, dots) would break the selectors and the class list.
   const px = typeof o.classPrefix === 'string' && /^[A-Za-z_][\w-]*$/.test(o.classPrefix) ? o.classPrefix : 'limmat';
+  const mathOn = typeof o.renderMath === 'function';
+  const mathOpts: MathOpts | undefined = mathOn ? { dollar: o.singleDollarMath !== false } : undefined;
   const lb = o.labels ?? {};
   // An empty label would leave a button or a table with no accessible name.
   const lab = (v: unknown, d: string) => (typeof v === 'string' && v.trim() ? v : d);
@@ -181,6 +199,13 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   let imgPool: Map<string, HTMLElement[]> | null = null;
   const imgKey = (e: Element) => `${e.getAttribute('src')}\n${e.getAttribute('alt')}`;
 
+  // The boxes `renderMath` has filled (or is filling) in the blocks that sync() is rebuilding, so a rebuilt open block keeps them.
+  let mathPool: Map<string, HTMLElement[]> | null = null;
+  const mathKeys = new WeakMap<Element, string>();
+  let mq: [HTMLElement, string, boolean][] = []; // boxes whose hook has not been called yet: it runs once the blocks are on the page
+  let mathN = 0;
+  let mathChars = 0;
+
   const h = (tag: string, c?: string, text?: string) => {
     const e = doc.createElement(tag);
     if (c) e.className = c;
@@ -189,11 +214,48 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
   };
 
   const plain = (ns: Inline[]): string =>
-    ns.map((n) => (n.k === 't' || n.k === 'c' || n.k === 'a' ? n.s : n.k === 'br' ? ' ' : plain(n.kids))).join('');
+    ns.map((n) => (n.k === 't' || n.k === 'c' || n.k === 'a' || n.k === 'm' ? n.s : n.k === 'br' ? ' ' : plain(n.kids))).join('');
+
+  /**
+   * The box for one formula. An open one (`hooked` false) is plain text. A finished one holds its tex as text and is queued for the
+   * hook, unless it is over a limit, and it is kept in the pool so a rebuilt block gets the same box back, with its result or its pending call.
+   */
+  function mathBox(tex: string, disp: boolean, hooked: boolean, block: boolean): HTMLElement {
+    const key = `${disp ? 1 : 0}${block ? 'b' : 'i'}\n${tex}`;
+    if (hooked) {
+      const kept = mathPool?.get(key)?.shift();
+      if (kept) return kept;
+    }
+    const el = h(
+      block ? 'div' : 'span',
+      cls('math') + (disp ? ` ${cls('math-display')}` : '') + (hooked ? '' : ` ${cls('math-open')}`),
+      tex,
+    );
+    if (hooked) {
+      mathKeys.set(el, key);
+      if (tex.length <= MAX_TEX && ++mathN <= MAX_SPANS && (mathChars += tex.length) <= MAX_TEX_TOTAL) mq.push([el, tex, disp]);
+    }
+    return el;
+  }
+
+  function runMath() {
+    const todo = mq;
+    mq = [];
+    const fail = (el: HTMLElement, tex: string) => el.replaceChildren(tex);
+    for (const [el, tex, display] of todo) {
+      if (dead) return;
+      try {
+        const r = o.renderMath!(el, tex, { display });
+        if (r && typeof r.then === 'function') r.then(undefined, () => fail(el, tex));
+      } catch {
+        fail(el, tex); // drop whatever the hook wrote before it threw
+      }
+    }
+  }
 
   function inline(parent: Element, s: string, spec: boolean) {
     const st: { nodes: Inline[]; i: number; el: Element; il: boolean }[] = [
-      { nodes: parseInline(s, spec, tags), i: 0, el: parent, il: false },
+      { nodes: parseInline(s, spec, tags, mathOpts), i: 0, el: parent, il: false },
     ];
     while (st.length) {
       const f = st[st.length - 1];
@@ -205,6 +267,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       if (x.k === 't') f.el.append(x.s);
       else if (x.k === 'c') f.el.append(h('code', cls('inline-code'), x.s));
       else if (x.k === 'br') f.el.append(h('br'));
+      else if (x.k === 'm') f.el.append(mathBox(x.s, x.disp, !x.open, false));
       else if (x.k === 'e') {
         const el = h(x.tag, x.tag === 'kbd' ? cls('kbd') : undefined);
         f.el.append(el);
@@ -310,6 +373,14 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       }
       case 'hr':
         return { n: h('hr') };
+      case 'm': {
+        if (!u.closed && !spec) {
+          const el = h('p'); // a formula that never closed: the lines are text
+          inline(el, joinTrim(L.slice(u.a, u.e)), false);
+          return { n: el };
+        }
+        return { n: mathBox(mathText(u, L, part), true, u.closed, true) };
+      }
       case 'f': {
         const lang = u.lang;
         const shown = lang.replace(UNSEEN, ''); // a bidi override in the label would reorder the text next to it
@@ -472,7 +543,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       return;
     }
     let ctx: Ctx = null;
-    const U = scan(L, null, part, !part, details ? (spec ? 1 : 2) : 0, part, lz);
+    const U = scan(L, null, part, !part, details ? (spec ? 1 : 2) : 0, part, lz, mathOn);
     U.forEach((u, i) => {
       const sp = spec && i === U.length - 1; // only the last block can still be growing
       if (unwrap && i === 0 && u.k === 'p') return inline(parent, joinTrim(L.slice(u.a, u.e)), sp);
@@ -499,15 +570,27 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
    */
   function sync(S: St, parent: Element, L: string[], partial: boolean, final: boolean, depth: number, q: Entry['hl'] | null): number {
     const tail = S.tail;
-    const U = scan(L, S.fctx && S.fctx.k === 't' ? S.fctx.al! : null, partial, final, details ? (final ? 2 : 1) : 0, partial && !final);
+    const U = scan(
+      L,
+      S.fctx && S.fctx.k === 't' ? S.fctx.al! : null,
+      partial,
+      final,
+      details ? (final ? 2 : 1) : 0,
+      partial && !final,
+      undefined,
+      mathOn,
+    );
     const hi = (c: HTMLElement, t: string, l: string) => (q ? q.push([c, t, l]) : highlight(c, t, l));
     const keys = U.map((u, i) => {
       const spec = !final && i === U.length - 1;
       const t = L.slice(u.a, u.e).join('\n');
-      const pt = partial && !final && u.b === L.length && (u.k === 'q' || u.k === 'li' || u.k === 'd');
+      const pt = partial && !final && u.b === L.length && (u.k === 'q' || u.k === 'li' || u.k === 'd' || u.k === 'm');
+      // A finished formula has no `*`, so it is not rebuilt (and its hook not called again) when it stops being the last block.
       return u.k === 'f'
         ? `f${u.closed ? 1 : 0}${t}`
-        : `${u.k}${u.k === 'd' && u.closed ? 1 : ''}${spec ? '*' : ''}${pt ? '~' : ''}${u.k === 'th' && u.pend ? '?' : ''}${t}`;
+        : u.k === 'm'
+          ? `m${u.closed ? 1 : spec ? '*' : 0}${pt ? '~' : ''}${t}`
+          : `${u.k}${u.k === 'd' && u.closed ? 1 : ''}${spec ? '*' : ''}${pt ? '~' : ''}${u.k === 'th' && u.pend ? '?' : ''}${t}`;
     });
     let p = 0;
     while (p < tail.length && p < U.length && tail[p].key === keys[p]) p++;
@@ -541,18 +624,26 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
     let ctx: Ctx = p > 0 ? tail[p - 1].ctx : S.fctx;
     const toggled: (boolean | null)[] = []; // per removed <details>, the state the reader left it in, or null if untouched
     const pool = new Map<string, HTMLElement[]>();
+    const mpool = new Map<string, HTMLElement[]>();
     for (const old of tail.splice(p)) {
       for (const im of old.node.querySelectorAll('img')) {
         const k = imgKey(im);
         pool.set(k, [...(pool.get(k) ?? []), im]);
       }
+      if (mathOn)
+        for (const b of [old.node, ...Array.from(old.node.querySelectorAll('span')), ...Array.from(old.node.querySelectorAll('div'))]) {
+          const k = mathKeys.get(b);
+          if (k) mpool.set(k, [...(mpool.get(k) ?? []), b as HTMLElement]);
+        }
       for (const d of old.node.tagName === 'DETAILS' ? [old.node] : Array.from(old.node.querySelectorAll('details')))
         toggled.push(d.hasAttribute('open') !== opened.has(d) ? d.hasAttribute('open') : null);
       old.node.remove();
       old.made?.remove();
     }
     const outerPool = imgPool;
+    const outerMath = mathPool;
     imgPool = pool;
+    mathPool = mpool;
     for (let i = p; i < U.length; i++) {
       const u = U[i];
       const hl: Entry['hl'] = [];
@@ -581,6 +672,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       });
     }
     imgPool = outerPool;
+    mathPool = outerMath;
     if (toggled.some((x) => x !== null)) {
       let k = 0;
       for (const t of tail.slice(p))
@@ -626,6 +718,7 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       const L = src.split('\n');
       if (!partial) L.pop();
       const drop = sync(top, container, L, partial, final, 0, null);
+      runMath(); // the blocks are all on the page now
       let cut = 0;
       for (let x = 0; x < drop; x++) cut += L[x].length + 1;
       src = src.slice(cut);
@@ -752,6 +845,8 @@ export function createRenderer(container: HTMLElement, options: Options = {}): R
       src = '';
       held = '';
       top = mkSt();
+      mq = [];
+      mathN = mathChars = 0;
       ended = false;
       lastRun = -Infinity;
     },

@@ -179,6 +179,19 @@ describe.each(kinds)('$name wrapper', (kind) => {
     expect(custom.innerHTML).not.toContain('limmat-');
   });
 
+  it('passes renderMath through, and keeps the formula box while the text grows', async () => {
+    const renderMath = (el: HTMLElement, tex: string) => {
+      el.textContent = `I[${tex}]`;
+    };
+    const m = await kind.mount({ text: 'a $x^2$' }, { renderMath });
+    const formula = box(m).querySelector('.limmat-math');
+    expect(formula?.textContent).toBe('I[x^2]');
+    await m.set({ text: 'a $x^2$ and more' });
+    await m.set({ text: 'a $x^2$ and more words', done: true });
+    expect(box(m).querySelector('.limmat-math')).toBe(formula);
+    expect(box(m).querySelectorAll('.limmat-math').length).toBe(1);
+  });
+
   it('is safe: hostile markdown stays inert', async () => {
     const md = '[x](javascript:alert(1)) <img src=x onerror=alert(1)> <script>alert(1)</script>';
     const m = await kind.mount({ text: md, done: true });

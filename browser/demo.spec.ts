@@ -418,7 +418,7 @@ test('the support panel shows every row, including the gaps, and filters', async
   const visible = await rows.evaluateAll((trs) =>
     trs.filter((t) => !(t as HTMLElement).hidden).map((t) => (t as HTMLElement).dataset.status),
   );
-  expect(visible.length).toBeGreaterThan(3);
+  expect(visible.length).toBeGreaterThanOrEqual(3);
   expect(new Set(visible)).toEqual(new Set(['not-yet']));
 });
 

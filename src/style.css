@@ -14,6 +14,7 @@
      span.limmat-image-blocked (an image that is not shown: its label, then the alt text)
      code.limmat-inline-code (inline code)
      blockquote.limmat-alert.limmat-alert-note (or tip, important, warning, caution) > p.limmat-alert-title, then the content blocks
+     span.limmat-math (a formula, inline), plus limmat-math-display for display math (a div when it is a block), and limmat-math-open while its closing delimiter is still arriving (its tex shows as text)
 */
 :root,
 :host {
@@ -253,6 +254,19 @@
 }
 .limmat-list {
   padding-inline-start: 1.5em;
+}
+.limmat-math-display {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.limmat-math-open {
+  color: var(--limmat-muted);
+  font-family: var(--limmat-font-mono);
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 .limmat-task {
   list-style: none;

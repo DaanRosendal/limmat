@@ -17,6 +17,7 @@ export type Unit = Span &
     | { k: 'th'; al: Al; pend?: boolean } // table header, `pend` while the delimiter row is still arriving
     | { k: 'tr'; al: Al } // table body row
     | { k: 'd'; open: boolean; closed: boolean; sum: string | null; bs: number } // details container, inner lines are scanned again when built
+    | { k: 'm'; closed: boolean; op: string } // display math from an opener line (`$$`, `\\[`, or a `\\begin{env}` line) to a line that ends with the closer (`$$`, `\\]`, or `\\end{env}`); the opener may be followed by tex
   );
 
 // `[^\n]` instead of `.`: a dot stops at \r, \u2028 and \u2029, which made some of these regexes backtrack badly.
@@ -41,6 +42,41 @@ const CLOSE = /^ {0,3}<\/details>[ \t]*$/i;
 const SUMM = /^ {0,3}<summary>((?:(?!<\/summary>)[^\n])*)<\/summary>[ \t]*$/i;
 const TAGS = ['<details>', '<details open>', '</details>'];
 const PARTIAL_CLOSE = /^ {0,3}(?:`+|~+)$/;
+// Environments that only make sense as math, which models often write with no `$$` or `\[` around them.
+const ENVS = [
+  'aligned',
+  'align',
+  'align*',
+  'equation',
+  'equation*',
+  'gather',
+  'gather*',
+  'split',
+  'multline',
+  'multline*',
+  'eqnarray',
+  'eqnarray*',
+  'cases',
+  'array',
+  'matrix',
+  'pmatrix',
+  'bmatrix',
+  'Bmatrix',
+  'vmatrix',
+  'Vmatrix',
+];
+const ENV_OPENERS = ENVS.map((n) => `\\begin{${n}}`);
+// `$$`, `\[`, or `\begin{name}` of one of those environments.
+const MATH_OPEN = new RegExp(`^ {0,3}(\\$\\$|\\\\\\[|\\\\begin\\{(?:${ENVS.map((n) => n.replace('*', '\\*')).join('|')})\\})`);
+/** Could the unfinished line `l` still become a `\begin{env}` opener (`\b`, `\begin{cas`)? Then it is held back while streaming. */
+function envStart(l: string): boolean {
+  const t = l.trimStart();
+  return l.length - t.length < 4 && t[0] === '\\' && ENV_OPENERS.some((f) => f.length > t.length && f.startsWith(t));
+}
+/** Something with a `test` method that says whether a line closes the code or math block that is open. */
+interface Closer {
+  test(l: string): boolean;
+}
 
 export const spaces = (l: string) => l.length - l.trimStart().length;
 
@@ -128,11 +164,74 @@ function pipeHead(L: string[], j: number, partial: boolean, final: boolean): 0 |
   }
   return growing && prefix(nx) ? 2 : 0;
 }
-function interrupts(l: string, det = false): boolean {
+function interrupts(l: string, det = false, mt = false): boolean {
   if (det && (opener(l) || CLOSE.test(l))) return true;
+  if (mt && mathOpen(l)) return true;
   if (fence(l) || atx(l) || HR.test(l) || BQ.test(l)) return true;
   const m = LI.exec(l);
   return !!m && !!m[4] && m[1].length < 4 && m[2].length < 4 && (!/\d/.test(m[2]) || parseInt(m[2], 10) === 1);
+}
+
+/** Does the line end with the math closer (`$$` or `\]`), not escaped by a backslash? Trailing spaces are ignored. */
+function closes(l: string, close: string): boolean {
+  let e = l.length;
+  while (e > 0 && (l[e - 1] === ' ' || l[e - 1] === '\t')) e--;
+  if (close[1] === 'e') return l.slice(0, e).endsWith(close); // `\end{env}`
+  const dollar = close === '$$';
+  if (dollar ? l[e - 1] !== '$' || l[e - 2] !== '$' : l[e - 1] !== ']' || l[e - 2] !== '\\') return false;
+  let b = dollar ? 0 : 1; // the backslash of `\]` is part of the closer, so it counts toward the run that ends before the bracket
+  for (let k = e - 3; k >= 0 && l[k] === '\\'; k--) b++;
+  return dollar ? b % 2 === 0 : b % 2 === 1;
+}
+/**
+ * The opener of the math block that line `l` starts, or null: `$$` or `\[` alone on its line, or `\begin{env}` of a math environment (which may
+ * be followed by tex). A line of prose that starts with `\[` or `$$` and goes on is not an opener, so it cannot swallow the text after it.
+ */
+function mathOpen(l: string): string | null {
+  const m = MATH_OPEN.exec(l);
+  return m && (m[1][1] === 'b' || !l.slice(m[0].length).trim()) ? m[1] : null;
+}
+/** The closer that ends the block `op` opens. */
+const closeOf = (op: string) => (op === '$$' ? '$$' : op === '\\[' ? '\\]' : op.replace('begin', 'end'));
+const mathCloser = (op: string): Closer => ({ test: (l) => closes(l, closeOf(op)) });
+/** The tex of a math unit: its lines without the opener and, once it has arrived, the closer, except that an environment keeps its `\begin` and `\end`. While it is open (and `part`: the last line is still arriving) it is only the body, and half a closer is left off. */
+export function mathText(u: Extract<Unit, { k: 'm' }>, L: string[], part = false): string {
+  const lines = L.slice(u.a, u.e);
+  const env = u.op[1] === 'b';
+  if (env && u.closed) return lines.join('\n').trim(); // an environment is its own tex, `\begin` and `\end` included
+  lines[0] = lines[0].replace(MATH_OPEN, '');
+  const last = lines.length - 1;
+  const close = closeOf(u.op);
+  const strip = (l: string) => l.trimEnd().slice(0, -close.length);
+  if (u.closed) lines[last] = strip(lines[last]);
+  else if (part) {
+    const l = lines[last];
+    const k = l.lastIndexOf('\\');
+    if (env)
+      lines[last] = k >= 0 && close.startsWith(l.slice(k).trimEnd()) ? l.slice(0, k) : l; // an `\end{env}` that is still arriving
+    else lines[last] = closes(l, close) ? strip(l) : l.replace(/[$\\]$/, '');
+  }
+  return lines.join('\n').trim();
+}
+
+/** The math block that starts at line i. It runs to the line that ends with the closer, or to the end of input. Null if that makes it blank, which is text. */
+function mathUnit(L: string[], i: number, op: string, partial: boolean, final: boolean): Extract<Unit, { k: 'm' }> | null {
+  const n = L.length;
+  const close = closeOf(op);
+  let j = i + 1;
+  let closed = false;
+  if (op[1] === 'b' && closes(L[i], close) && (final || !partial || i < n - 1)) closed = true; // `\begin{env}...\end{env}` on one line
+  while (!closed && j < n) {
+    // A last line that is still arriving may grow past the closer (`$$x`), so it does not close the block yet, as with a fence.
+    if (closes(L[j], close) && (final || !partial || j < n - 1)) {
+      closed = true;
+      j++;
+      break;
+    }
+    j++;
+  }
+  const u: Extract<Unit, { k: 'm' }> = { k: 'm', a: i, e: j, b: j, closed, op };
+  return closed && !mathText(u, L) ? null : u;
 }
 
 /** Fenced code starting at line i. Runs to the closing fence or to the end of input. */
@@ -171,7 +270,7 @@ interface Last {
   tbl: boolean; // inside a table
   prev: string; // the last line, with the prefix of every container removed
   pre: number[];
-  fe: RegExp | null; // closing fence of a code block inside one of those containers
+  fe: Closer | null; // closing fence or math closer of a block inside one of those containers
 }
 // Nesting deeper than the renderer builds (MAX_DEPTH in index.ts) is text, so no more containers are tracked, which keeps `step` cheap on deep input.
 const MAX_PRE = 12;
@@ -196,7 +295,7 @@ const newLast = (): Last => ({ para: false, tbl: false, prev: '', pre: [], fe: n
 const dropQuote = (c: string) => c.replace(/^ {0,3}> ?/, '');
 /** The column where the content of the list item that line `l` (matched by `m`) opens starts. */
 const itemOff = (m: RegExpExecArray) => m[1].length + m[2].length + (!m[4] || (m[3]?.length ?? 1) > 4 ? 1 : (m[3]?.length ?? 1));
-function step(s: Last, c: string, det: boolean): void {
+function step(s: Last, c: string, det: boolean, mt: boolean): void {
   let k = 0;
   for (; k < s.pre.length; k++) {
     const w = s.pre[k];
@@ -204,7 +303,7 @@ function step(s: Last, c: string, det: boolean): void {
     c = w === 0 ? dropQuote(c) : c.slice(w);
   }
   if (k < s.pre.length) {
-    if (s.para && c.trim() && !interrupts(c, det)) {
+    if (s.para && c.trim() && !interrupts(c, det, mt)) {
       s.prev = c; // a lazy line continues the paragraph of the innermost container
       return;
     }
@@ -216,7 +315,7 @@ function step(s: Last, c: string, det: boolean): void {
     if (s.fe.test(c)) s.fe = null;
     return;
   }
-  if (s.tbl && c.trim() && !interrupts(c, det) && !isCode(c)) {
+  if (s.tbl && c.trim() && !interrupts(c, det, mt) && !isCode(c)) {
     s.prev = c; // a row
     return;
   }
@@ -225,17 +324,19 @@ function step(s: Last, c: string, det: boolean): void {
     if (BQ.test(c)) {
       s.pre.push(0);
       c = dropQuote(c);
-    } else if ((m = LI.exec(c)) && m[1].length < 4 && !HR.test(c) && (!s.para || interrupts(c, det))) {
+    } else if ((m = LI.exec(c)) && m[1].length < 4 && !HR.test(c) && (!s.para || interrupts(c, det, mt))) {
       s.pre.push(itemOff(m));
       c = c.slice(s.pre[s.pre.length - 1]);
     } else break;
     s.para = false;
   }
   const f = fence(c);
+  const mo = !f && mt ? mathOpen(c) : null;
   if (f) s.fe = closer(f, ' {0,3}');
+  else if (mo) s.fe = mathCloser(mo);
   s.tbl = s.para && headOver(s.prev, c);
   // An underline closes the paragraph into a heading, and a line indented four spaces that is not paragraph text is code.
-  s.para = !f && !s.tbl && !!c.trim() && !atx(c) && !HR.test(c) && !(s.para && SETEXT.test(c)) && (s.para || !isCode(c));
+  s.para = !f && !mo && !s.tbl && !!c.trim() && !atx(c) && !HR.test(c) && !(s.para && SETEXT.test(c)) && (s.para || !isCode(c));
   s.prev = c;
 }
 
@@ -248,27 +349,31 @@ function indentEnd(L: string[], i: number): { e: number; j: number } {
 }
 
 /** End (exclusive) of the blockquote starting at line i. */
-function quoteEnd(L: string[], i: number, det: boolean): number {
+function quoteEnd(L: string[], i: number, det: boolean, mt: boolean): number {
   const n = L.length;
   // Lazy continuation (a line without `>`) is only allowed right after paragraph text.
   let j = i;
   const s = newLast();
-  let fe: RegExp | null = null;
+  let fe: Closer | null = null;
   for (; j < n && L[j].trim(); j++) {
     if (!BQ.test(L[j])) {
-      if (!s.para || interrupts(L[j], det)) break;
+      if (!s.para || interrupts(L[j], det, mt)) break;
       s.prev = L[j];
       continue;
     }
     const c = dropQuote(L[j]);
     const f = fe ? null : fence(c);
+    const mo = fe || f || !mt ? null : mathOpen(c);
     if (fe) {
       if (fe.test(c)) fe = null;
       s.para = s.tbl = false;
     } else if (f) {
       fe = closer(f, ' {0,3}');
       s.para = s.tbl = false;
-    } else step(s, c, det);
+    } else if (mo) {
+      fe = mathCloser(mo);
+      s.para = s.tbl = false;
+    } else step(s, c, det, mt);
   }
   return j;
 }
@@ -277,14 +382,14 @@ function quoteEnd(L: string[], i: number, det: boolean): number {
  * Extent of the list item starting at line i, whose content starts at column `off` and has text on its first line
  * if `text`. Returns the end of its content (`last`) and the end including trailing blank lines (`j`).
  */
-function itemEnd(L: string[], i: number, off: number, text: boolean, det: boolean): { last: number; j: number } {
+function itemEnd(L: string[], i: number, off: number, text: boolean, det: boolean, mt: boolean): { last: number; j: number } {
   const n = L.length;
   let j = i + 1;
-  let fe: RegExp | null = null;
+  let fe: Closer | null = null;
   let blank = false;
   let last = i + 1;
   const s = newLast();
-  if (text) step(s, L[i].slice(off), det);
+  if (text) step(s, L[i].slice(off), det, mt);
   for (; j < n; j++) {
     const x = L[j];
     if (fe) {
@@ -306,11 +411,15 @@ function itemEnd(L: string[], i: number, off: number, text: boolean, det: boolea
     const xi = spaces(x);
     if (xi >= off) {
       const f = fence(x.slice(off));
+      const mo = f || !mt ? null : mathOpen(x.slice(off));
       if (f) {
         fe = closer(f, ' *');
         s.para = s.tbl = false;
-      } else step(s, x.slice(off), det);
-    } else if ((LI.test(x) && !isCode(x)) || interrupts(x, det) || blank || !s.para)
+      } else if (mo) {
+        fe = mathCloser(mo);
+        s.para = s.tbl = false;
+      } else step(s, x.slice(off), det, mt);
+    } else if ((LI.test(x) && !isCode(x)) || interrupts(x, det, mt) || blank || !s.para)
       break; // four spaces is too much for a new item, so it continues the paragraph
     else s.prev = x;
     blank = false;
@@ -336,7 +445,16 @@ interface Frame {
  * `lz[k]` says line k is a lazy line: it came without the prefix of its quote or list item, so it continues a paragraph and
  * cannot be a delimiter row.
  */
-export function scan(L: string[], tbl: Al | null, partial: boolean, final: boolean, det = 0, dh = false, lz?: boolean[]): Unit[] {
+export function scan(
+  L: string[],
+  tbl: Al | null,
+  partial: boolean,
+  final: boolean,
+  det = 0,
+  dh = false,
+  lz?: boolean[],
+  mt = false,
+): Unit[] {
   const lazy = (k: number) => !!lz?.[k];
   const U: Unit[] = [];
   const n = L.length;
@@ -374,8 +492,12 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
         continue;
       }
     }
+    if (mt && !final && partial && i === n - 1 && envStart(l)) {
+      i++; // a `\begin{env}` that is still arriving: wait for the rest of the line
+      continue;
+    }
     if (tbl) {
-      if (!interrupts(l, !!det) && !isCode(l)) {
+      if (!interrupts(l, !!det, mt) && !isCode(l)) {
         U.push({ k: 'tr', a: i, e: i + 1, b: i + 1, al: tbl });
         i++;
         continue;
@@ -388,6 +510,16 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       U.push({ k: 'f', a: i, e, b: j, lang: '', closed: j < n, ind: 4, ic: true });
       i = j;
       continue;
+    }
+    if (mt) {
+      // A formula that never closes holds the rest of the text, like an open fence, and is shown as text once the message is over.
+      const op = mathOpen(l);
+      const u = op && mathUnit(L, i, op, partial, final);
+      if (u) {
+        U.push(u);
+        i = u.b;
+        continue;
+      }
     }
     let m: RegExpExecArray | null;
     let h: [number, string] | null;
@@ -406,7 +538,7 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       U.push({ k: 'hr', a: i, e: i + 1, b: i + 1 });
       i++;
     } else if (BQ.test(l)) {
-      const j = quoteEnd(L, i, !!det);
+      const j = quoteEnd(L, i, !!det, mt);
       U.push({ k: 'q', a: i, e: j, b: j });
       i = j;
     } else if ((m = LI.exec(l))) {
@@ -416,7 +548,7 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       }
       const ord = /\d/.test(m[2]);
       const off = itemOff(m);
-      const { last, j } = itemEnd(L, i, off, !!m[4], !!det);
+      const { last, j } = itemEnd(L, i, off, !!m[4], !!det, mt);
       U.push({ k: 'li', a: i, e: last, b: j, ord, num: ord ? parseInt(m[2], 10) : 0, off, mk: m[2].slice(-1) });
       i = j;
     } else {
@@ -461,7 +593,7 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
           if (d === 2) wait = j;
           break;
         }
-        if (interrupts(L[j], !!det)) break;
+        if (interrupts(L[j], !!det, mt)) break;
       }
       if (se) {
         U.push({ k: 'h', a: i, e: j + 1, b: j + 1, lv: se, se: true });
@@ -475,7 +607,8 @@ export function scan(L: string[], tbl: Al | null, partial: boolean, final: boole
       }
       const bare = !final && partial && j === n && j - 1 > i && BARE.test(L[n - 1]);
       const dbare = !!det && dh && j === n && j - 1 > i && tagPrefix(L[n - 1], false);
-      U.push({ k: 'p', a: i, e: bare || dbare ? j - 1 : j, b: j });
+      const mbare = mt && !final && partial && j === n && j - 1 > i && envStart(L[n - 1]);
+      U.push({ k: 'p', a: i, e: bare || dbare || mbare ? j - 1 : j, b: j });
       i = j;
     }
   }

@@ -9,6 +9,9 @@ All notable changes to this project are documented here. The format follows [Kee
 - `limmat/react`, `limmat/vue`, and `limmat/solid`: a `Markdown` component that takes `text` (the whole message so far) and `done`. Solid 1 and 2 both work, and the frameworks are optional peer dependencies.
 - `limmat/svelte`: a `limmat` action, `use:limmat={{ text, done }}`.
 - Preact needs no wrapper: use `limmat/react` with `preact/compat`.
+- Math, opt-in: pass `renderMath` and `\(x\)`, `\[x\]`, `$x$`, and `$$x$$` (also alone on their own lines) become formulas that your function (KaTeX, MathJax, Temml) fills in. Prices like `$5 and $10` stay text.
+- `limmat/katex`: `renderMath: katexMath(katex)` draws formulas with KaTeX, keeps `trust` off, and shows the tex as text when KaTeX cannot parse it.
+- `singleDollarMath: false` turns off `$x$` and keeps the other forms.
 
 ### Fixed
 

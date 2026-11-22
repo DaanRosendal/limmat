@@ -11,7 +11,8 @@
       "limmat/react": ["./src/react.ts"],
       "limmat/vue": ["./src/vue.ts"],
       "limmat/svelte": ["./src/svelte.ts"],
-      "limmat/solid": ["./src/solid.ts"]
+      "limmat/solid": ["./src/solid.ts"],
+      "limmat/katex": ["./src/katex.ts"]
     },
     "types": ["node"]
   },

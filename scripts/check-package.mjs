@@ -17,6 +17,8 @@ const want = [
     'highlight.js',
     'index.d.ts',
     'index.js',
+    'katex.d.ts',
+    'katex.js',
     'limmat.min.js',
     'react.d.ts',
     'react.js',
@@ -54,7 +56,7 @@ try {
   execFileSync('tar', ['-xzf', join(packed, readdirSync(packed)[0]), '-C', pkg, '--strip-components=1']);
   writeFileSync(join(dir, 'package.json'), '{"type":"module"}');
   // The frameworks a consumer of the wrappers has installed, taken from this repo's dev dependencies.
-  for (const name of ['react', 'react-dom', 'vue', '@vue', '@types', 'csstype', 'svelte', 'scheduler', 'solid-js', '@solidjs']) {
+  for (const name of ['react', 'react-dom', 'vue', '@vue', '@types', 'csstype', 'svelte', 'scheduler', 'solid-js', '@solidjs', 'katex']) {
     if (existsSync(join(process.cwd(), 'node_modules', name)))
       symlinkSync(join(process.cwd(), 'node_modules', name), join(dir, 'node_modules', name));
   }
@@ -63,6 +65,8 @@ try {
     `import { createRenderer, type Highlighter, type Options, type Renderer } from 'limmat';
 import 'limmat/style.css';
 import { speedHighlight } from 'limmat/highlight';
+import { katexMath } from 'limmat/katex';
+import katex from 'katex';
 import { renderToString, type ServerOptions } from 'limmat/server';
 import { Markdown as ReactMarkdown, type MarkdownProps } from 'limmat/react';
 import { Markdown as VueMarkdown } from 'limmat/vue';
@@ -98,6 +102,13 @@ const r: Renderer = createRenderer(el, opts);
 r.write('x');
 // @ts-expect-error speedHighlight() must be typed, not any
 const notAny: number = speedHighlight();
+const withMath: Options = { renderMath: katexMath(katex), singleDollarMath: false };
+const withKatexOptions: Options = { renderMath: katexMath(katex, { macros: {}, output: 'mathml' }) };
+// @ts-expect-error it needs the katex object
+katexMath(1);
+// @ts-expect-error a page is needed for math, so the server options leave it out
+const noMath: ServerOptions = { renderMath: katexMath(katex) };
+void [withMath, withKatexOptions, noMath];
 `,
   );
   writeFileSync(
@@ -143,6 +154,27 @@ if (a !== b) throw new Error('dist/index.js and dist/limmat.min.js render differ
 `,
   );
   execFileSync(process.execPath, ['run.mjs'], { stdio: 'inherit', cwd: dir });
+
+  // Math with the real KaTeX through the adapter: a formula becomes KaTeX markup, and a hostile one stays inert.
+  writeFileSync(
+    join(dir, 'math.mjs'),
+    `import { JSDOM } from ${JSON.stringify(jsdom)};
+const dom = new JSDOM('<!doctype html><div id="m"></div>'); // KaTeX refuses to render in quirks mode, so the page needs a doctype
+Object.assign(globalThis, { document: dom.window.document, window: dom.window, HTMLElement: dom.window.HTMLElement, Element: dom.window.Element, Node: dom.window.Node });
+const { createRenderer } = await import('limmat');
+const { katexMath } = await import('limmat/katex');
+const katex = (await import('katex')).default;
+const el = document.getElementById('m');
+const r = createRenderer(el, { renderMath: katexMath(katex), throttleMs: 0 });
+for (const ch of 'Sum \\\\(x^2\\\\) and $a_1$ and \\\\[\\\\frac{1}{2}\\\\] and $\\\\href{javascript:alert(1)}{x}$ and $\\\\frac{$.') r.write(ch);
+r.end();
+const html = el.innerHTML;
+if ((html.match(/class="katex"/g) ?? []).length !== 4) throw new Error('expected four KaTeX formulas: ' + html);
+if (/<a[ >]|href=|<script/.test(html)) throw new Error('hostile tex was not inert: ' + html);
+if (!html.includes('frac{')) throw new Error('a formula KaTeX cannot parse should stay as text: ' + html);
+`,
+  );
+  execFileSync(process.execPath, ['math.mjs'], { stdio: 'inherit', cwd: dir });
 
   // The server entry in a fresh process with no DOM at all, and the same output as the DOM path above.
   writeFileSync(
@@ -247,7 +279,7 @@ if (typeof createRenderer !== 'function' || renderToString('# x') !== '<h1>x</h1
   );
   execFileSync(process.execPath, ['require.cjs'], { stdio: 'inherit', cwd: dir });
   console.log(
-    `package ok: ${files.length} files, NodeNext consumer type-checks, packed code renders, server entry renders with no DOM, the React, Vue, Svelte, and Solid wrappers type-check, load with no DOM, and stream, and require() loads both entries`,
+    `package ok: ${files.length} files, NodeNext consumer type-checks, packed code renders, server entry renders with no DOM, KaTeX renders through limmat/katex, the React, Vue, Svelte, and Solid wrappers type-check, load with no DOM, and stream, and require() loads both entries`,
   );
 } finally {
   rmSync(dir, { recursive: true, force: true });

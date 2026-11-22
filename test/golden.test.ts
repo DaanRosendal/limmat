@@ -19,6 +19,7 @@ const docs: Record<string, string> = {
   entities: CORPUS.find((d) => d.startsWith('Entities:'))!,
   setext: CORPUS.find((d) => d.startsWith('Setext:'))!,
   indented: CORPUS.find((d) => d.startsWith('Indented code:'))!,
+  math: CORPUS.find((d) => d.startsWith('Math (plain text'))!, // math is off here: plain text
 };
 
 describe('golden output', () => {

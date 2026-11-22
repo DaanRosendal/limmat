@@ -2,7 +2,7 @@
 // at a time. Letters-only means that any markdown character visible outside a code block is a marker that leaked.
 // Raise the size with FUZZ_N=500 and change the seed with FUZZ_SEED. A failing document is shrunk before it is reported.
 import { describe, expect, it } from 'vitest';
-import { createRenderer } from '../src/index';
+import { createRenderer, type Options } from '../src/index';
 import { renderOpen, rng } from './helpers/util';
 
 const N = Number(process.env.FUZZ_N ?? 60);
@@ -10,6 +10,10 @@ const SEED = Number(process.env.FUZZ_SEED ?? 4242);
 const WORDS = ['alpha', 'beta', 'gamma', 'delta', 'omega', 'x'];
 // A lone `!` or `|` can be real text ("great!", "a | b"), so only `![` and a table delimiter row count as leaks.
 const MARKERS = /[*_~[\]()<>#\\`=]|!\[|--|:-|-:/;
+
+// Both properties run twice: with the default options, and with math on, where the stub hook writes `«tex»` without backslashes or braces (no marker character).
+let OPTS: Options = {};
+let LEAK: RegExp = MARKERS;
 
 type R = () => number;
 const pick = <T>(r: R, xs: T[]): T => xs[Math.floor(r() * xs.length)];
@@ -83,7 +87,34 @@ function block(r: R): string {
   ][Math.floor(r() * 12)]();
 }
 
+// Math in the same places as everything else: in a sentence, a heading, a list item, a quote, a table cell, and as blocks. Letters only.
+function mathBlock(r: R): string {
+  const tex = () => pick(r, WORDS) + (r() < 0.5 ? ` ${pick(r, WORDS)}` : '');
+  const m = () =>
+    pick(r, [
+      () => `\\(${tex()}\\)`,
+      () => `$${pick(r, WORDS)}$`,
+      () => `$$${tex()}$$`,
+      () => `\\[${tex()}\\]`,
+      () => `$${pick(r, WORDS)} ${pick(r, WORDS)}$`,
+    ])();
+  return [
+    () => `${words(r, 2)} ${m()} ${words(r, 2)}`,
+    () => `${words(r, 2)} ${m()} and ${m()}.`,
+    () => `$$\n${tex()}\n${tex()}\n$$`,
+    () => `\\[\n${tex()}\n\\]`,
+    () => `${words(r, 2)}\n$$\n${tex()}\n${tex()} $$\n${words(r, 2)}`,
+    () => `- ${words(r, 1)} ${m()}\n  $$\n  ${tex()}\n  $$\n- ${m()}`,
+    () => `> ${words(r, 1)} ${m()}\n> \\[\n> ${tex()}\n> \\]`,
+    () => `| a | b |\n|---|---|\n| ${m()} | ${words(r, 1)} |`,
+    () => `${'#'.repeat(1 + Math.floor(r() * 3))} ${words(r, 1)} ${m()}`,
+    () => `**${words(r, 1)} ${m()}** and *${m()}*`,
+    () => `\\begin{cases}\n${tex()}\n${tex()}\n\\end{cases}`,
+    () => `<details>\n<summary>${words(r, 2)}</summary>\n\n${m()}\n\n$$\n${tex()}\n$$\n\n</details>`,
+  ][Math.floor(r() * 12)]();
+}
 const genBlocks = (r: R) => Array.from({ length: 2 + Math.floor(r() * 4) }, () => block(r));
+const genMathBlocks = (r: R) => Array.from({ length: 2 + Math.floor(r() * 4) }, () => (r() < 0.6 ? mathBlock(r) : block(r)));
 const join = (blocks: string[]) => blocks.join('\n\n');
 
 const visibleText = (root: Element) => {
@@ -99,11 +130,11 @@ type Prop = (md: string, r: R) => Fail | null;
 // After every character, no marker is visible outside code blocks.
 const noRawMarkers: Prop = (md) => {
   const root = document.createElement('div');
-  const w = createRenderer(root, { throttleMs: 0 });
+  const w = createRenderer(root, { throttleMs: 0, ...OPTS });
   for (let i = 0; i < md.length; i++) {
     w.write(md[i]);
     const text = visibleText(root);
-    const m = MARKERS.exec(text);
+    const m = LEAK.exec(text);
     if (m) return { at: i + 1, why: `the text shows ${JSON.stringify(m[0])}: ${JSON.stringify(text)}` };
   }
   return null;
@@ -112,12 +143,12 @@ const noRawMarkers: Prop = (md) => {
 // After every chunk, the DOM equals what the same text gives when it is written in one piece.
 const prefixEqualsWhole: Prop = (md, r) => {
   const root = document.createElement('div');
-  const w = createRenderer(root, { throttleMs: 0 });
+  const w = createRenderer(root, { throttleMs: 0, ...OPTS });
   for (let i = 0; i < md.length; ) {
     const n = 1 + Math.floor(r() * 6);
     w.write(md.slice(i, i + n));
     i += n;
-    const want = renderOpen(md.slice(0, i)).innerHTML;
+    const want = renderOpen(md.slice(0, i), OPTS).innerHTML;
     if (root.innerHTML !== want) return { at: i, why: `\nchunked: ${root.innerHTML}\nwhole:   ${want}` };
   }
   return null;
@@ -137,24 +168,42 @@ function shrinkBlocks(blocks: string[], prop: Prop, seed: number): { md: string;
 }
 
 describe('streaming property test', () => {
-  it('keeps the properties on random documents', () => {
-    const r = rng(SEED);
-    const docs = Array.from({ length: N }, () => genBlocks(r));
-    const failures: string[] = [];
-    for (const [name, prop] of [
-      ['markers stay hidden', noRawMarkers],
-      ['prefix equals whole', prefixEqualsWhole],
-    ] as const) {
-      const seen = new Set<string>();
-      for (const blocks of docs) {
-        if (prop(join(blocks), rng(SEED)) === null) continue;
-        const { md, fail } = shrinkBlocks(blocks, prop, SEED);
-        if (seen.has(md)) continue;
-        seen.add(md);
-        failures.push(`## ${name} (seed ${SEED})\n${JSON.stringify(md)}\n${fail.why}`);
-        if (seen.size >= 3) break;
+  const variants = [
+    { name: 'default options', opts: {} as Options, leak: MARKERS, gen: genBlocks },
+    {
+      name: 'math on',
+      opts: {
+        renderMath: (el: HTMLElement, tex: string) => {
+          el.textContent = `«${tex.replace(/[\\{}]/g, '')}»`; // an environment's tex holds its own \begin{...}
+        },
+      } as Options,
+      leak: new RegExp(`${MARKERS.source}|\\$\\$`), // a single `$` may be a price, but `$$` is never shown
+      gen: genMathBlocks,
+    },
+  ];
+  for (const v of variants)
+    it(`keeps the properties on random documents (${v.name})`, () => {
+      OPTS = v.opts;
+      LEAK = v.leak;
+      const r = rng(SEED);
+      const docs = Array.from({ length: N }, () => v.gen(r));
+      const failures: string[] = [];
+      for (const [name, prop] of [
+        ['markers stay hidden', noRawMarkers],
+        ['prefix equals whole', prefixEqualsWhole],
+      ] as const) {
+        const seen = new Set<string>();
+        for (const blocks of docs) {
+          if (prop(join(blocks), rng(SEED)) === null) continue;
+          const { md, fail } = shrinkBlocks(blocks, prop, SEED);
+          if (seen.has(md)) continue;
+          seen.add(md);
+          failures.push(`## ${name} (seed ${SEED})\n${JSON.stringify(md)}\n${fail.why}`);
+          if (seen.size >= 3) break;
+        }
       }
-    }
-    expect(failures.join('\n\n')).toBe('');
-  });
+      OPTS = {};
+      LEAK = MARKERS;
+      expect(failures.join('\n\n')).toBe('');
+    });
 });

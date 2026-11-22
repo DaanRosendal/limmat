@@ -12,19 +12,27 @@ export type Inline =
   | { k: 'br' }
   | { k: 'e'; tag: 'em' | 'strong' | 'del' | (typeof HTML_TAGS)[number]; kids: Inline[] }
   | { k: 'l'; href: string; img: boolean; kids: Inline[] } // link, or image (img: rendered as its alt text)
-  | { k: 'a'; s: string; href: string; ang?: true }; // autolink, the text is the URL or email (`ang`: written in angle brackets)
+  | { k: 'a'; s: string; href: string; ang?: true } // autolink, the text is the URL or email (`ang`: written in angle brackets)
+  | { k: 'm'; s: string; disp: boolean; open?: true }; // math: the tex (`open`: its closing delimiter has not arrived yet, so the tex shows as plain text)
+
+/** Which math syntax parseInline looks for, when the `renderMath` option is on. The backslash and double dollar forms are always on. */
+export interface MathOpts {
+  dollar: boolean; // single `$...$`
+}
 
 /**
  * Working node used while parsing. One loose shape (rather than a union) because delimiter nodes are rewritten in
  * place as the CommonMark delimiter stack resolves, and esbuild does not mangle property names, so keep them short.
  */
 interface N {
-  k: 't' | 'c' | 'br' | 'e' | 'l' | 'a' | 'd' | '[' | 'h' | 'g'; // text, code, break, emphasis, link, autolink, delimiter run, open bracket, list head, HTML tag token
+  k: 't' | 'c' | 'br' | 'e' | 'l' | 'a' | 'd' | '[' | 'h' | 'g' | 'm'; // text, code, break, emphasis, link, autolink, delimiter run, open bracket, list head, HTML tag token, math
   s?: string; // text, code, or autolink text, or the source text of an HTML tag token
   tag?: string; // emphasis or HTML element name
   kids?: N[]; // children of emphasis and links
   href?: string; // link or autolink target, not yet checked by safeUrl
   ang?: true; // autolink written in angle brackets
+  disp?: boolean; // display math
+  open?: true; // math that is still open
   img?: boolean; // image rather than link
   d?: number; // nesting depth of this node's subtree, capped at MAXDEPTH
   ch?: string; // delimiter character (* _ ~)
@@ -54,6 +62,7 @@ const NAMES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', a
 const DEST_ESC = /\\([!-/:-@[-`{-~])|&(?:#([0-9]{1,7})|#[xX]([0-9a-fA-F]{1,6})|(amp|lt|gt|quot|apos|nbsp));/g;
 // The text from a `&` to the end that could still become a reference, held back while streaming.
 const PARTIAL_ENT = /^&(?:#(?:[0-9]{0,7}|[xX][0-9a-fA-F]{0,6})|[a-z]{0,4})$/;
+const DIGIT = /[0-9]/;
 const MAXDEST = 8192; // most servers refuse longer request lines (Apache 8190, nginx 8 KB), so a longer link would be dead anyway
 const MAXDEPTH = 30;
 
@@ -325,7 +334,40 @@ function partialAuto(s: string, i: number): boolean {
   return PARTIAL_AUTO.test(s);
 }
 
-export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> = DEFAULT_TAGS): Inline[] {
+/** Is the last character of `t` escaped, that is, does an odd number of backslashes end it? */
+function escapedEnd(t: string): boolean {
+  let k = 0;
+  for (let i = t.length - 1; i >= 0 && t[i] === '\\'; i--) k++;
+  return k % 2 === 1;
+}
+
+/**
+ * The `$` that closes the single-dollar span opened at `i` (whose next character is not a space), or -1. As in Pandoc, the
+ * closer has no space before it, and when the opener is followed by a digit it is not followed by one either, so `$5-$10`
+ * stays text. A `$` that cannot close but starts something (no space after it) ends the search, so one price cannot
+ * swallow the math after it and every opener scans only up to the next dollar. The span stays on one line. A closer on the
+ * last character of text that is still streaming waits when the digit rule applies, because the next character decides it.
+ */
+function dollarClose(s: string, i: number, spec: boolean): number {
+  const n = s.length;
+  const dig = DIGIT.test(s[i + 1]);
+  for (let j = i + 1; j < n; j++) {
+    const d = s[j];
+    if (d === '\n') return -1;
+    if (d === '\\') {
+      if (s[j + 1] === '\n') return -1;
+      j++;
+      continue;
+    }
+    if (d !== '$') continue;
+    const next = s[j + 1];
+    if (!WS.test(s[j - 1]) && (!dig || (next === undefined ? !spec : !DIGIT.test(next)))) return j;
+    if (next !== undefined && !WS.test(next)) return -1;
+  }
+  return -1;
+}
+
+export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> = DEFAULT_TAGS, math?: MathOpts): Inline[] {
   const out: N[] = [];
   const brk: number[] = [];
   const n = s.length;
@@ -336,6 +378,48 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
   const work = { n: 8 * n + 8192 }; // work budget for link destinations, see parseDest
   const text = (to: number) => {
     if (to > ts) out.push({ k: 't', s: s.slice(ts, to) });
+  };
+  // Where each closing delimiter is, found once and walked with a pointer like the backtick runs, so a delimiter with no closer is not searched for again.
+  let mc: { p: number[]; b: number[]; d: number[] } | undefined;
+  const mp = { p: 0, b: 0, d: 0 };
+  /**
+   * Math opened at `i` by a delimiter `len` characters long (`\(`, `\[`, or `$$`, whose closers are `\)`, `\]`, and `$$`). Returns where
+   * parsing goes on, or -1 when it is not math: the formula is blank, or it never closes and the text is final. Then the opener is
+   * what it was without math (`\(` and `\[` are escapes, `$$` is text), so math changes the output only where a formula closes.
+   * While streaming, a formula with no closer yet is an open node that shows its tex (without a half-typed closer) as plain text.
+   */
+  const mathAt = (i: number, len: number, key: 'p' | 'b' | 'd', disp: boolean): number => {
+    if (!mc) {
+      mc = { p: [], b: [], d: [] };
+      for (let k = 0; k < n; k++) {
+        if (s[k] === '\\') {
+          if (s[k + 1] === ')') mc.p.push(k);
+          else if (s[k + 1] === ']') mc.b.push(k);
+          k++;
+        } else if (s[k] === '$' && s[k + 1] === '$') {
+          mc.d.push(k);
+          k++;
+        }
+      }
+    }
+    const list = mc[key];
+    let q = mp[key];
+    while (q < list.length && list[q] < i + len) q++;
+    mp[key] = q;
+    if (q < list.length) {
+      const tex = s.slice(i + len, list[q]).trim();
+      if (!tex) return -1;
+      text(i);
+      out.push({ k: 'm', s: tex, disp });
+      return (ts = list[q] + 2);
+    }
+    if (!spec) return -1;
+    let body = s.slice(i + len);
+    if (key === 'd' ? body.endsWith('$') && !escapedEnd(body.slice(0, -1)) : escapedEnd(body)) body = body.slice(0, -1);
+    text(i);
+    const tex = body.trim();
+    if (tex) out.push({ k: 'm', s: tex, disp, open: true });
+    return (ts = n);
   };
 
   while (i < n) {
@@ -348,6 +432,13 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
         i += 2;
         ts = i;
         continue;
+      }
+      if (math && (nx === '(' || nx === '[')) {
+        const r = mathAt(i, 2, nx === '(' ? 'p' : 'b', nx === '[');
+        if (r >= 0) {
+          i = r;
+          continue;
+        }
       }
       if (nx && ESC.test(nx)) {
         text(i);
@@ -540,6 +631,18 @@ export function parseInline(s: string, spec: boolean, tags: ReadonlySet<string> 
         out.push({ k: 'a', s: lm[0] + '@' + dom, href: 'mailto:' + lm[0] + '@' + dom });
         i += 1 + dom.length;
         ts = i;
+      } else i++;
+    } else if (math && c === '$') {
+      if (s[i + 1] === '$') {
+        const r = mathAt(i, 2, 'd', true);
+        i = r >= 0 ? r : i + 2;
+      } else if (math.dollar && i + 1 < n && !WS.test(s[i + 1])) {
+        const j = dollarClose(s, i, spec);
+        if (j > 0) {
+          text(i);
+          out.push({ k: 'm', s: s.slice(i + 1, j), disp: false });
+          ts = i = j + 1;
+        } else i++;
       } else i++;
     } else i++;
   }

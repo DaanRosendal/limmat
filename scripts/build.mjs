@@ -10,6 +10,8 @@ const common = { bundle: true, format: 'esm', target: ['chrome86', 'firefox78', 
 await build({ ...common, entryPoints: ['src/index.ts'], outfile: 'dist/index.js' });
 await build({ ...common, entryPoints: ['src/index.ts'], outfile: 'dist/limmat.min.js', minify: true });
 await build({ ...common, entryPoints: ['src/highlight.ts'], outfile: 'dist/highlight.js', external: ['@speed-highlight/core'] });
+// The KaTeX adapter is given the `katex` object, so it imports nothing.
+await build({ ...common, entryPoints: ['src/katex.ts'], outfile: 'dist/katex.js' });
 // The server entry imports dist/index.js instead of bundling a second copy of the renderer.
 const core = { name: 'core', setup: (b) => b.onResolve({ filter: /^\.\/index(\.js)?$/ }, () => ({ path: './index.js', external: true })) };
 await build({ ...common, entryPoints: ['src/server.ts'], outfile: 'dist/server.js', plugins: [core] });
@@ -26,7 +28,7 @@ copyFileSync('src/style.css', 'dist/style.css');
 // TypeScript 7 rejects a side-effect import with no declaration, so the stylesheet export points at an empty one.
 writeFileSync('dist/style.css.d.ts', 'export {};\n');
 execFileSync('npx', ['tsc', '-p', 'tsconfig.build.json'], { stdio: 'inherit' });
-// Only index, highlight, server, react, vue, svelte, and solid are public (see "exports"), so the declarations of the internal modules stay out of the package.
+// Only index, highlight, katex, server, react, vue, svelte, and solid are public (see "exports"), so the declarations of the internal modules stay out of the package.
 for (const f of ['block', 'inline', 'url', 'dom', 'follow']) rmSync(`dist/${f}.d.ts`);
 writeFileSync('dist/limmat.min.js', '// limmat, MIT, Copyright (c) 2026 Daan Rosendal\n' + readFileSync('dist/limmat.min.js', 'utf8'));
 const min = readFileSync('dist/limmat.min.js');

@@ -53,7 +53,8 @@ md.end();
 - [x] Task lists and fenced code with a Copy button
 - [x] Collapsible sections and safe tags like <kbd>Ctrl</kbd>
 - [ ] Reference links
-- [ ] Math and footnotes
+- [x] Math, when you add a renderer like KaTeX
+- [ ] Footnotes and citations
 
 > Unsupported syntax renders as literal text, never as markup.
 

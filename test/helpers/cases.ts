@@ -141,6 +141,12 @@ export const XSS: [string, string][] = [
   ['table align injection', '| a |\n|:"onclick=x:|\n| b |'],
   ['task checkbox html', '- [x] <input type=text onfocus=alert(1)>'],
   ['unclosed everything', '<script>alert(1) **x [y](javascript:z `c'],
+  // Math is off unless `renderMath` is set, so these are plain text here. test/math-fuzz.test.ts runs them with a hook that is on.
+  ['math tex script', '$<script>alert(1)</script>$'],
+  ['math tex img onerror', '\\(<img src=x onerror=alert(1)>\\)'],
+  ['display math script', '$$\n<script>alert(1)</script>\n$$'],
+  ['math href js:', '$\\href{javascript:alert(1)}{x}$'],
+  ['math environment script', '\\begin{cases}\n<script>alert(1)</script>\n\\end{cases}'],
 ];
 
 /** Realistic replies, one per feature area, for the chunk-split fuzz. */
@@ -177,4 +183,5 @@ export const CORPUS: string[] = [
   'Entities: AT&amp;T, R&D, a &lt; b, &#35; and &#x1F600; and &nbsp;x, &copy; &foo; &#0; &#12345678;, `&amp;` and ``&lt;``.\n\n[q](https://x.com/?a=1&amp;b=2) [bad](&#106;avascript:alert(1)) <https://x.com/?a&amp;b> https://x.com/?a&amp;b\n\n| a &amp; b |\n|---|\n| &lt;i&gt; |\n\n&#42;not em&#42; and &#35; not a heading\n\n> &gt; q\n- &amp; item\n\nEnds half-typed: &am',
   'Setext:\n\nTitle\n=====\n\nSub *heading*\n---\n\nTwo\nlines **here**\n--\n\n> Quoted\n> ===\n\n> Lazy\n===\n\n- item\n  ---\n- other\n---\n\nNot one\n= =\n\nNot either\n--- x\n\na | b\n---\n\nRule\n***\n\nEnds on an underline\n==',
   'Indented code:\n\nPlain text.\n\n    $ npm install\n    $ npm test\n\n    second chunk after a blank line\n\nBack to text\n    still the same paragraph\n\n> quoted\n>\n>     code in a quote\n\n\tTabbed code\n\n- item\n\n      code in an item\n\n1. a\n    - four-space nesting\n\n```make\nall:\n\tgcc x.c\n```\n\n    # not a heading\n    - not a list\n    <script>alert(1)</script>\n\n    last chunk\nends here',
+  'Math (plain text unless renderMath is set): \\(x^2\\) and $y_1$ and $5 and $10, \\[z\\] and $$w$$.\n\n$$\na = b\n- c\n$$\n\n\\begin{cases}\nx\n\\end{cases}\n\nEnds with an open \\(formula and $$block',
 ];
